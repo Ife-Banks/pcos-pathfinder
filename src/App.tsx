@@ -11,6 +11,9 @@ import ForgotPasswordScreen from "./pages/ForgotPasswordScreen";
 import VerifyEmailScreen from "./pages/VerifyEmailScreen";
 import OnboardingScreen from "./pages/OnboardingScreen";
 import OnboardingComplete from "./pages/OnboardingComplete";
+import DashboardScreen from "./pages/DashboardScreen";
+import MorningCheckIn from "./pages/MorningCheckIn";
+import EveningCheckIn from "./pages/EveningCheckIn";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +33,9 @@ const App = () => (
           <Route path="/verify-email" element={<VerifyEmailScreen />} />
           <Route path="/onboarding" element={<OnboardingScreen />} />
           <Route path="/onboarding-complete" element={<OnboardingComplete />} />
+          <Route path="/dashboard" element={<DashboardScreen />} />
+          <Route path="/check-in/morning" element={<MorningCheckIn />} />
+          <Route path="/check-in/evening" element={<EveningCheckIn />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
