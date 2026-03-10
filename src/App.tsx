@@ -38,6 +38,8 @@ const App = () => (
           <Route path="/dashboard" element={<DashboardScreen />} />
           <Route path="/check-in/morning" element={<MorningCheckIn />} />
           <Route path="/check-in/evening" element={<EveningCheckIn />} />
+          <Route path="/period-logging" element={<PeriodLogging />} />
+          <Route path="/cycle-history" element={<CycleHistory />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
