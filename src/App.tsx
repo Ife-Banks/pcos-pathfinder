@@ -14,6 +14,8 @@ import OnboardingComplete from "./pages/OnboardingComplete";
 import DashboardScreen from "./pages/DashboardScreen";
 import MorningCheckIn from "./pages/MorningCheckIn";
 import EveningCheckIn from "./pages/EveningCheckIn";
+import PeriodLogging from "./pages/PeriodLogging";
+import CycleHistory from "./pages/CycleHistory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
