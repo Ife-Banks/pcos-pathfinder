@@ -16,6 +16,8 @@ import MorningCheckIn from "./pages/MorningCheckIn";
 import EveningCheckIn from "./pages/EveningCheckIn";
 import PeriodLogging from "./pages/PeriodLogging";
 import CycleHistory from "./pages/CycleHistory";
+import HirsutismScoring from "./pages/HirsutismScoring";
+import PHQ4Assessment from "./pages/PHQ4Assessment";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
