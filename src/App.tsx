@@ -42,6 +42,8 @@ const App = () => (
           <Route path="/check-in/evening" element={<EveningCheckIn />} />
           <Route path="/period-logging" element={<PeriodLogging />} />
           <Route path="/cycle-history" element={<CycleHistory />} />
+          <Route path="/hirsutism" element={<HirsutismScoring />} />
+          <Route path="/phq4" element={<PHQ4Assessment />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
