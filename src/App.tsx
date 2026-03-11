@@ -26,6 +26,19 @@ import RiskScoreTrend from "./pages/RiskScoreTrend";
 import SHAPExplanationDetail from "./pages/SHAPExplanationDetail";
 import TriageWithoutLabs from "./pages/TriageWithoutLabs";
 import NotFound from "./pages/NotFound";
+// Profile & Settings
+import MyProfileScreen from "./pages/MyProfileScreen";
+import NotificationSettingsScreen from "./pages/NotificationSettingsScreen";
+import DataPrivacyScreen from "./pages/DataPrivacyScreen";
+import ConnectedDevicesScreen from "./pages/ConnectedDevicesScreen";
+// Referral & Clinical
+import ClinicalReferralScreen from "./pages/ClinicalReferralScreen";
+import ClinicalSummaryScreen from "./pages/ClinicalSummaryScreen";
+// Clinician Portal
+import ClinicianLoginScreen from "./pages/ClinicianLoginScreen";
+import PatientPanelScreen from "./pages/PatientPanelScreen";
+import PatientDetailScreen from "./pages/PatientDetailScreen";
+import ClinicianExportScreen from "./pages/ClinicianExportScreen";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +71,19 @@ const App = () => (
           <Route path="/risk-trend" element={<RiskScoreTrend />} />
           <Route path="/shap-detail" element={<SHAPExplanationDetail />} />
           <Route path="/triage-no-labs" element={<TriageWithoutLabs />} />
+          {/* Profile & Settings */}
+          <Route path="/profile" element={<MyProfileScreen />} />
+          <Route path="/settings/notifications" element={<NotificationSettingsScreen />} />
+          <Route path="/settings/privacy" element={<DataPrivacyScreen />} />
+          <Route path="/settings/devices" element={<ConnectedDevicesScreen />} />
+          {/* Referral & Clinical */}
+          <Route path="/referral" element={<ClinicalReferralScreen />} />
+          <Route path="/clinical-summary" element={<ClinicalSummaryScreen />} />
+          {/* Clinician Portal */}
+          <Route path="/clinician/login" element={<ClinicianLoginScreen />} />
+          <Route path="/clinician/patients" element={<PatientPanelScreen />} />
+          <Route path="/clinician/patient/:id" element={<PatientDetailScreen />} />
+          <Route path="/clinician/patient/:id/export" element={<ClinicianExportScreen />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

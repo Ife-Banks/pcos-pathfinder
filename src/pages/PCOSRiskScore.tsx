@@ -204,6 +204,20 @@ const PCOSRiskScore = () => {
             Full Breakdown
           </Button>
         </div>
+
+        {/* Referral CTA for High/Critical Risk */}
+        {SCORE >= 0.5 && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="w-full mb-4 border-[hsl(var(--warning))]/30 text-[hsl(var(--warning))] hover:bg-[hsl(var(--warning))]/5"
+              onClick={() => navigate("/referral")}
+            >
+              View Clinical Referral Recommendation
+            </Button>
+          </motion.div>
+        )}
       </div>
     </div>
   );
