@@ -21,6 +21,10 @@ import PHQ4Assessment from "./pages/PHQ4Assessment";
 import LabResultsUpload from "./pages/LabResultsUpload";
 import UltrasoundUpload from "./pages/UltrasoundUpload";
 import ClinicalDataStatus from "./pages/ClinicalDataStatus";
+import PCOSRiskScore from "./pages/PCOSRiskScore";
+import RiskScoreTrend from "./pages/RiskScoreTrend";
+import SHAPExplanationDetail from "./pages/SHAPExplanationDetail";
+import TriageWithoutLabs from "./pages/TriageWithoutLabs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +54,10 @@ const App = () => (
           <Route path="/lab-results" element={<LabResultsUpload />} />
           <Route path="/ultrasound-upload" element={<UltrasoundUpload />} />
           <Route path="/clinical-status" element={<ClinicalDataStatus />} />
+          <Route path="/risk-score" element={<PCOSRiskScore />} />
+          <Route path="/risk-trend" element={<RiskScoreTrend />} />
+          <Route path="/shap-detail" element={<SHAPExplanationDetail />} />
+          <Route path="/triage-no-labs" element={<TriageWithoutLabs />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
