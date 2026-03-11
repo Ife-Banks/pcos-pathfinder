@@ -18,6 +18,9 @@ import PeriodLogging from "./pages/PeriodLogging";
 import CycleHistory from "./pages/CycleHistory";
 import HirsutismScoring from "./pages/HirsutismScoring";
 import PHQ4Assessment from "./pages/PHQ4Assessment";
+import LabResultsUpload from "./pages/LabResultsUpload";
+import UltrasoundUpload from "./pages/UltrasoundUpload";
+import ClinicalDataStatus from "./pages/ClinicalDataStatus";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +47,9 @@ const App = () => (
           <Route path="/cycle-history" element={<CycleHistory />} />
           <Route path="/hirsutism" element={<HirsutismScoring />} />
           <Route path="/phq4" element={<PHQ4Assessment />} />
+          <Route path="/lab-results" element={<LabResultsUpload />} />
+          <Route path="/ultrasound-upload" element={<UltrasoundUpload />} />
+          <Route path="/clinical-status" element={<ClinicalDataStatus />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
