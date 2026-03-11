@@ -47,6 +47,9 @@ const App = () => (
           <Route path="/cycle-history" element={<CycleHistory />} />
           <Route path="/hirsutism" element={<HirsutismScoring />} />
           <Route path="/phq4" element={<PHQ4Assessment />} />
+          <Route path="/lab-results" element={<LabResultsUpload />} />
+          <Route path="/ultrasound-upload" element={<UltrasoundUpload />} />
+          <Route path="/clinical-status" element={<ClinicalDataStatus />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
