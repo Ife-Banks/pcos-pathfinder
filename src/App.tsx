@@ -21,6 +21,10 @@ import PHQ4Assessment from "./pages/PHQ4Assessment";
 import LabResultsUpload from "./pages/LabResultsUpload";
 import UltrasoundUpload from "./pages/UltrasoundUpload";
 import ClinicalDataStatus from "./pages/ClinicalDataStatus";
+import PCOSRiskScore from "./pages/PCOSRiskScore";
+import RiskScoreTrend from "./pages/RiskScoreTrend";
+import SHAPExplanationDetail from "./pages/SHAPExplanationDetail";
+import TriageWithoutLabs from "./pages/TriageWithoutLabs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
