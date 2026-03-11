@@ -11,7 +11,6 @@ import {
   Watch,
   Settings,
   ChevronRight,
-  Edit2,
   Shield,
   Bell,
   Smartphone,
@@ -78,7 +77,6 @@ const MyProfileScreen = () => {
     { icon: Bell, label: "Notification Settings", route: "/settings/notifications" },
     { icon: Shield, label: "Data & Privacy", route: "/settings/privacy" },
     { icon: Smartphone, label: "Connected Devices", route: "/settings/devices" },
-    { icon: Settings, label: "App Settings", route: "/settings" },
   ];
 
   return (
@@ -89,8 +87,8 @@ const MyProfileScreen = () => {
           <ArrowLeft className="w-5 h-5 text-foreground" />
         </button>
         <h1 className="font-display text-lg font-bold text-foreground flex-1">My Profile</h1>
-        <button onClick={() => navigate("/profile/edit")} className="p-1.5 rounded-lg hover:bg-secondary">
-          <Edit2 className="w-5 h-5 text-primary" />
+        <button onClick={() => navigate("/settings/privacy")} className="p-1.5 rounded-lg hover:bg-secondary">
+          <Settings className="w-5 h-5 text-primary" />
         </button>
       </header>
 

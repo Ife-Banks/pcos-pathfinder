@@ -77,6 +77,12 @@ const WelcomeScreen = () => {
           <Button variant="outline-clinical" size="lg" className="w-full" onClick={() => navigate("/login")}>
             I already have an account
           </Button>
+          <button 
+            onClick={() => navigate("/clinician/login")}
+            className="text-sm text-muted-foreground hover:text-primary transition-colors mt-2"
+          >
+            Clinician Portal
+          </button>
         </motion.div>
       </div>
     </div>
