@@ -143,7 +143,7 @@ const DashboardScreen = () => {
       icon: Calendar,
       title: "Period Tracking",
       subtitle: "Log your cycle",
-      route: "/dashboard",
+      route: "/period-logging",
       gradient: "gradient-clinical",
       urgent: false,
     },
@@ -151,7 +151,7 @@ const DashboardScreen = () => {
       icon: ClipboardCheck,
       title: "Weekly Tools",
       subtitle: "mFG & PHQ-4 due",
-      route: "/dashboard",
+      route: "/hirsutism",
       gradient: "gradient-primary",
       urgent: false,
     },
@@ -159,7 +159,7 @@ const DashboardScreen = () => {
       icon: BarChart3,
       title: "Risk Trends",
       subtitle: "View your history",
-      route: "/dashboard",
+      route: "/risk-trend",
       gradient: "gradient-clinical",
       urgent: false,
     },
@@ -186,7 +186,7 @@ const DashboardScreen = () => {
               <Bell className="h-4 w-4" />
             </button>
             <button
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/profile")}
               className="h-9 w-9 rounded-full gradient-primary flex items-center justify-center"
             >
               <User className="h-4 w-4 text-primary-foreground" />
@@ -320,9 +320,9 @@ const DashboardScreen = () => {
         <div className="flex justify-around max-w-md mx-auto">
           {[
             { icon: Activity, label: "Home", route: "/dashboard", active: true },
-            { icon: Calendar, label: "Cycle", route: "/dashboard", active: false },
-            { icon: BarChart3, label: "Results", route: "/dashboard", active: false },
-            { icon: User, label: "Profile", route: "/dashboard", active: false },
+            { icon: Calendar, label: "Cycle", route: "/cycle-history", active: false },
+            { icon: BarChart3, label: "Results", route: "/risk-score", active: false },
+            { icon: User, label: "Profile", route: "/profile", active: false },
           ].map((item) => (
             <button
               key={item.label}
