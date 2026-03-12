@@ -22,6 +22,7 @@ const PersonalInfoStep = ({ onNext, data, setData }: StepProps) => (
     </div>
     <div className="space-y-2">
       <Label>Age</Label>
+      <p className="text-xs text-muted-foreground">Enter age in years</p>
       <Input type="number" placeholder="e.g. 28" min={13} max={65} value={data.age || ""} onChange={(e) => setData({ ...data, age: e.target.value })} />
     </div>
     <div className="space-y-2">
@@ -40,26 +41,81 @@ const PersonalInfoStep = ({ onNext, data, setData }: StepProps) => (
 );
 
 const PhysicalStep = ({ onNext, onBack, data, setData }: StepProps) => {
+  const unitSystem = data.unitSystem || "metric";
+  const isMetric = unitSystem === "metric";
+
   const bmi = useMemo(() => {
-    const h = parseFloat(data.height);
-    const w = parseFloat(data.weight);
-    if (h > 0 && w > 0) return (w / ((h / 100) ** 2)).toFixed(1);
+    if (isMetric) {
+      const h = parseFloat(data.height);
+      const w = parseFloat(data.weight);
+      if (h > 0 && w > 0) return (w / ((h / 100) ** 2)).toFixed(1);
+    } else {
+      const ft = parseFloat(data.heightFt) || 0;
+      const inches = parseFloat(data.heightIn) || 0;
+      const lbs = parseFloat(data.weightLbs);
+      const totalInches = ft * 12 + inches;
+      if (totalInches > 0 && lbs > 0) {
+        const kg = lbs * 0.453592;
+        const m = totalInches * 0.0254;
+        return (kg / (m ** 2)).toFixed(1);
+      }
+    }
     return null;
-  }, [data.height, data.weight]);
+  }, [data.height, data.weight, data.heightFt, data.heightIn, data.weightLbs, isMetric]);
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <Label>Height (cm)</Label>
-        <Input type="number" placeholder="e.g. 165" value={data.height || ""} onChange={(e) => setData({ ...data, height: e.target.value })} />
+      {/* Unit Toggle */}
+      <div className="flex rounded-lg border border-border overflow-hidden">
+        {[
+          { value: "metric", label: "cm / kg" },
+          { value: "imperial", label: "ft-in / lbs" },
+        ].map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => setData({ ...data, unitSystem: opt.value })}
+            className={`flex-1 py-2.5 text-sm font-semibold transition-all ${
+              unitSystem === opt.value
+                ? "bg-primary text-primary-foreground"
+                : "bg-card text-muted-foreground hover:bg-muted"
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
       </div>
-      <div className="space-y-2">
-        <Label>Weight (kg)</Label>
-        <Input type="number" placeholder="e.g. 65" value={data.weight || ""} onChange={(e) => setData({ ...data, weight: e.target.value })} />
-      </div>
+
+      {isMetric ? (
+        <>
+          <div className="space-y-2">
+            <Label>Height (cm)</Label>
+            <Input type="number" placeholder="e.g. 165" value={data.height || ""} onChange={(e) => setData({ ...data, height: e.target.value })} />
+          </div>
+          <div className="space-y-2">
+            <Label>Weight (kg)</Label>
+            <Input type="number" placeholder="e.g. 65" value={data.weight || ""} onChange={(e) => setData({ ...data, weight: e.target.value })} />
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="space-y-2">
+            <Label>Height</Label>
+            <div className="flex gap-2">
+              <Input type="number" placeholder="ft" value={data.heightFt || ""} onChange={(e) => setData({ ...data, heightFt: e.target.value })} className="flex-1" />
+              <Input type="number" placeholder="in" value={data.heightIn || ""} onChange={(e) => setData({ ...data, heightIn: e.target.value })} className="flex-1" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Weight (lbs)</Label>
+            <Input type="number" placeholder="e.g. 143" value={data.weightLbs || ""} onChange={(e) => setData({ ...data, weightLbs: e.target.value })} />
+          </div>
+        </>
+      )}
+
       {bmi && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="p-4 rounded-xl bg-secondary border border-border">
           <p className="text-sm text-muted-foreground">Computed BMI</p>
+          <p className="text-xs text-muted-foreground mb-1">BMI = weight(kg) / height(m)²</p>
           <p className="text-2xl font-bold font-display text-foreground">{bmi}</p>
         </motion.div>
       )}
@@ -73,8 +129,11 @@ const PhysicalStep = ({ onNext, onBack, data, setData }: StepProps) => {
 
 const SkinStep = ({ onNext, onBack, data, setData }: StepProps) => (
   <div className="space-y-4">
-    <p className="text-sm text-muted-foreground leading-relaxed">
-      Acanthosis Nigricans is a darkening and thickening of the skin, often in the neck, armpits, or groin area. It can be associated with insulin resistance.
+    <p className="text-sm font-medium text-foreground leading-relaxed">
+      Do you have dark, velvety patches of skin — for example, on your neck, underarms, or groin?
+    </p>
+    <p className="text-xs text-muted-foreground leading-relaxed">
+      This binary flag captures Acanthosis Nigricans, a dermatological marker of peripheral insulin resistance, critical for metabolic PCOS phenotype classification.
     </p>
     <div className="grid grid-cols-2 gap-3">
       {["Yes", "No"].map((opt) => (
@@ -101,15 +160,7 @@ const SkinStep = ({ onNext, onBack, data, setData }: StepProps) => (
 const MenstrualStep = ({ onNext, onBack, data, setData }: StepProps) => (
   <div className="space-y-4">
     <div className="space-y-2">
-      <Label>Typical cycle length (days)</Label>
-      <Input type="number" placeholder="e.g. 28" value={data.cycleLength || ""} onChange={(e) => setData({ ...data, cycleLength: e.target.value })} />
-    </div>
-    <div className="space-y-2">
-      <Label>Periods per year (approx.)</Label>
-      <Input type="number" placeholder="e.g. 12" value={data.periodsPerYear || ""} onChange={(e) => setData({ ...data, periodsPerYear: e.target.value })} />
-    </div>
-    <div className="space-y-2">
-      <Label>Cycle regularity</Label>
+      <Label>Are your periods generally regular?</Label>
       <div className="grid grid-cols-2 gap-3">
         {["Regular", "Irregular"].map((opt) => (
           <button
@@ -125,6 +176,15 @@ const MenstrualStep = ({ onNext, onBack, data, setData }: StepProps) => (
           </button>
         ))}
       </div>
+    </div>
+    <div className="space-y-2">
+      <Label>How many days usually pass from the start of one period to the start of the next?</Label>
+      <Input type="number" placeholder="e.g. 28 days, 40 days" min={15} max={90} value={data.cycleLength || ""} onChange={(e) => setData({ ...data, cycleLength: e.target.value })} />
+    </div>
+    <div className="space-y-2">
+      <Label>In the last 12 months, how many periods have you had?</Label>
+      <p className="text-xs text-muted-foreground">Values below 8 may flag potential amenorrhea or oligomenorrhea.</p>
+      <Input type="number" placeholder="0–15" min={0} max={15} value={data.periodsPerYear || ""} onChange={(e) => setData({ ...data, periodsPerYear: e.target.value })} />
     </div>
     <div className="flex gap-3 mt-6">
       <Button variant="outline" size="lg" onClick={onBack} className="flex-1"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
@@ -225,10 +285,10 @@ const RppgStep = ({ onNext, onBack }: StepProps) => {
 };
 
 const steps = [
-  { title: "Personal Info", subtitle: "Tell us about yourself", icon: User, component: PersonalInfoStep },
-  { title: "Physical Measurements", subtitle: "Height, weight & BMI", icon: Ruler, component: PhysicalStep },
+  { title: "Personal Info", subtitle: "Demographic covariates for risk stratification", icon: User, component: PersonalInfoStep },
+  { title: "Physical Measurements", subtitle: "Height, weight & BMI computation", icon: Ruler, component: PhysicalStep },
   { title: "Skin Changes", subtitle: "Acanthosis Nigricans screening", icon: ScanFace, component: SkinStep },
-  { title: "Menstrual History", subtitle: "Cycle patterns & regularity", icon: CalendarHeart, component: MenstrualStep },
+  { title: "Menstrual History", subtitle: "Cycle patterns & regularity baseline", icon: CalendarHeart, component: MenstrualStep },
   { title: "Wearable Setup", subtitle: "Connect your device", icon: Watch, component: WearableStep },
   { title: "rPPG Baseline", subtitle: "Heart rate variability capture", icon: Heart, component: RppgStep },
 ];

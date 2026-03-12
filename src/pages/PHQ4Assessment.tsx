@@ -89,7 +89,7 @@ const PHQ4Assessment = () => {
             <div className="rounded-xl bg-[hsl(var(--info-light))] border border-[hsl(var(--info))]/20 p-3 mb-6 flex gap-2">
               <Info className="w-4 h-4 text-[hsl(var(--info))] mt-0.5 shrink-0" />
               <p className="text-xs text-foreground/70">
-                Over the <strong>last 2 weeks</strong>, how often have you been bothered by the following problems?
+                Over the <strong>last week</strong>, how often have you been bothered by the following problems? Score ≥3 on either subscale = positive screen.
               </p>
             </div>
 

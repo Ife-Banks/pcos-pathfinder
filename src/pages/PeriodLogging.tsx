@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CalendarIcon, Droplets, Plus, Trash2, Check } from "lucide-react";
+import { ArrowLeft, CalendarIcon, Droplets, Check } from "lucide-react";
 import { format, eachDayOfInterval, isSameDay } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -16,11 +16,11 @@ interface DayLog {
   intensity: BleedingIntensity;
 }
 
-const intensityOptions: { value: BleedingIntensity; label: string; drops: number; color: string }[] = [
-  { value: "spotting", label: "Spotting", drops: 1, color: "text-pink-300" },
-  { value: "light", label: "Light", drops: 2, color: "text-pink-400" },
-  { value: "medium", label: "Medium", drops: 3, color: "text-pink-500" },
-  { value: "heavy", label: "Heavy", drops: 4, color: "text-pink-600" },
+const intensityOptions: { value: BleedingIntensity; label: string; ordinal: number; drops: number; color: string }[] = [
+  { value: "spotting", label: "Spotting", ordinal: 1, drops: 1, color: "text-pink-300" },
+  { value: "light", label: "Light", ordinal: 2, drops: 2, color: "text-pink-400" },
+  { value: "medium", label: "Medium", ordinal: 3, drops: 3, color: "text-pink-500" },
+  { value: "heavy", label: "Heavy", ordinal: 4, drops: 4, color: "text-pink-600" },
 ];
 
 const PeriodLogging = () => {
@@ -58,7 +58,7 @@ const PeriodLogging = () => {
           </button>
           <h1 className="text-xl font-bold text-primary-foreground font-[var(--font-display)]">Log Period</h1>
         </div>
-        <p className="text-primary-foreground/70 text-sm ml-8">Track your menstrual cycle</p>
+        <p className="text-primary-foreground/70 text-sm ml-8">Track your menstrual cycle — Criterion 1: Ovulatory Dysfunction</p>
       </div>
 
       <div className="px-6 py-6 max-w-lg mx-auto">
@@ -88,7 +88,8 @@ const PeriodLogging = () => {
               <div className="space-y-4">
                 {/* Start Date */}
                 <div className="rounded-xl border border-border bg-card p-4">
-                  <label className="text-sm font-medium text-muted-foreground mb-2 block">Start Date</label>
+                  <label className="text-sm font-medium text-muted-foreground mb-1 block">When did your last period begin?</label>
+                  <p className="text-xs text-muted-foreground mb-2">Required field — date picker</p>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-12", !startDate && "text-muted-foreground")}>
@@ -111,7 +112,8 @@ const PeriodLogging = () => {
 
                 {/* End Date */}
                 <div className="rounded-xl border border-border bg-card p-4">
-                  <label className="text-sm font-medium text-muted-foreground mb-2 block">End Date</label>
+                  <label className="text-sm font-medium text-muted-foreground mb-1 block">When did your period stop?</label>
+                  <p className="text-xs text-muted-foreground mb-2">Required field — date picker</p>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-12", !endDate && "text-muted-foreground")}>
@@ -142,8 +144,8 @@ const PeriodLogging = () => {
           {/* Step 2: Daily Intensity */}
           {step === "intensity" && (
             <motion.div key="intensity" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <h2 className="text-lg font-semibold text-foreground mb-1 font-[var(--font-display)]">Bleeding Intensity</h2>
-              <p className="text-sm text-muted-foreground mb-6">Set the flow for each day of your period.</p>
+              <h2 className="text-lg font-semibold text-foreground mb-1 font-[var(--font-display)]">How heavy was your flow today?</h2>
+              <p className="text-sm text-muted-foreground mb-6">Segmented selector: Spotting | Light | Medium | Heavy. Encoded as ordinal 1–4.</p>
 
               <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
                 {dailyLogs.map((log) => (
