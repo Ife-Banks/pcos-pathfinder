@@ -13,10 +13,10 @@ interface PHQ4Item {
 }
 
 const phq4Items: PHQ4Item[] = [
-  { id: "q1", text: "Feeling nervous, anxious, or on edge", subscale: "anxiety" },
-  { id: "q2", text: "Not being able to stop or control worrying", subscale: "anxiety" },
-  { id: "q3", text: "Little interest or pleasure in doing things", subscale: "depression" },
-  { id: "q4", text: "Feeling down, depressed, or hopeless", subscale: "depression" },
+  { id: "q1", text: "In the last week, how often have you felt nervous, anxious, or on edge?", subscale: "anxiety" },
+  { id: "q2", text: "In the last week, how often have you been unable to stop or control worrying?", subscale: "anxiety" },
+  { id: "q3", text: "In the last week, how often have you had little interest or pleasure in doing things?", subscale: "depression" },
+  { id: "q4", text: "In the last week, how often have you felt down, depressed, or hopeless?", subscale: "depression" },
 ];
 
 const responseOptions = [
