@@ -13,10 +13,10 @@ interface PHQ4Item {
 }
 
 const phq4Items: PHQ4Item[] = [
-  { id: "q1", text: "Feeling nervous, anxious, or on edge", subscale: "anxiety" },
-  { id: "q2", text: "Not being able to stop or control worrying", subscale: "anxiety" },
-  { id: "q3", text: "Little interest or pleasure in doing things", subscale: "depression" },
-  { id: "q4", text: "Feeling down, depressed, or hopeless", subscale: "depression" },
+  { id: "q1", text: "In the last week, how often have you felt nervous, anxious, or on edge?", subscale: "anxiety" },
+  { id: "q2", text: "In the last week, how often have you been unable to stop or control worrying?", subscale: "anxiety" },
+  { id: "q3", text: "In the last week, how often have you had little interest or pleasure in doing things?", subscale: "depression" },
+  { id: "q4", text: "In the last week, how often have you felt down, depressed, or hopeless?", subscale: "depression" },
 ];
 
 const responseOptions = [
@@ -89,7 +89,7 @@ const PHQ4Assessment = () => {
             <div className="rounded-xl bg-[hsl(var(--info-light))] border border-[hsl(var(--info))]/20 p-3 mb-6 flex gap-2">
               <Info className="w-4 h-4 text-[hsl(var(--info))] mt-0.5 shrink-0" />
               <p className="text-xs text-foreground/70">
-                Over the <strong>last 2 weeks</strong>, how often have you been bothered by the following problems?
+                Over the <strong>last week</strong>, how often have you been bothered by the following problems? Score ≥3 on either subscale = positive screen.
               </p>
             </div>
 

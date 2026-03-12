@@ -17,12 +17,11 @@ const bodyZones: BodyZone[] = [
   { id: "upper_lip", name: "Upper Lip", description: "Above the lip, below the nose", icon: "👄" },
   { id: "chin", name: "Chin", description: "Chin and jawline area", icon: "🫦" },
   { id: "chest", name: "Chest", description: "Between and around the breasts", icon: "🫁" },
-  { id: "upper_back", name: "Upper Back", description: "Upper back and shoulders", icon: "🔙" },
-  { id: "lower_back", name: "Lower Back", description: "Lower back above buttocks", icon: "⬇️" },
   { id: "upper_abdomen", name: "Upper Abdomen", description: "Above the navel", icon: "⬆️" },
   { id: "lower_abdomen", name: "Lower Abdomen", description: "Below the navel", icon: "🔽" },
   { id: "upper_arm", name: "Upper Arm", description: "Shoulders to elbows", icon: "💪" },
   { id: "thigh", name: "Thigh", description: "Upper inner and outer thighs", icon: "🦵" },
+  { id: "upper_back", name: "Upper Back", description: "Upper back and shoulders", icon: "🔙" },
 ];
 
 const gradeDescriptions: Record<number, string> = {
@@ -95,7 +94,7 @@ const HirsutismScoring = () => {
         <div className="rounded-xl bg-[hsl(var(--info-light))] border border-[hsl(var(--info))]/20 p-3 mb-6 flex gap-2">
           <Info className="w-4 h-4 text-[hsl(var(--info))] mt-0.5 shrink-0" />
           <p className="text-xs text-foreground/70">
-            Rate each body zone from 0 (no terminal hair) to 4 (dense/dark coverage). A total score ≥ 8 suggests clinical hirsutism.
+            Please review the reference images below and rate the hair growth pattern in each body zone. Grades 1–4 for each area. Score ≥4–6 (threshold varies by ethnicity) is considered clinically significant for hyperandrogenism.
           </p>
         </div>
 

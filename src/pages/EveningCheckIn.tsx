@@ -82,20 +82,20 @@ const EveningCheckIn = () => {
             >
               <VASSlider
                 label="Cyclic Breast Soreness"
-                description="Any tenderness, swelling, or pain in your breasts?"
+                description="Rate the tenderness or pain in your breasts today."
                 value={breastSoreness}
                 onChange={setBreastSoreness}
-                lowLabel="No soreness"
-                highLabel="Very sore"
+                lowLabel="No Pain"
+                highLabel="Worst Imaginable Pain"
               />
 
               <VASSlider
                 label="Acne Severity"
-                description="Rate your current acne / skin breakout intensity"
+                description="Rate the visibility or discomfort of any skin breakouts today."
                 value={acneSeverity}
                 onChange={setAcneSeverity}
-                lowLabel="Clear skin"
-                highLabel="Severe breakout"
+                lowLabel="None"
+                highLabel="Severe"
               />
 
               {/* Today's snapshot */}

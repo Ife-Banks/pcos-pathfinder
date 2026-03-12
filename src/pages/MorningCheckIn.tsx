@@ -108,20 +108,20 @@ const MorningCheckIn = () => {
               >
                 <VASSlider
                   label="Physical Fatigue"
-                  description="How tired or physically drained do you feel?"
+                  description="Rate your energy levels this morning."
                   value={fatigue}
                   onChange={setFatigue}
-                  lowLabel="Energized"
-                  highLabel="Exhausted"
+                  lowLabel="Very Energetic"
+                  highLabel="Extremely Exhausted"
                 />
 
                 <VASSlider
                   label="Pelvic Pressure"
-                  description="Any lower abdominal pressure or discomfort?"
+                  description="Rate any feeling of fullness or heaviness in your lower abdomen."
                   value={pelvicPressure}
                   onChange={setPelvicPressure}
-                  lowLabel="No pressure"
-                  highLabel="Intense"
+                  lowLabel="None"
+                  highLabel="Severe Pressure"
                 />
 
                 <div className="pt-4">
