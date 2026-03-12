@@ -17,12 +17,11 @@ const bodyZones: BodyZone[] = [
   { id: "upper_lip", name: "Upper Lip", description: "Above the lip, below the nose", icon: "👄" },
   { id: "chin", name: "Chin", description: "Chin and jawline area", icon: "🫦" },
   { id: "chest", name: "Chest", description: "Between and around the breasts", icon: "🫁" },
-  { id: "upper_back", name: "Upper Back", description: "Upper back and shoulders", icon: "🔙" },
-  { id: "lower_back", name: "Lower Back", description: "Lower back above buttocks", icon: "⬇️" },
   { id: "upper_abdomen", name: "Upper Abdomen", description: "Above the navel", icon: "⬆️" },
   { id: "lower_abdomen", name: "Lower Abdomen", description: "Below the navel", icon: "🔽" },
   { id: "upper_arm", name: "Upper Arm", description: "Shoulders to elbows", icon: "💪" },
   { id: "thigh", name: "Thigh", description: "Upper inner and outer thighs", icon: "🦵" },
+  { id: "upper_back", name: "Upper Back", description: "Upper back and shoulders", icon: "🔙" },
 ];
 
 const gradeDescriptions: Record<number, string> = {
