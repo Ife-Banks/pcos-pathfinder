@@ -151,7 +151,7 @@ const DashboardScreen = () => {
       icon: ClipboardCheck,
       title: "Weekly Tools",
       subtitle: "mFG & PHQ-4 due",
-      route: "/hirsutism",
+      route: "/weekly-tools",
       gradient: "gradient-primary",
       urgent: false,
     },

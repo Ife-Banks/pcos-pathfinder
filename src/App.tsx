@@ -18,6 +18,7 @@ import PeriodLogging from "./pages/PeriodLogging";
 import CycleHistory from "./pages/CycleHistory";
 import HirsutismScoring from "./pages/HirsutismScoring";
 import PHQ4Assessment from "./pages/PHQ4Assessment";
+import WeeklyToolsScreen from "./pages/WeeklyToolsScreen";
 import LabResultsUpload from "./pages/LabResultsUpload";
 import UltrasoundUpload from "./pages/UltrasoundUpload";
 import ClinicalDataStatus from "./pages/ClinicalDataStatus";
@@ -64,6 +65,7 @@ const App = () => (
           <Route path="/cycle-history" element={<CycleHistory />} />
           <Route path="/hirsutism" element={<HirsutismScoring />} />
           <Route path="/phq4" element={<PHQ4Assessment />} />
+          <Route path="/weekly-tools" element={<WeeklyToolsScreen />} />
           <Route path="/lab-results" element={<LabResultsUpload />} />
           <Route path="/ultrasound-upload" element={<UltrasoundUpload />} />
           <Route path="/clinical-status" element={<ClinicalDataStatus />} />
