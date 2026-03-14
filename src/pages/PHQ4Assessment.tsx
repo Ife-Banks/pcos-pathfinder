@@ -66,7 +66,7 @@ const PHQ4Assessment = () => {
 
   const handleSave = () => {
     toast({ title: "PHQ-4 Saved", description: `Total score: ${totalScore}/12 — ${severity.label}` });
-    navigate("/dashboard");
+    navigate("/weekly-tools");
   };
 
   return (
@@ -74,7 +74,7 @@ const PHQ4Assessment = () => {
       {/* Header */}
       <div className="gradient-clinical px-6 pt-12 pb-6">
         <div className="flex items-center gap-3 mb-1">
-          <button onClick={() => navigate("/dashboard")} className="text-primary-foreground/80 hover:text-primary-foreground">
+          <button onClick={() => navigate("/weekly-tools")} className="text-primary-foreground/80 hover:text-primary-foreground">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-xl font-bold text-primary-foreground font-[var(--font-display)]">Mental Wellness</h1>

@@ -56,7 +56,12 @@ const HirsutismScoring = () => {
 
   const handleSave = () => {
     toast({ title: "mFG Score Saved", description: `Total score: ${totalScore}/36 — ${category.label}` });
-    navigate("/dashboard");
+    navigate("/weekly-tools");
+  };
+
+  const handleSaveAndContinue = () => {
+    toast({ title: "mFG Score Saved", description: `Total score: ${totalScore}/36 — ${category.label}` });
+    navigate("/phq4");
   };
 
   return (
@@ -64,7 +69,7 @@ const HirsutismScoring = () => {
       {/* Header */}
       <div className="gradient-clinical px-6 pt-12 pb-6">
         <div className="flex items-center gap-3 mb-1">
-          <button onClick={() => navigate("/dashboard")} className="text-primary-foreground/80 hover:text-primary-foreground">
+          <button onClick={() => navigate("/weekly-tools")} className="text-primary-foreground/80 hover:text-primary-foreground">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-xl font-bold text-primary-foreground font-[var(--font-display)]">Hirsutism Score</h1>
@@ -205,13 +210,18 @@ const HirsutismScoring = () => {
               </div>
             </div>
 
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setShowResult(false)} className="flex-1 h-12 rounded-xl">
-                Edit Scores
+            <div className="space-y-3">
+              <Button onClick={handleSaveAndContinue} className="w-full h-12 gradient-primary text-primary-foreground rounded-xl">
+                Save & Continue to PHQ-4
               </Button>
-              <Button onClick={handleSave} className="flex-1 h-12 gradient-primary text-primary-foreground rounded-xl">
-                Save & Continue
-              </Button>
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => setShowResult(false)} className="flex-1 h-12 rounded-xl">
+                  Edit Scores
+                </Button>
+                <Button variant="outline" onClick={handleSave} className="flex-1 h-12 rounded-xl">
+                  Save & Exit
+                </Button>
+              </div>
             </div>
           </motion.div>
         )}
