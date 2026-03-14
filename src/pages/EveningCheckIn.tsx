@@ -4,12 +4,25 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Moon, Check } from "lucide-react";
 import VASSlider from "@/components/VASSlider";
+import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 
 const EveningCheckIn = () => {
   const navigate = useNavigate();
   const [breastSoreness, setBreastSoreness] = useState(0);
   const [acneSeverity, setAcneSeverity] = useState(0);
+  // Extended detail fields
+  const [breastLocation, setBreastLocation] = useState<"unilateral" | "bilateral" | null>(null);
+  const [breastQuality, setBreastQuality] = useState<"sharp" | "dull" | "pressure" | null>(null);
+  const [acneDistribution, setAcneDistribution] = useState<string[]>([]);
+  const [bloatingCircumference, setBloatingCircumference] = useState("");
   const [done, setDone] = useState(false);
+
+  const toggleAcneArea = (area: string) => {
+    setAcneDistribution((prev) =>
+      prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area]
+    );
+  };
 
   const handleSubmit = () => {
     setDone(true);
@@ -78,8 +91,9 @@ const EveningCheckIn = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="space-y-8 flex-1"
+              className="space-y-6 flex-1 overflow-y-auto"
             >
+              {/* Breast Soreness VAS */}
               <VASSlider
                 label="Cyclic Breast Soreness"
                 description="Rate the tenderness or pain in your breasts today."
@@ -89,6 +103,58 @@ const EveningCheckIn = () => {
                 highLabel="Worst Imaginable Pain"
               />
 
+              {/* Breast Soreness Detail — location & quality */}
+              {breastSoreness > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  className="rounded-xl border border-border bg-card p-4 space-y-3"
+                >
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Mastalgia Details</p>
+
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-2">Location</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(["unilateral", "bilateral"] as const).map((loc) => (
+                        <button
+                          key={loc}
+                          onClick={() => setBreastLocation(loc)}
+                          className={cn(
+                            "p-2.5 rounded-lg border text-xs font-medium capitalize transition-all",
+                            breastLocation === loc
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border text-muted-foreground hover:border-primary/30"
+                          )}
+                        >
+                          {loc}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-2">Quality</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(["sharp", "dull", "pressure"] as const).map((q) => (
+                        <button
+                          key={q}
+                          onClick={() => setBreastQuality(q)}
+                          className={cn(
+                            "p-2.5 rounded-lg border text-xs font-medium capitalize transition-all",
+                            breastQuality === q
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border text-muted-foreground hover:border-primary/30"
+                          )}
+                        >
+                          {q}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Acne Severity VAS */}
               <VASSlider
                 label="Acne Severity"
                 description="Rate the visibility or discomfort of any skin breakouts today."
@@ -97,6 +163,48 @@ const EveningCheckIn = () => {
                 lowLabel="None"
                 highLabel="Severe"
               />
+
+              {/* Acne Distribution */}
+              {acneSeverity > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  className="rounded-xl border border-border bg-card p-4"
+                >
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Acne Distribution</p>
+                  <p className="text-xs text-muted-foreground mb-3">Select affected areas (multi-select).</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {["Face", "Back", "Chest"].map((area) => (
+                      <button
+                        key={area}
+                        onClick={() => toggleAcneArea(area)}
+                        className={cn(
+                          "p-2.5 rounded-lg border text-xs font-medium transition-all",
+                          acneDistribution.includes(area)
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:border-primary/30"
+                        )}
+                      >
+                        {area}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Bloating / Circumference */}
+              <div className="rounded-xl border border-border bg-card p-4">
+                <p className="font-display font-semibold text-foreground text-sm mb-1">Bloating Circumference Change</p>
+                <p className="text-xs text-muted-foreground mb-3">User-measured abdominal circumference change (cm). Leave blank if not measured.</p>
+                <Input
+                  type="number"
+                  placeholder="e.g. +2.5"
+                  step="0.1"
+                  value={bloatingCircumference}
+                  onChange={(e) => setBloatingCircumference(e.target.value)}
+                  className="h-11"
+                />
+              </div>
 
               {/* Today's snapshot */}
               <motion.div
@@ -121,7 +229,7 @@ const EveningCheckIn = () => {
                 </div>
               </motion.div>
 
-              <div className="pt-2">
+              <div className="pt-2 pb-4">
                 <Button variant="clinical" size="xl" className="w-full" onClick={handleSubmit}>
                   Complete Evening Check-In
                 </Button>

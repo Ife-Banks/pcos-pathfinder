@@ -2,14 +2,28 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Sun, Heart, Check, ScanFace } from "lucide-react";
+import { ArrowLeft, Sun, Heart, Check, ScanFace, Brain, BedDouble } from "lucide-react";
 import VASSlider from "@/components/VASSlider";
+import { cn } from "@/lib/utils";
+
+const affectEmojis = [
+  ["😰", "😟", "🤩"], // High arousal: anxious, worried, excited
+  ["😔", "😐", "😊"], // Mid arousal: sad, neutral, content
+  ["😴", "😌", "🥰"], // Low arousal: sleepy, calm, loving
+];
+
+const arousalLabels = ["High Arousal", "Mid", "Low Arousal"];
+const valenceLabels = ["Negative", "Neutral", "Positive"];
 
 const MorningCheckIn = () => {
   const navigate = useNavigate();
   const [fatigue, setFatigue] = useState(0);
   const [pelvicPressure, setPelvicPressure] = useState(0);
-  const [step, setStep] = useState<"sliders" | "rppg" | "done">("sliders");
+  const [sleepSatisfaction, setSleepSatisfaction] = useState<number | null>(null);
+  const [cognitiveLoad, setCognitiveLoad] = useState<number | null>(null);
+  const [affectArousal, setAffectArousal] = useState<number | null>(null);
+  const [affectValence, setAffectValence] = useState<number | null>(null);
+  const [step, setStep] = useState<"vas" | "extras" | "rppg" | "done">("vas");
   const [capturing, setCapturing] = useState(false);
   const [captured, setCaptured] = useState(false);
 
@@ -22,7 +36,9 @@ const MorningCheckIn = () => {
   };
 
   const handleSubmit = () => {
-    if (step === "sliders") {
+    if (step === "vas") {
+      setStep("extras");
+    } else if (step === "extras") {
       setStep("rppg");
     } else if (step === "rppg") {
       setStep("done");
@@ -79,19 +95,23 @@ const MorningCheckIn = () => {
             >
               <div className="flex items-center gap-3 mb-2">
                 <div className="h-10 w-10 rounded-lg gradient-primary flex items-center justify-center">
-                  {step === "sliders" ? (
+                  {step === "vas" ? (
                     <Sun className="h-5 w-5 text-primary-foreground" />
+                  ) : step === "extras" ? (
+                    <Brain className="h-5 w-5 text-primary-foreground" />
                   ) : (
                     <Heart className="h-5 w-5 text-primary-foreground" />
                   )}
                 </div>
                 <div>
                   <h1 className="text-xl font-bold font-display text-foreground">
-                    {step === "sliders" ? "How are you feeling?" : "HRV Capture"}
+                    {step === "vas" ? "How are you feeling?" : step === "extras" ? "Sleep, Mood & Focus" : "HRV Capture"}
                   </h1>
                   <p className="text-sm text-muted-foreground">
-                    {step === "sliders"
+                    {step === "vas"
                       ? "Rate your symptoms this morning"
+                      : step === "extras"
+                      ? "Additional morning assessments"
                       : "2-minute rPPG session"
                     }
                   </p>
@@ -99,7 +119,7 @@ const MorningCheckIn = () => {
               </div>
             </motion.div>
 
-            {step === "sliders" ? (
+            {step === "vas" ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -125,6 +145,112 @@ const MorningCheckIn = () => {
                 />
 
                 <div className="pt-4">
+                  <Button variant="clinical" size="xl" className="w-full" onClick={handleSubmit}>
+                    Continue
+                  </Button>
+                </div>
+              </motion.div>
+            ) : step === "extras" ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1 }}
+                className="space-y-6 flex-1"
+              >
+                {/* Sleep Satisfaction */}
+                <div className="rounded-xl border border-border bg-card p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <BedDouble className="h-4 w-4 text-primary" />
+                    <p className="font-display font-semibold text-foreground text-sm">Sleep Satisfaction</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-3">Post-sleep quality rating to cross-validate passive sleep tracking.</p>
+                  <div className="grid grid-cols-5 gap-2">
+                    {[1, 2, 3, 4, 5].map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => setSleepSatisfaction(v)}
+                        className={cn(
+                          "p-3 rounded-lg border text-center font-bold font-display transition-all",
+                          sleepSatisfaction === v
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:border-primary/30"
+                        )}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <span className="text-[10px] text-muted-foreground">Very Poor</span>
+                    <span className="text-[10px] text-muted-foreground">Excellent</span>
+                  </div>
+                </div>
+
+                {/* Cognitive Load */}
+                <div className="rounded-xl border border-border bg-card p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Brain className="h-4 w-4 text-primary" />
+                    <p className="font-display font-semibold text-foreground text-sm">Cognitive Load</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-3">Subjective attention and memory self-rating. Relevant to PMDD and cognitive fog.</p>
+                  <div className="grid grid-cols-5 gap-2">
+                    {[1, 2, 3, 4, 5].map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => setCognitiveLoad(v)}
+                        className={cn(
+                          "p-3 rounded-lg border text-center font-bold font-display transition-all",
+                          cognitiveLoad === v
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:border-primary/30"
+                        )}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <span className="text-[10px] text-muted-foreground">Very Clear</span>
+                    <span className="text-[10px] text-muted-foreground">Very Foggy</span>
+                  </div>
+                </div>
+
+                {/* Daily Affect Grid — 3×3 Arousal × Valence */}
+                <div className="rounded-xl border border-border bg-card p-4">
+                  <p className="font-display font-semibold text-foreground text-sm mb-1">Daily Affect Grid</p>
+                  <p className="text-xs text-muted-foreground mb-3">2D Arousal × Valence self-report for real-time affect capture.</p>
+
+                  {/* Column headers */}
+                  <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-1 mb-1">
+                    <div />
+                    {valenceLabels.map((l) => (
+                      <span key={l} className="text-[10px] text-muted-foreground text-center">{l}</span>
+                    ))}
+                  </div>
+
+                  {/* Grid rows */}
+                  {affectEmojis.map((row, ri) => (
+                    <div key={ri} className="grid grid-cols-[auto_1fr_1fr_1fr] gap-1 mb-1">
+                      <span className="text-[10px] text-muted-foreground flex items-center pr-1 w-16 text-right">{arousalLabels[ri]}</span>
+                      {row.map((emoji, ci) => (
+                        <button
+                          key={ci}
+                          onClick={() => { setAffectArousal(ri); setAffectValence(ci); }}
+                          className={cn(
+                            "aspect-square rounded-lg border flex items-center justify-center text-xl transition-all",
+                            affectArousal === ri && affectValence === ci
+                              ? "border-primary bg-primary/10 scale-110 shadow-sm"
+                              : "border-border hover:border-primary/30"
+                          )}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-2">
                   <Button variant="clinical" size="xl" className="w-full" onClick={handleSubmit}>
                     Continue to HRV Capture
                   </Button>
