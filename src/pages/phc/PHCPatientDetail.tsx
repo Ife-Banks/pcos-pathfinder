@@ -330,8 +330,9 @@ export default function PHCPatientDetail() {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
               <h3 className="text-sm font-semibold text-[#1E1E2E] mb-3 border-l-4 border-[#2E8B57] pl-3">Update Case Status</h3>
               <select value={caseStatus} onChange={e => {
-                if (e.target.value === 'Discharged') { setShowDischargeModal(true); }
-                else setCaseStatus(e.target.value);
+                const val = e.target.value as typeof caseStatus;
+                if (val === 'Discharged') { setShowDischargeModal(true); }
+                else setCaseStatus(val);
               }} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#2E8B57] outline-none">
                 {['New', 'Under Review', 'Action Taken', 'Discharged'].map(s => <option key={s}>{s}</option>)}
               </select>
