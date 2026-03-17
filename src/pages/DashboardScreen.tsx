@@ -6,6 +6,8 @@ import {
   ChevronRight, Bell, User, Heart, BarChart3, ClipboardCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNotifications } from "@/context/NotificationContext";
+import { NotificationPanel } from "@/components/NotificationPanel";
 import logo from "@/assets/logo.png";
 
 // Mock data
@@ -120,6 +122,8 @@ const CompletenessRing = ({ percent }: { percent: number }) => {
 const DashboardScreen = () => {
   const navigate = useNavigate();
   const [greeting, setGreeting] = useState("Good morning");
+  const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
+  const { unreadCount, wsConnected } = useNotifications();
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -183,8 +187,16 @@ const DashboardScreen = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+            <button 
+              onClick={() => setIsNotificationPanelOpen(true)}
+              className="relative h-9 w-9 rounded-full bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            >
               <Bell className="h-4 w-4" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-destructive text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </button>
             <button
               onClick={() => navigate("/profile")}
@@ -339,6 +351,11 @@ const DashboardScreen = () => {
           ))}
         </div>
       </nav>
+      
+      <NotificationPanel 
+        isOpen={isNotificationPanelOpen} 
+        onClose={() => setIsNotificationPanelOpen(false)} 
+      />
     </div>
   );
 };

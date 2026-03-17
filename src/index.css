@@ -45,6 +45,14 @@
     --warning-light: 38 60% 93%;
     --info: 210 70% 55%;
     --info-light: 210 50% 94%;
+    
+    /* Portal-specific colors */
+    --phc-primary: 142 60% 36%;
+    --phc-primary-light: 142 50% 91%;
+    --fmc-primary: 0 63% 42%;
+    --fmc-primary-light: 0 50% 96%;
+    --fmc-critical: 0 72% 51%;
+    --fmc-high: 25 70% 50%;
 
     --font-display: 'Plus Jakarta Sans', sans-serif;
     --font-body: 'DM Sans', sans-serif;
@@ -120,5 +128,50 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+  
+  /* Portal-specific utilities */
+  .bg-phc-primary {
+    background-color: hsl(var(--phc-primary));
+  }
+  .bg-phc-primary-light {
+    background-color: hsl(var(--phc-primary-light));
+  }
+  .text-phc-primary {
+    color: hsl(var(--phc-primary));
+  }
+  .border-phc-primary {
+    border-color: hsl(var(--phc-primary));
+  }
+  
+  .bg-fmc-primary {
+    background-color: hsl(var(--fmc-primary));
+  }
+  .bg-fmc-primary-light {
+    background-color: hsl(var(--fmc-primary-light));
+  }
+  .text-fmc-primary {
+    color: hsl(var(--fmc-primary));
+  }
+  .border-fmc-primary {
+    border-color: hsl(var(--fmc-primary));
+  }
+  .bg-fmc-critical {
+    background-color: hsl(var(--fmc-critical));
+  }
+  .text-fmc-critical {
+    color: hsl(var(--fmc-critical));
+  }
+  .border-fmc-critical {
+    border-color: hsl(var(--fmc-critical));
+  }
+  .bg-fmc-high {
+    background-color: hsl(var(--fmc-high));
+  }
+  .text-fmc-high {
+    color: hsl(var(--fmc-high));
+  }
+  .border-fmc-high {
+    border-color: hsl(var(--fmc-high));
   }
 }

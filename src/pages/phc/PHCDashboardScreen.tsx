@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import PHCMobileNav from '@/components/phc/PHCMobileNav';
+import { useNotifications } from '@/context/NotificationContext';
+import { NotificationPanel } from '@/components/NotificationPanel';
 import { 
   Home, 
   Users, 
@@ -64,13 +66,15 @@ const mockPatients = [
   }
 ];
 
-const PHCDashboard = () => {
+const PHCDashboardScreen = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("All");
   const [sortBy, setSortBy] = useState("Risk Score ↓");
   const [patients, setPatients] = useState(mockPatients);
   const [alertsCount, setAlertsCount] = useState(3);
+  const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
+  const { unreadCount, wsConnected } = useNotifications();
 
   // Mock stats
   const stats = {
@@ -200,13 +204,13 @@ const PHCDashboard = () => {
             <div className="flex items-center gap-4">
               {/* Alerts Bell */}
               <button 
-                onClick={() => navigate('/phc/alerts')}
+                onClick={() => setIsNotificationPanelOpen(true)}
                 className="relative p-2 text-gray-600 hover:text-[#2E8B57] transition-colors"
               >
                 <Bell className="h-5 w-5" />
-                {alertsCount > 0 && (
+                {unreadCount > 0 && (
                   <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs font-semibold">{alertsCount}</span>
+                    <span className="text-white text-xs font-semibold">{unreadCount > 99 ? '99+' : unreadCount}</span>
                   </div>
                 )}
               </button>
@@ -422,8 +426,13 @@ const PHCDashboard = () => {
       
       {/* Mobile Navigation */}
       <PHCMobileNav />
+      
+      <NotificationPanel 
+        isOpen={isNotificationPanelOpen} 
+        onClose={() => setIsNotificationPanelOpen(false)} 
+      />
     </div>
   );
 };
 
-export default PHCDashboard;
+export default PHCDashboardScreen;

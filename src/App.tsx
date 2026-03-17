@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/context/AuthContext";
 import { OnboardingProvider } from "@/context/OnboardingContext";
+import { NotificationProvider } from "@/context/NotificationContext";
 import SplashScreen from "./pages/SplashScreen";
 import WelcomeScreen from "./pages/WelcomeScreen";
 import SignUpScreen from "./pages/SignUpScreen";
@@ -57,6 +58,12 @@ import PHCRegisterScreen from "./pages/phc/PHCRegisterScreen";
 import PHCPatientDetailScreen from "./pages/phc/PHCPatientDetailScreen";
 import PHCAdviceScreen from "./pages/phc/PHCAdviceScreen";
 import PHCReferScreen from "./pages/phc/PHCReferScreen";
+// FMC Portal
+import FMCLoginScreen from "./pages/fmc/FMCLoginScreen";
+import FMCDashboardScreen from "./pages/fmc/FMCDashboardScreen";
+import FMCPatientDetailScreen from "./pages/fmc/FMCPatientDetailScreen";
+import FMCAssignmentScreen from "./pages/fmc/FMCAssignmentScreen";
+import FMCDiagnosticsScreen from "./pages/fmc/FMCDiagnosticsScreen";
 
 const queryClient = new QueryClient();
 
@@ -64,7 +71,8 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <OnboardingProvider>
-        <TooltipProvider>
+        <NotificationProvider>
+          <TooltipProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -119,14 +127,21 @@ const App = () => (
             <Route path="/phc/advice" element={<PHCAdviceScreen />} />
             <Route path="/phc/refer" element={<PHCReferScreen />} />
             <Route path="/phc/refer/:id" element={<PHCReferScreen />} />
+            {/* FMC Portal */}
+            <Route path="/fmc/login" element={<FMCLoginScreen />} />
+            <Route path="/fmc/dashboard" element={<FMCDashboardScreen />} />
+            <Route path="/fmc/patients/:id" element={<FMCPatientDetailScreen />} />
+            <Route path="/fmc/assignment" element={<FMCAssignmentScreen />} />
+            <Route path="/fmc/diagnostics" element={<FMCDiagnosticsScreen />} />
             <Route path="/unauthorized" element={<UnauthorizedScreen />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
-    </OnboardingProvider>
-  </AuthProvider>
-  </QueryClientProvider>
+    </NotificationProvider>
+  </OnboardingProvider>
+</AuthProvider>
+</QueryClientProvider>
 );
 
 export default App;
