@@ -5,15 +5,47 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft } from "lucide-react";
+import { authAPI } from "@/services/authService";
 
 const ForgotPasswordScreen = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = "Email is invalid";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSent(true);
+    
+    if (!validateForm()) {
+      return;
+    }
+    
+    setIsLoading(true);
+    setErrors({});
+    
+    try {
+      await authAPI.forgotPassword({ email });
+      setSent(true);
+    } catch (error: any) {
+      // For security, show success message even if email doesn't exist
+      setSent(true);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -31,17 +63,31 @@ const ForgotPasswordScreen = () => {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-2xl font-bold font-display text-foreground mb-2">Reset password</h1>
           <p className="text-muted-foreground mb-8">
-            {sent ? "Check your email for a reset link." : "Enter your email and we'll send you a reset link."}
+            {sent ? "If this email is registered, a reset link has been sent." : "Enter your email and we'll send you a reset link."}
           </p>
 
           {!sent ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email address</Label>
-                <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="you@example.com" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                  required 
+                />
+                {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
               </div>
-              <Button variant="clinical" size="xl" className="w-full" type="submit">
-                Send Reset Link
+              <Button 
+                variant="clinical" 
+                size="xl" 
+                className="w-full" 
+                type="submit"
+                disabled={isLoading}
+              >
+                {isLoading ? "Sending..." : "Send Reset Link"}
               </Button>
             </form>
           ) : (
@@ -55,7 +101,7 @@ const ForgotPasswordScreen = () => {
               </div>
               <p className="font-display font-semibold text-foreground mb-2">Email sent!</p>
               <p className="text-sm text-muted-foreground mb-6">
-                We've sent a reset link to <strong>{email}</strong>
+                If this email is registered, a reset link has been sent to <strong>{email}</strong>
               </p>
               <Button variant="outline-clinical" onClick={() => navigate("/login")} className="w-full">
                 Back to Sign In

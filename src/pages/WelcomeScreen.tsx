@@ -83,6 +83,12 @@ const WelcomeScreen = () => {
           >
             Clinician Portal
           </button>
+          <button 
+            onClick={() => navigate("/phc/login")}
+            className="text-sm text-muted-foreground hover:text-primary transition-colors mt-1"
+          >
+            Primary Health Centre Portal
+          </button>
         </motion.div>
       </div>
     </div>
