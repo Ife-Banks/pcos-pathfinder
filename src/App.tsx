@@ -18,6 +18,7 @@ import PeriodLogging from "./pages/PeriodLogging";
 import CycleHistory from "./pages/CycleHistory";
 import HirsutismScoring from "./pages/HirsutismScoring";
 import PHQ4Assessment from "./pages/PHQ4Assessment";
+import WeeklyToolsScreen from "./pages/WeeklyToolsScreen";
 import LabResultsUpload from "./pages/LabResultsUpload";
 import UltrasoundUpload from "./pages/UltrasoundUpload";
 import ClinicalDataStatus from "./pages/ClinicalDataStatus";
@@ -39,6 +40,16 @@ import ClinicianLoginScreen from "./pages/ClinicianLoginScreen";
 import PatientPanelScreen from "./pages/PatientPanelScreen";
 import PatientDetailScreen from "./pages/PatientDetailScreen";
 import ClinicianExportScreen from "./pages/ClinicianExportScreen";
+// PHC Portal
+import PHCLogin from "./pages/phc/PHCLogin";
+import PHCDashboard from "./pages/phc/PHCDashboard";
+import PHCPatientDetail from "./pages/phc/PHCPatientDetail";
+import PHCRegister from "./pages/phc/PHCRegister";
+import PHCAdvice from "./pages/phc/PHCAdvice";
+import PHCRefer from "./pages/phc/PHCRefer";
+import PHCAnalytics from "./pages/phc/PHCAnalytics";
+import PHCAlerts from "./pages/phc/PHCAlerts";
+import PHCSettings from "./pages/phc/PHCSettings";
 
 const queryClient = new QueryClient();
 
@@ -64,6 +75,7 @@ const App = () => (
           <Route path="/cycle-history" element={<CycleHistory />} />
           <Route path="/hirsutism" element={<HirsutismScoring />} />
           <Route path="/phq4" element={<PHQ4Assessment />} />
+          <Route path="/weekly-tools" element={<WeeklyToolsScreen />} />
           <Route path="/lab-results" element={<LabResultsUpload />} />
           <Route path="/ultrasound-upload" element={<UltrasoundUpload />} />
           <Route path="/clinical-status" element={<ClinicalDataStatus />} />
@@ -84,6 +96,18 @@ const App = () => (
           <Route path="/clinician/patients" element={<PatientPanelScreen />} />
           <Route path="/clinician/patient/:id" element={<PatientDetailScreen />} />
           <Route path="/clinician/patient/:id/export" element={<ClinicianExportScreen />} />
+          {/* PHC Portal */}
+          <Route path="/phc/login" element={<PHCLogin />} />
+          <Route path="/phc/dashboard" element={<PHCDashboard />} />
+          <Route path="/phc/patients" element={<PHCDashboard />} />
+          <Route path="/phc/patients/:id" element={<PHCPatientDetail />} />
+          <Route path="/phc/register" element={<PHCRegister />} />
+          <Route path="/phc/advice" element={<PHCAdvice />} />
+          <Route path="/phc/refer" element={<PHCRefer />} />
+          <Route path="/phc/refer/:id" element={<PHCRefer />} />
+          <Route path="/phc/analytics" element={<PHCAnalytics />} />
+          <Route path="/phc/alerts" element={<PHCAlerts />} />
+          <Route path="/phc/settings" element={<PHCSettings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
