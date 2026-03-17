@@ -128,7 +128,8 @@ const DashboardScreen = () => {
     else setGreeting("Good evening");
   }, []);
 
-  const isMorning = new Date().getHours() < 14;
+  // const isMorning = new Date().getHours() < 14;
+  const isMorning = true;
 
   const quickActions = [
     {
