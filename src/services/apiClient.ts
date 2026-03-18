@@ -40,7 +40,22 @@ apiClient.interceptors.response.use(
         }
       } catch (refreshError) {
         // Refresh failed, clear tokens and redirect to login
+        console.error('Token refresh failed:', refreshError);
         await clearTokens();
+        
+        // Clear React state by triggering a global event
+        window.dispatchEvent(new CustomEvent('auth-expired'));
+        
+        // Show user-friendly toast notification
+        const toastEvent = new CustomEvent('show-toast', {
+          detail: {
+            message: 'Your session has expired. Please sign in again.',
+            type: 'warning'
+          }
+        });
+        window.dispatchEvent(toastEvent);
+        
+        // Redirect to login
         window.location.href = '/login';
         return Promise.reject(refreshError);
       }
