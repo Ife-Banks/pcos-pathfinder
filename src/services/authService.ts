@@ -104,12 +104,27 @@ export const authAPI = {
 
   // 4.8 RESET PASSWORD — POST /api/v1/auth/reset-password/
   resetPassword: async ({ token, password, confirm_password }) => {
+    console.log('🔍 Reset password service input:', { 
+      token, 
+      password: password ? '***' : null, 
+      confirm_password: confirm_password ? '***' : null,
+      tokenType: typeof token,
+      passwordType: typeof password,
+      confirmType: typeof confirm_password
+    });
+    
+    const requestBody = JSON.stringify({ token, password, confirm_password });
+    console.log('🔍 Reset password request body:', requestBody);
+    
     const res = await fetch(`${BASE_URL}/auth/reset-password/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, password, confirm_password }),
+      body: requestBody,
     });
+    
     const data = await res.json();
+    console.log('🔍 Reset password response:', { status: res.status, ok: res.ok, data });
+    
     if (!res.ok) throw data;
     return data;
   },
