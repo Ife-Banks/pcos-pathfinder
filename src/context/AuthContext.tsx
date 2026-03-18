@@ -68,7 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     // Listen for auth-expired events from axios interceptor
     const handleAuthExpired = () => {
-      console.log(' Auth expired event received, clearing state');
+      console.log('🔐 Auth expired event received, clearing state');
       setUser(null);
       setAccessToken(null);
       setIsLoading(false);
@@ -77,11 +77,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     window.addEventListener('auth-expired', handleAuthExpired);
     
     // Cleanup event listener
-    return () => {
+    const cleanup = () => {
       window.removeEventListener('auth-expired', handleAuthExpired);
     };
     
     bootstrapAuth();
+    
+    return cleanup;
   }, []);
 
   const login = async (credentials: { email: string; password: string }) => {

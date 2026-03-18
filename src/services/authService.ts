@@ -83,13 +83,21 @@ export const authAPI = {
   },
 
   // 4.7 FORGOT PASSWORD — POST /api/v1/auth/forgot-password/
-  forgotPassword: async (email) => {
+  forgotPassword: async (email: string) => {
+    console.log('🔍 Forgot password request:', { email, emailType: typeof email });
+    
+    const requestBody = JSON.stringify({ email });
+    console.log('🔍 Request body:', requestBody);
+    
     const res = await fetch(`${BASE_URL}/auth/forgot-password/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
+      body: requestBody,
     });
+    
     const data = await res.json();
+    console.log('🔍 Response:', { status: res.status, ok: res.ok, data });
+    
     if (!res.ok) throw data;
     return data;
   },

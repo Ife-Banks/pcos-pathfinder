@@ -13,6 +13,7 @@ import WelcomeScreen from "./pages/WelcomeScreen";
 import SignUpScreen from "./pages/SignUpScreen";
 import LoginScreen from "./pages/LoginScreen";
 import ForgotPasswordScreen from "./pages/ForgotPasswordScreen";
+import ResetPasswordScreen from "./pages/ResetPasswordScreen";
 import VerifyEmailScreen from "./pages/VerifyEmailScreen";
 import OnboardingScreen from "./pages/OnboardingScreen";
 import OnboardingComplete from "./pages/OnboardingComplete";
@@ -102,6 +103,7 @@ const App = () => {
                     <Route path="/signup" element={<SignUpScreen />} />
                     <Route path="/login" element={<LoginScreen />} />
                     <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
+                    <Route path="/reset-password" element={<ResetPasswordScreen />} />
                     <Route path="/verify-email" element={<VerifyEmailScreen />} />
                     <Route path="/onboarding" element={<OnboardingScreen />} />
                     <Route path="/onboarding/step/1" element={<Step1PersonalInfo />} />
