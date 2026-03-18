@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/context/NotificationContext";
 import { NotificationPanel } from "@/components/NotificationPanel";
+import { NotificationDebug } from "@/components/NotificationDebug";
 import logo from "@/assets/logo.png";
 
 // Mock data
@@ -356,6 +357,8 @@ const DashboardScreen = () => {
         isOpen={isNotificationPanelOpen} 
         onClose={() => setIsNotificationPanelOpen(false)} 
       />
+      
+      <NotificationDebug />
     </div>
   );
 };

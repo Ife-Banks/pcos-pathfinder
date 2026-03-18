@@ -48,10 +48,10 @@ const VerifyEmailScreen = () => {
       setIsVerifying(true);
       setVerifyError(null);
       
-      console.log('Verifying token:', token); // ← log the token
+      console.log('🔍 Verifying email with token:', token);
       
       const result = await authAPI.verifyEmail(token);
-      console.log('Verify success:', result); // ← log success response
+      console.log('✅ Verify success:', result);
       
       const { tokens, ...user } = result.data;
 
@@ -75,14 +75,17 @@ const VerifyEmailScreen = () => {
         };
         navigate(stepRoutes[step] || '/onboarding/step/1');
       } else {
-        console.log('Navigating to dashboard');
+        console.log('🏠 Navigating to dashboard - onboarding completed');
         navigate('/dashboard');
       }
       
     } catch (err: any) {
       // Log the FULL error to see the real reason
-      console.error('Verify failed - full error:', JSON.stringify(err));
-      console.error('Status/message:', err?.message, err?.errors);
+      console.error('❌ Verify failed - full error:', JSON.stringify(err));
+      console.error('Status:', err?.status);
+      console.error('Status Text:', err?.statusText);
+      console.error('Message:', err?.message);
+      console.error('Errors:', err?.errors);
       
       setVerifyError(
         err?.message || 'Verification failed. The link may have expired.'
@@ -96,7 +99,10 @@ const VerifyEmailScreen = () => {
     if (resendCooldown > 0 || !email) {
       if (!email) {
         setError('Email address not found. Please go back and register again.');
+        return;
       }
+      
+      setError('Please wait before resending verification email.');
       return;
     }
     
@@ -104,8 +110,8 @@ const VerifyEmailScreen = () => {
     setError(null);
     
     try {
-      console.log('Resending to email:', email); // Debug log
-      await authAPI.resendVerification(email); // Pass email as string directly
+      console.log('📤 Resending verification to:', email);
+      await authAPI.resendVerification(email);
       
       setResendSuccess(true);
       
@@ -125,7 +131,7 @@ const VerifyEmailScreen = () => {
       }, 1000);
       
     } catch (err: any) {
-      console.error('Resend error:', JSON.stringify(err));
+      console.error('❌ Resend error:', JSON.stringify(err));
       setError('Failed to resend verification email. Please try again.');
     } finally {
       setIsResending(false);

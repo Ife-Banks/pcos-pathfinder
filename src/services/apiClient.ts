@@ -1,8 +1,10 @@
 import axios from 'axios';
 import { getAccessToken, getRefreshToken, saveTokens, clearTokens } from '../utils/tokenStorage';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ai-mshm-backend.onrender.com/api/v1';
+
 const apiClient = axios.create({
-  baseURL: 'https://ai-mshm-backend.onrender.com/api/v1',
+  baseURL: API_BASE_URL,
 });
 
 // Attach token to every request
@@ -27,7 +29,7 @@ apiClient.interceptors.response.use(
         const refresh = await getRefreshToken();
         if (refresh) {
           const { data } = await axios.post(
-            'https://ai-mshm-backend.onrender.com/api/v1/auth/token/refresh/',
+            `${API_BASE_URL}/auth/token/refresh/`,
             { refresh }
           );
           

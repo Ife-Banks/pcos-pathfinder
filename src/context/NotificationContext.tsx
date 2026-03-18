@@ -4,6 +4,8 @@ import { useAuth } from './AuthContext';
 import { notificationAPI } from '@/services/notificationService';
 import { AppNotification, WSMessage } from '@/types/notifications';
 
+const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL || 'wss://ai-mshm-backend.onrender.com/ws/notifications';
+
 interface NotificationContextType {
   notifications:    AppNotification[];
   unreadCount:      number;
@@ -132,16 +134,18 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
   const connectWebSocket = useCallback(() => {
     if (!token || wsRef.current?.readyState === WebSocket.OPEN) return;
 
-    // NOTE: WebSocket cannot use the Vite proxy — connect directly
-    const wsUrl = `wss://ai-mshm-backend.onrender.com/ws/notifications/?token=${token}`;
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
+    try {
+      // NOTE: WebSocket cannot use Vite proxy — connect directly
+      const wsUrl = `${WS_BASE_URL}/?token=${token}`;
+      console.log('Connecting to WebSocket:', wsUrl);
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
 
-    ws.onopen = () => {
-      console.log('Notifications WebSocket connected');
-      setWsConnected(true);
-      // Server sends unread_count immediately on connect
-    };
+      ws.onopen = () => {
+        console.log('Notifications WebSocket connected');
+        setWsConnected(true);
+        // Server sends unread_count immediately on connect
+      };
 
     ws.onmessage = (event) => {
       try {
@@ -152,10 +156,15 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
       }
     };
 
+    ws.onerror = (err) => {
+      console.error('WebSocket error:', err);
+      setWsConnected(false);
+    };
+
     ws.onclose = (event) => {
       setWsConnected(false);
       wsRef.current = null;
-      console.log('Notifications WS closed, code:', event.code);
+      console.log('Notifications WS closed, code:', event.code, event.reason);
 
       switch (event.code) {
         case 4001:
@@ -167,16 +176,25 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
         case 1000:
           // Normal closure (logout) — do NOT reconnect
           break;
+        case 1006:
+          // Abnormal closure - don't reconnect immediately
+          console.warn('WS closed abnormally');
+          break;
         default:
           // Network/server error — retry after 3 seconds
-          reconnectTimerRef.current = setTimeout(connectWebSocket, 3000);
+          console.log('Will attempt to reconnect in 3 seconds...');
+          try {
+            reconnectTimerRef.current = setTimeout(connectWebSocket, 3000);
+          } catch (err) {
+            console.error('Error setting reconnect timer:', err);
+          }
           break;
       }
     };
 
-    ws.onerror = (err) => {
-      console.error('WebSocket error:', err);
-    };
+    } catch (err) {
+      console.error('Error connecting to WebSocket:', err);
+    }
   }, [token, handleWSMessage]);
 
   // ── Bootstrap on mount / token change ────────────────────────

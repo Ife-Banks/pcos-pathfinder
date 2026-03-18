@@ -1,4 +1,4 @@
-const BASE = '/api/v1/notifications';
+const BASE = import.meta.env.VITE_API_BASE_URL ? `${import.meta.env.VITE_API_BASE_URL}/notifications` : '/api/v1/notifications';
 
 const authHeaders = (token: string) => ({
   'Content-Type': 'application/json',

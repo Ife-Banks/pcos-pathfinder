@@ -62,6 +62,12 @@ const SignUpScreen = () => {
       setIsLoading(true);
       setErrors({}); // Clear previous errors
 
+      console.log('📤 Attempting registration with:', {
+        full_name: form.name,
+        email: form.email,
+        role: 'patient'
+      });
+
       const result = await authAPI.register({
         full_name: form.name,          // field is full_name not name
         email: form.email,
@@ -77,6 +83,12 @@ const SignUpScreen = () => {
 
     } catch (err: any) {
       console.error("❌ Registration error:", err);
+      console.error("Error details:", {
+        status: err?.status,
+        statusText: err?.statusText,
+        message: err?.message,
+        errors: err?.errors
+      });
 
       // Map backend field errors to form error state
       const backendErrors: Record<string, string> = {};

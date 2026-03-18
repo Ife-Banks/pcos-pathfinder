@@ -1,10 +1,10 @@
-const BASE_URL = '/api/v1/auth';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ai-mshm-backend.onrender.com/api/v1';
 
 export const authAPI = {
 
   // 4.1 REGISTER — POST /api/v1/auth/register/
   register: async ({ full_name, email, password, confirm_password, role = 'patient' }) => {
-    const res = await fetch(`${BASE_URL}/register/`, {
+    const res = await fetch(`${BASE_URL}/auth/register/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ full_name, email, password, confirm_password, role }),
@@ -18,7 +18,7 @@ export const authAPI = {
 
   // 4.2 LOGIN — POST /api/v1/auth/login/
   login: async ({ email, password }) => {
-    const res = await fetch(`${BASE_URL}/login/`, {
+    const res = await fetch(`${BASE_URL}/auth/login/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -31,7 +31,7 @@ export const authAPI = {
 
   // 4.3 REFRESH TOKEN — POST /api/v1/auth/token/refresh/
   refreshToken: async (refresh) => {
-    const res = await fetch(`${BASE_URL}/token/refresh/`, {
+    const res = await fetch(`${BASE_URL}/auth/token/refresh/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh }),
@@ -43,7 +43,7 @@ export const authAPI = {
 
   // 4.4 LOGOUT — POST /api/v1/auth/logout/  (requires Bearer token)
   logout: async (refresh, accessToken) => {
-    const res = await fetch(`${BASE_URL}/logout/`, {
+    const res = await fetch(`${BASE_URL}/auth/logout/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -59,7 +59,7 @@ export const authAPI = {
   // 4.5 VERIFY EMAIL — POST /api/v1/auth/verify-email/
   // After success, store the returned tokens — user is auto logged in!
   verifyEmail: async (token) => {
-    const res = await fetch(`${BASE_URL}/verify-email/`, {
+    const res = await fetch(`${BASE_URL}/auth/verify-email/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token }),
@@ -72,7 +72,7 @@ export const authAPI = {
 
   // 4.6 RESEND VERIFICATION — POST /api/v1/auth/resend-verification/
   resendVerification: async (email) => {
-    const res = await fetch(`${BASE_URL}/resend-verification/`, {
+    const res = await fetch(`${BASE_URL}/auth/resend-verification/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
@@ -84,7 +84,7 @@ export const authAPI = {
 
   // 4.7 FORGOT PASSWORD — POST /api/v1/auth/forgot-password/
   forgotPassword: async (email) => {
-    const res = await fetch(`${BASE_URL}/forgot-password/`, {
+    const res = await fetch(`${BASE_URL}/auth/forgot-password/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
@@ -96,7 +96,7 @@ export const authAPI = {
 
   // 4.8 RESET PASSWORD — POST /api/v1/auth/reset-password/
   resetPassword: async ({ token, password, confirm_password }) => {
-    const res = await fetch(`${BASE_URL}/reset-password/`, {
+    const res = await fetch(`${BASE_URL}/auth/reset-password/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, password, confirm_password }),
@@ -108,7 +108,7 @@ export const authAPI = {
 
   // 4.9 GET CURRENT USER — GET /api/v1/auth/me/  (requires Bearer token)
   getMe: async (accessToken) => {
-    const res = await fetch(`${BASE_URL}/me/`, {
+    const res = await fetch(`${BASE_URL}/auth/me/`, {
       headers: { 'Authorization': `Bearer ${accessToken}` },
     });
     const data = await res.json();
