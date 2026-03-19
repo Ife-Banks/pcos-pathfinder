@@ -117,6 +117,10 @@ const Step1PersonalInfo = () => {
           <ArrowLeft className="h-4 w-4" /> Back to Dashboard
         </motion.button>
 
+        <div className="flex justify-between items-center mb-4">
+          <span className="text-sm text-muted-foreground">Step 1 of 7</span>
+        </div>
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

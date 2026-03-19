@@ -9,24 +9,18 @@ interface VASSliderProps {
   onChange: (value: number) => void;
   min?: number;
   max?: number;
+  step?: number;
   lowLabel?: string;
   highLabel?: string;
-  colorStops?: string[];
 }
 
-const defaultColorStops = [
-  "hsl(155 60% 42%)",  // 0 - green/success
-  "hsl(155 60% 42%)",  // 1
-  "hsl(80 50% 45%)",   // 2
-  "hsl(50 70% 50%)",   // 3
-  "hsl(38 90% 55%)",   // 4 - warning
-  "hsl(30 80% 50%)",   // 5
-  "hsl(20 75% 50%)",   // 6
-  "hsl(10 70% 50%)",   // 7
-  "hsl(0 72% 55%)",    // 8 - destructive
-  "hsl(0 72% 50%)",    // 9
-  "hsl(0 80% 45%)",    // 10
-];
+const getColorForValue = (value: number, min: number, max: number): string => {
+  const percentage = ((value - min) / (max - min)) * 100;
+  if (percentage <= 30) return '#27AE60';  // Green
+  if (percentage <= 60) return '#F59E0B';  // Amber
+  if (percentage <= 80) return '#E67E22';  // Orange
+  return '#E74C3C';  // Red
+};
 
 const VASSlider = ({
   label,
@@ -35,11 +29,21 @@ const VASSlider = ({
   onChange,
   min = 0,
   max = 10,
+  step = 1,
   lowLabel = "None",
   highLabel = "Severe",
 }: VASSliderProps) => {
   const percentage = ((value - min) / (max - min)) * 100;
-  const currentColor = defaultColorStops[Math.round(value)] || defaultColorStops[0];
+  const currentColor = getColorForValue(value, min, max);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = parseFloat(e.target.value);
+    if (step < 1) {
+      onChange(Math.round(newValue * 10) / 10);
+    } else {
+      onChange(Math.round(newValue));
+    }
+  };
 
   return (
     <div className="space-y-3">
@@ -60,7 +64,7 @@ const VASSlider = ({
             className="text-2xl font-bold font-display"
             style={{ color: currentColor }}
           >
-            {value}
+            {step < 1 ? value.toFixed(1) : value}
           </span>
           <span className="text-xs text-muted-foreground">/{max}</span>
         </motion.div>
@@ -68,7 +72,7 @@ const VASSlider = ({
 
       <div className="relative pt-1 pb-2">
         {/* Track background */}
-        <div className="h-3 rounded-full bg-secondary overflow-hidden relative">
+        <div className="h-3 rounded-full bg-gray-200 overflow-hidden relative">
           <motion.div
             className="h-full rounded-full"
             style={{ backgroundColor: currentColor }}
@@ -83,9 +87,9 @@ const VASSlider = ({
           type="range"
           min={min}
           max={max}
-          step={1}
+          step={step}
           value={value}
-          onChange={(e) => onChange(parseInt(e.target.value))}
+          onChange={handleChange}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           style={{ top: "4px" }}
         />
@@ -99,23 +103,10 @@ const VASSlider = ({
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
         >
           <div
-            className="h-5 w-5 -mt-1 rounded-full border-2 bg-card shadow-md"
+            className="h-5 w-5 -mt-1 rounded-full border-2 bg-white shadow-md"
             style={{ borderColor: currentColor }}
           />
         </motion.div>
-
-        {/* Tick marks */}
-        <div className="flex justify-between px-0.5 mt-2">
-          {Array.from({ length: max - min + 1 }, (_, i) => (
-            <div
-              key={i}
-              className={cn(
-                "h-1 w-1 rounded-full",
-                i <= value ? "bg-muted-foreground/40" : "bg-muted-foreground/20"
-              )}
-            />
-          ))}
-        </div>
       </div>
 
       <div className="flex justify-between">

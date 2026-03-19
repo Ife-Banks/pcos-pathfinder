@@ -141,9 +141,10 @@ const DashboardScreen = () => {
       icon: isMorning ? Sun : Moon,
       title: isMorning ? "Morning Check-In" : "Evening Check-In",
       subtitle: isMorning ? "Log fatigue & pressure" : "Log soreness & acne",
-      route: isMorning ? "/check-in/morning" : "/check-in/evening",
+      route: isMorning ? "/checkin/morning" : "/checkin/evening",
       gradient: "gradient-primary",
       urgent: true,
+      checkinDot: isMorning ? 'amber' : 'teal',
     },
     {
       icon: Calendar,

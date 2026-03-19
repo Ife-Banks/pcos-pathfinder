@@ -4,11 +4,11 @@ import { useAuth } from './AuthContext';
 import { notificationAPI } from '@/services/notificationService';
 import { AppNotification, WSMessage } from '@/types/notifications';
 
-const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL || 'wss://ai-mshm-backend.onrender.com/ws/notifications';
+const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL || 'wss://ai-mshm-backend-d47t.onrender.com/ws/notifications';
 
 // Render wake-up and retry management
-const RECONNECT_DELAYS = [3000, 6000, 12000]; // 3s, 6s, 12s
-const MAX_RETRIES = 3;
+const RECONNECT_DELAYS = [3000, 6000, 12000, 24000, 48000]; // 3s, 6s, 12s, 24s, 48s
+const MAX_RETRIES = 5;
 
 interface NotificationContextType {
   notifications:    AppNotification[];

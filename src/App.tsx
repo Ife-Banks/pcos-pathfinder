@@ -58,6 +58,11 @@ import CycleHistory from "./pages/CycleHistory";
 import HirsutismScoring from "./pages/HirsutismScoring";
 import PHQ4Assessment from "./pages/PHQ4Assessment";
 import WeeklyToolsScreen from "./pages/WeeklyToolsScreen";
+import MentalWellness from "./pages/weekly-tools/MentalWellness";
+import MoodCheck from "./pages/weekly-tools/MoodCheck";
+import FocusMemory from "./pages/weekly-tools/FocusMemory";
+import SleepQuality from "./pages/weekly-tools/SleepQuality";
+import CombinedResults from "./pages/weekly-tools/CombinedResults";
 import LabResultsUpload from "./pages/LabResultsUpload";
 import UltrasoundUpload from "./pages/UltrasoundUpload";
 import ClinicalDataStatus from "./pages/ClinicalDataStatus";
@@ -164,13 +169,18 @@ const App = () => {
                     <Route path="/onboarding/step/7" element={<Step7HealthCentre />} />
                     <Route path="/onboarding-complete" element={<OnboardingComplete />} />
                     <Route path="/dashboard" element={<DashboardScreen />} />
-                    <Route path="/check-in/morning" element={<MorningCheckIn />} />
-                    <Route path="/check-in/evening" element={<EveningCheckIn />} />
+                    <Route path="/checkin/morning" element={<MorningCheckIn />} />
+                    <Route path="/checkin/evening" element={<EveningCheckIn />} />
                     <Route path="/period-logging" element={<PeriodLogging />} />
                     <Route path="/cycle-history" element={<CycleHistory />} />
                     <Route path="/hirsutism" element={<HirsutismScoring />} />
                     <Route path="/phq4" element={<PHQ4Assessment />} />
                     <Route path="/weekly-tools" element={<WeeklyToolsScreen />} />
+                    <Route path="/weekly-tools/mental-wellness" element={<MentalWellness />} />
+                    <Route path="/weekly-tools/mood-check" element={<MoodCheck />} />
+                    <Route path="/weekly-tools/focus-memory" element={<FocusMemory />} />
+                    <Route path="/weekly-tools/sleep-quality" element={<SleepQuality />} />
+                    <Route path="/weekly-tools/results" element={<CombinedResults />} />
                     <Route path="/lab-results" element={<LabResultsUpload />} />
                     <Route path="/ultrasound-upload" element={<UltrasoundUpload />} />
                     <Route path="/clinical-status" element={<ClinicalDataStatus />} />

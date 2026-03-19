@@ -6,12 +6,15 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
+import { useOnboarding } from '@/context/OnboardingContext';
 import { onboardingAPI } from '@/services/onboardingService';
+import { phcAPI } from '@/services/phcService';
 
 interface PHCCentre {
   id: string;
   name: string;
-  address: string;
+  code?: string;
+  address?: string;
   state: string;
   lga: string;
   phone?: string;
@@ -20,8 +23,10 @@ interface PHCCentre {
 const Step7HealthCentre = () => {
   const navigate = useNavigate();
   const { accessToken } = useAuth();
+  const { profile, refreshProfile } = useOnboarding();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -32,8 +37,12 @@ const Step7HealthCentre = () => {
   const [healthCentres, setHealthCentres] = useState<PHCCentre[]>([]);
   const [selectedCentre, setSelectedCentre] = useState<PHCCentre | null>(null);
   const [showResults, setShowResults] = useState(false);
+  const [showNoResults, setShowNoResults] = useState(false);
+  
+  const [showChangeRequestModal, setShowChangeRequestModal] = useState(false);
+  const [changeRequestDescription, setChangeRequestDescription] = useState('');
+  const [submittingChangeRequest, setSubmittingChangeRequest] = useState(false);
 
-  // Nigerian states for dropdown
   const nigerianStates = [
     'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue',
     'Borno', 'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu',
@@ -47,7 +56,14 @@ const Step7HealthCentre = () => {
       navigate('/login');
       return;
     }
-  }, [accessToken, navigate]);
+    
+    if (profile) {
+      setFormData({
+        state: profile.state || '',
+        lga: profile.lga || ''
+      });
+    }
+  }, [accessToken, navigate, profile]);
 
   const handleInputChange = (field: 'state' | 'lga', value: string) => {
     setFormData(prev => ({
@@ -55,6 +71,7 @@ const Step7HealthCentre = () => {
       [field]: value
     }));
     setError(null);
+    setSuccessMessage(null);
   };
 
   const searchHealthCentres = async () => {
@@ -65,52 +82,41 @@ const Step7HealthCentre = () => {
 
     setSearching(true);
     setError(null);
+    setShowNoResults(false);
+    setShowResults(false);
     
     try {
-      // Call the correct PHC search endpoint
-      const response = await fetch(`/api/v1/centers/phc/?state=${encodeURIComponent(formData.state)}${formData.lga ? `&lga=${encodeURIComponent(formData.lga)}` : ''}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-      });
+      console.log('Searching for PHCs with state:', formData.state, 'lga:', formData.lga);
       
-      if (!response.ok) {
-        throw new Error('Failed to search PHC centres');
+      const data = await phcAPI.getPHCs(formData.state, formData.lga || undefined);
+      
+      console.log('PHC Search response:', data);
+      console.log('Response type:', typeof data);
+      console.log('Is array:', Array.isArray(data));
+      
+      // Handle both direct array or wrapped in { data: [] } format
+      let results = data;
+      if (data && typeof data === 'object' && 'data' in data) {
+        results = data.data;
       }
       
-      const data = await response.json();
-      setHealthCentres(data.data || []);
-      setShowResults(true);
-    } catch (err) {
+      if (results && results.length > 0) {
+        setHealthCentres(results);
+        setShowResults(true);
+      } else {
+        setHealthCentres([]);
+        setShowNoResults(true);
+      }
+    } catch (err: any) {
       console.error('Error searching PHC centres:', err);
-      // Fallback to mock data for development
-      const mockCentres: PHCCentre[] = [
-        {
-          id: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
-          name: 'Primary Health Centre',
-          address: '123 Main Street',
-          state: formData.state,
-          lga: formData.lga || 'Central',
-          phone: '+234-123-456-7890'
-        },
-        {
-          id: '3fa85f64-5717-4562-b3fc-2c963f66afa7',
-          name: 'Community Health Center',
-          address: '456 Health Road',
-          state: formData.state,
-          lga: formData.lga || 'North',
-          phone: '+234-987-654-3210'
-        }
-      ];
-      setHealthCentres(mockCentres);
-      setShowResults(true);
+      console.error('Error response:', err.response?.data);
+      setError(err.response?.data?.message || 'Failed to search PHC centres. Please try again.');
     } finally {
       setSearching(false);
     }
   };
 
-  const handleSelectCentre = (centre: HealthCentre) => {
+  const handleSelectCentre = (centre: PHCCentre) => {
     setSelectedCentre(centre);
   };
 
@@ -118,20 +124,8 @@ const Step7HealthCentre = () => {
     navigate('/onboarding/step/6');
   };
 
-  const handleSkip = async () => {
-    setLoading(true);
-    try {
-      // Mark onboarding as complete without selecting a health centre
-      const result = await onboardingAPI.markComplete(accessToken);
-      if (result.success) {
-        navigate(result.data.redirect || '/dashboard');
-      }
-    } catch (err) {
-      console.error('Error completing onboarding:', err);
-      setError('Failed to complete onboarding. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+  const handleSkip = () => {
+    navigate('/dashboard');
   };
 
   const handleContinue = async () => {
@@ -140,29 +134,28 @@ const Step7HealthCentre = () => {
       return;
     }
 
-    // Allow continuing without PHC selection (optional step)
     const hccId = selectedCentre?.id || null;
 
     setLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+    
     try {
-      // Save PHC selection using the correct API
-      await onboardingAPI.saveStep7HealthCentre(accessToken, {
+      await onboardingAPI.saveStep7HealthCentre(accessToken!, {
         state: formData.state,
         lga: formData.lga,
         registered_hcc: hccId
       });
 
-      // Mark onboarding as complete
-      const result = await onboardingAPI.markComplete(accessToken);
-      if (result.success) {
-        navigate(result.data.redirect || '/dashboard');
-      }
+      refreshProfile();
+      
+      navigate('/dashboard');
     } catch (err: any) {
       console.error('Error saving PHC selection:', err);
       
-      // Handle specific error case for blocked patients
-      if (err?.error?.includes('ASSIGNED') || err?.error?.includes('UNDER_TREATMENT')) {
-        setError(`Cannot change PHC while you have an active case. ${err?.error || ''}`);
+      if (err?.status === 400 || err?.message?.includes('active case') || err?.message?.includes('assigned')) {
+        const errorMessage = err?.message || 'Cannot change health centre while you have an active case.';
+        setError(errorMessage);
       } else {
         setError(err?.message || 'Failed to save PHC selection. Please try again.');
       }
@@ -171,16 +164,60 @@ const Step7HealthCentre = () => {
     }
   };
 
+  const handleSubmitChangeRequest = async () => {
+    if (!changeRequestDescription.trim()) {
+      return;
+    }
+
+    if (!selectedCentre) {
+      setError('Please select a PHC first');
+      return;
+    }
+
+    setSubmittingChangeRequest(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/v1/centers/change-request/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          request_type: 'change_phc',
+          requested_hcc: selectedCentre.id,
+          description: changeRequestDescription,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to submit change request');
+      }
+
+      setSuccessMessage('Your request has been submitted. We will review it and notify you in the app when it is actioned.');
+      setShowChangeRequestModal(false);
+      setChangeRequestDescription('');
+    } catch (err: any) {
+      console.error('Error submitting change request:', err);
+      setError(err?.message || 'Failed to submit change request. Please try again.');
+    } finally {
+      setSubmittingChangeRequest(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <Card className="w-full max-w-md">
         <CardContent className="p-6">
-          {/* Header */}
+          <div className="flex justify-between items-center mb-4">
+            <span className="text-sm text-gray-500">Step 7 of 7</span>
+            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">Optional</span>
+          </div>
+
           <div className="text-center mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-sm text-gray-500">Step 7 of 7</span>
-              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">Optional</span>
-            </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Your Health Centre</h1>
             <p className="text-gray-600 text-sm">
               Select a Primary Health Centre (PHC) for routing care based on risk levels
@@ -189,11 +226,28 @@ const Step7HealthCentre = () => {
 
           {error && (
             <Alert variant="destructive" className="mb-4">
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription className="flex flex-col gap-3">
+                {error}
+                {error.includes('active case') && selectedCentre && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowChangeRequestModal(true)}
+                    className="w-fit"
+                  >
+                    Submit a Change Request
+                  </Button>
+                )}
+              </AlertDescription>
             </Alert>
           )}
 
-          {/* Form */}
+          {successMessage && (
+            <Alert className="mb-4 bg-green-50 border-green-200">
+              <AlertDescription className="text-green-800">{successMessage}</AlertDescription>
+            </Alert>
+          )}
+
           <div className="space-y-4">
             <div>
               <Label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">
@@ -234,7 +288,14 @@ const Step7HealthCentre = () => {
             </Button>
           </div>
 
-          {/* Search Results */}
+          {showNoResults && (
+            <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800">
+                No PHC centres found for the selected area. Try a different state or LGA.
+              </p>
+            </div>
+          )}
+
           {showResults && healthCentres.length > 0 && (
             <div className="mt-6 space-y-2">
               <h3 className="text-sm font-medium text-gray-700">Available PHC Centres</h3>
@@ -249,19 +310,17 @@ const Step7HealthCentre = () => {
                   }`}
                 >
                   <div className="font-medium text-gray-900">{centre.name}</div>
-                  <div className="text-sm text-gray-600">{centre.address}</div>
+                  {centre.code && (
+                    <div className="text-xs text-gray-500">{centre.code}</div>
+                  )}
                   <div className="text-xs text-gray-500">
                     {centre.lga}, {centre.state}
                   </div>
-                  {centre.phone && (
-                    <div className="text-xs text-gray-500">{centre.phone}</div>
-                  )}
                 </div>
               ))}
             </div>
           )}
 
-          {/* Navigation */}
           <div className="flex justify-between items-center mt-8">
             <Button
               variant="outline"
@@ -279,28 +338,33 @@ const Step7HealthCentre = () => {
               >
                 Skip →
               </Button>
-              
-              {selectedCentre && (
-                <Button
-                  onClick={handleContinue}
-                  disabled={loading}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  {loading ? 'Saving...' : 'Continue'}
-                </Button>
-              )}
-              
+            </div>
+          </div>
+
+          {selectedCentre && (
+            <div className="mt-4">
               <Button
                 onClick={handleContinue}
                 disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
+                {loading ? 'Saving...' : 'Continue'}
+              </Button>
+            </div>
+          )}
+
+          {!selectedCentre && (
+            <div className="mt-4">
+              <Button
+                onClick={handleContinue}
+                disabled={loading || !formData.state.trim()}
+                className="w-full bg-blue-600 hover:bg-blue-700"
               >
                 {loading ? 'Saving...' : 'Continue Without Selection'}
               </Button>
             </div>
-          </div>
+          )}
 
-          {/* Note */}
           <div className="mt-6 text-center">
             <p className="text-xs text-gray-500">
               You can change your health centre later from profile settings
@@ -308,6 +372,49 @@ const Step7HealthCentre = () => {
           </div>
         </CardContent>
       </Card>
+
+      {showChangeRequestModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-semibold mb-4">Submit Change Request</h3>
+            <div className="mb-4">
+              <Label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                Describe why you need to change your health centre
+              </Label>
+              <textarea
+                id="description"
+                rows={4}
+                maxLength={500}
+                value={changeRequestDescription}
+                onChange={(e) => setChangeRequestDescription(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="I moved to a new location and need to change to a closer health centre..."
+              />
+              <p className="text-xs text-gray-500 mt-1">{changeRequestDescription.length}/500 characters</p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowChangeRequestModal(false);
+                  setChangeRequestDescription('');
+                }}
+                disabled={submittingChangeRequest}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSubmitChangeRequest}
+                disabled={submittingChangeRequest || !changeRequestDescription.trim()}
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+              >
+                {submittingChangeRequest ? 'Submitting...' : 'Submit'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
