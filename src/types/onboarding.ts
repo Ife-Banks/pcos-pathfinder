@@ -21,6 +21,9 @@ export interface OnboardingProfile {
   selected_wearable:      WearableDevice | '';
   rppg_baseline_captured: boolean;
   rppg_captured_at:       string | null;
+  state:                  string | null;
+  lga:                    string | null;
+  registered_hcc:         string | null;
   created_at:             string;
   updated_at:             string;
 }

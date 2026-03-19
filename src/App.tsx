@@ -15,6 +15,31 @@ import LoginScreen from "./pages/LoginScreen";
 import ForgotPasswordScreen from "./pages/ForgotPasswordScreen";
 import ResetPasswordScreen from "./pages/ResetPasswordScreen";
 import VerifyEmailScreen from "./pages/VerifyEmailScreen";
+// Clinician screens
+import ClinicianLoginScreen from "./pages/clinician/ClinicianLoginScreen";
+import ClinicianRegistrationScreen from "./pages/clinician/ClinicianRegistrationScreen";
+import ClinicianPendingVerificationScreen from "./pages/clinician/ClinicianPendingVerificationScreen";
+import ClinicianDashboardScreen from "./pages/clinician/ClinicianDashboardScreen";
+import ClinicianPatientDetailScreen from "./pages/clinician/ClinicianPatientDetailScreen";
+import ClinicianTreatmentPlansScreen from "./pages/clinician/ClinicianTreatmentPlansScreen";
+import ClinicianPrescriptionsScreen from "./pages/clinician/ClinicianPrescriptionsScreen";
+import ClinicianCommunicationScreen from "./pages/clinician/ClinicianCommunicationScreen";
+import ClinicianAnalyticsScreen from "./pages/clinician/ClinicianAnalyticsScreen";
+import ClinicianProfileSettingsScreen from "./pages/clinician/ClinicianProfileSettingsScreen";
+// FMC screens
+import FMCStaffLoginScreen from "./pages/fmc/FMCStaffLoginScreen";
+import FMCMajorRiskDashboardScreen from "./pages/fmc/FMCMajorRiskDashboardScreen";
+import FMCProfileSettingsScreen from "./pages/fmc/FMCProfileSettingsScreen";
+// PHC screens
+import PHCStaffLoginScreen from "./pages/phc/PHCStaffLoginScreen";
+import PHCMinorRiskDashboardScreen from "./pages/phc/PHCMinorRiskDashboardScreen";
+import PHCPatientDetailScreen from "./pages/phc/PHCPatientDetailScreen";
+import PHCWalkInRegistrationScreen from "./pages/phc/PHCWalkInRegistrationScreen";
+import PHCAdviceInterventionScreen from "./pages/phc/PHCAdviceInterventionScreen";
+import PHCEscalationScreen from "./pages/phc/PHCEscalationScreen";
+import PHCAnalyticsScreen from "./pages/phc/PHCAnalyticsScreen";
+import PHCNotificationsScreen from "./pages/phc/PHCNotificationsScreen";
+import PHCProfileSettingsScreen from "./pages/phc/PHCProfileSettingsScreen";
 import OnboardingScreen from "./pages/OnboardingScreen";
 import OnboardingComplete from "./pages/OnboardingComplete";
 import DashboardScreen from "./pages/DashboardScreen";
@@ -25,6 +50,7 @@ import Step3SkinChanges from "./pages/onboarding/Step3SkinChanges";
 import Step4MenstrualHistory from "./pages/onboarding/Step4MenstrualHistory";
 import Step5WearableSetup from "./pages/onboarding/Step5WearableSetup";
 import Step6rPPG from "./pages/onboarding/Step6rPPG";
+import Step7HealthCentre from "./pages/onboarding/Step7HealthCentre";
 import MorningCheckIn from "./pages/MorningCheckIn";
 import EveningCheckIn from "./pages/EveningCheckIn";
 import PeriodLogging from "./pages/PeriodLogging";
@@ -49,8 +75,6 @@ import ConnectedDevicesScreen from "./pages/ConnectedDevicesScreen";
 // Referral & Clinical
 import ClinicalReferralScreen from "./pages/ClinicalReferralScreen";
 import ClinicalSummaryScreen from "./pages/ClinicalSummaryScreen";
-// Clinician Portal
-import ClinicianLoginScreen from "./pages/ClinicianLoginScreen";
 import PatientPanelScreen from "./pages/PatientPanelScreen";
 import PatientDetailScreen from "./pages/PatientDetailScreen";
 import ClinicianExportScreen from "./pages/ClinicianExportScreen";
@@ -58,7 +82,6 @@ import ClinicianExportScreen from "./pages/ClinicianExportScreen";
 import PHCLoginScreen from "./pages/phc/PHCLoginScreen";
 import PHCDashboardScreen from "./pages/phc/PHCDashboardScreen";
 import PHCRegisterScreen from "./pages/phc/PHCRegisterScreen";
-import PHCPatientDetailScreen from "./pages/phc/PHCPatientDetailScreen";
 import PHCAdviceScreen from "./pages/phc/PHCAdviceScreen";
 import PHCReferScreen from "./pages/phc/PHCReferScreen";
 // FMC Portal
@@ -105,6 +128,32 @@ const App = () => {
                     <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
                     <Route path="/reset-password" element={<ResetPasswordScreen />} />
                     <Route path="/verify-email" element={<VerifyEmailScreen />} />
+                    {/* Clinician Routes */}
+                    <Route path="/clinician/login" element={<ClinicianLoginScreen />} />
+                    <Route path="/clinician/register" element={<ClinicianRegistrationScreen />} />
+                    <Route path="/clinician/pending-verification" element={<ClinicianPendingVerificationScreen />} />
+                    <Route path="/clinician/dashboard" element={<ClinicianDashboardScreen />} />
+                    <Route path="/clinician/patient/:id" element={<ClinicianPatientDetailScreen />} />
+                    <Route path="/clinician/treatment-plans" element={<ClinicianTreatmentPlansScreen />} />
+                    <Route path="/clinician/prescriptions" element={<ClinicianPrescriptionsScreen />} />
+                    <Route path="/clinician/communication" element={<ClinicianCommunicationScreen />} />
+                    <Route path="/clinician/analytics" element={<ClinicianAnalyticsScreen />} />
+                    <Route path="/clinician/profile" element={<ClinicianProfileSettingsScreen />} />
+                    {/* FMC Routes */}
+                    <Route path="/fmc/login" element={<FMCStaffLoginScreen />} />
+                    <Route path="/fmc/dashboard" element={<FMCMajorRiskDashboardScreen />} />
+                    <Route path="/fmc/profile" element={<FMCProfileSettingsScreen />} />
+                    {/* PHC Routes */}
+                    <Route path="/phc/login" element={<PHCStaffLoginScreen />} />
+                    <Route path="/phc/dashboard" element={<PHCMinorRiskDashboardScreen />} />
+                    <Route path="/phc/patient/:id" element={<PHCPatientDetailScreen />} />
+                    <Route path="/phc/register" element={<PHCWalkInRegistrationScreen />} />
+                    <Route path="/phc/advice" element={<PHCAdviceInterventionScreen />} />
+                    <Route path="/phc/escalation" element={<PHCEscalationScreen />} />
+                    <Route path="/phc/analytics" element={<PHCAnalyticsScreen />} />
+                    <Route path="/phc/notifications" element={<PHCNotificationsScreen />} />
+                    <Route path="/phc/profile" element={<PHCProfileSettingsScreen />} />
+                    {/* Patient Routes */}
                     <Route path="/onboarding" element={<OnboardingScreen />} />
                     <Route path="/onboarding/step/1" element={<Step1PersonalInfo />} />
                     <Route path="/onboarding/step/2" element={<Step2PhysicalMeasurements />} />
@@ -112,6 +161,7 @@ const App = () => {
                     <Route path="/onboarding/step/4" element={<Step4MenstrualHistory />} />
                     <Route path="/onboarding/step/5" element={<Step5WearableSetup />} />
                     <Route path="/onboarding/step/6" element={<Step6rPPG />} />
+                    <Route path="/onboarding/step/7" element={<Step7HealthCentre />} />
                     <Route path="/onboarding-complete" element={<OnboardingComplete />} />
                     <Route path="/dashboard" element={<DashboardScreen />} />
                     <Route path="/check-in/morning" element={<MorningCheckIn />} />
@@ -137,7 +187,6 @@ const App = () => {
                     <Route path="/referral" element={<ClinicalReferralScreen />} />
                     <Route path="/clinical-summary" element={<ClinicalSummaryScreen />} />
                     {/* Clinician Portal */}
-                    <Route path="/clinician/login" element={<ClinicianLoginScreen />} />
                     <Route path="/clinician/patients" element={<PatientPanelScreen />} />
                     <Route path="/clinician/patient/:id" element={<PatientDetailScreen />} />
                     <Route path="/clinician/patient/:id/export" element={<ClinicianExportScreen />} />

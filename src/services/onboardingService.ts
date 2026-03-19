@@ -128,9 +128,30 @@ export const onboardingAPI = {
     // Returns: { success, data: { rppg_baseline_captured: true, rppg_captured_at } }
   },
 
+  // PATCH /api/v1/onboarding/step/7/
+  // Fields: state (string), lga (string), registered_hcc (string|null)
+  // This step is OPTIONAL — user can skip and still call /complete/
+  // Blocked if patient has active ASSIGNED or UNDER_TREATMENT case at clinic (returns 400)
+  // Allowed if case is OPEN (no clinician assigned) — old case will be automatically rerouted
+  saveStep7HealthCentre: async (token: string, payload: {
+    state: string;
+    lga: string;
+    registered_hcc: string | null;
+  }) => {
+    const res = await fetch(`${BASE}/step/7/`, {
+      method: 'PATCH',
+      headers: headers(token),
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw data;
+    return data;
+    // Returns: { success, data: { state, lga, registered_hcc } }
+  },
+
   // POST /api/v1/onboarding/complete/
   // No request body needed — just POST with auth header
-  // Call this after step 5 (step 6 is optional)
+  // Call this after step 5 or step 7 (step 6 and 7 are optional)
   // On 200: redirect to data.redirect ('/dashboard')
   markComplete: async (token: string) => {
     const res = await fetch(`${BASE}/complete/`, {
@@ -141,6 +162,6 @@ export const onboardingAPI = {
     if (!res.ok) throw data;
     return data;
     // Returns: { success, data: { redirect: '/dashboard', 
-    //   onboarding_completed: true, onboarding_step: 6, profile: {...} } }
+    //   onboarding_completed: true, onboarding_step: 7, profile: {...} } }
   },
 };

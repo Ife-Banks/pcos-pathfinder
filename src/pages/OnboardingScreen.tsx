@@ -17,7 +17,7 @@ const OnboardingScreen = () => {
     }
     // Resume at correct step
     const step = user.onboarding_step || 0;
-    const nextStep = Math.min(step + 1, 6);
+    const nextStep = Math.min(step + 1, 7);
     navigate(`/onboarding/step/${nextStep}`, { replace: true });
   }, [user, navigate]);
 

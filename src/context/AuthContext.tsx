@@ -1,6 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { getAccessToken, getRefreshToken, saveTokens, clearTokens } from '../utils/tokenStorage';
+import axios from 'axios';
+import { saveTokens } from '../utils/tokenStorage';
 import { authAPI } from '../services/authService';
+import apiClient from '../services/apiClient';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ai-mshm-backend.onrender.com/api/v1';
 
 interface User {
   id: string;
@@ -22,7 +26,8 @@ interface AuthContextType {
   isLoading: boolean;
   login: (credentials: { email: string; password: string }) => Promise<any>;
   logout: () => Promise<void>;
-  loginWithTokens: (userData: any, accessToken: string) => void;
+  loginWithTokens: (userData: any, accessToken: string, refreshToken?: string) => void;
+  routeAfterLogin: (user: any) => string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,57 +38,57 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // On app launch, check if tokens exist
-    const bootstrapAuth = async () => {
+    const restoreSession = async () => {
+      const token = localStorage.getItem('access_token');
+      const refresh = localStorage.getItem('refresh_token');
+
+      if (!token || !refresh) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        const refresh = await getRefreshToken();
-        
-        // Guard: don't proceed with invalid stored values
-        if (!refresh || refresh === 'undefined' || refresh === 'null') {
-          setIsLoading(false);
-          return; // Don't attempt token refresh, just show login
+        const response = await apiClient.get('/auth/me/');
+        const payload = response.data.data ?? response.data;
+        setUser(payload);
+        setAccessToken(token);
+      } catch (error) {
+        try {
+          const { data } = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, { refresh });
+          const newAccess = data.data?.access ?? data.access;
+          const newRefresh = data.data?.refresh ?? data.refresh;
+
+          localStorage.setItem('access_token', newAccess);
+          localStorage.setItem('refresh_token', newRefresh);
+
+          const meResponse = await apiClient.get('/auth/me/');
+          const restoredUser = meResponse.data.data ?? meResponse.data;
+          setUser(restoredUser);
+          setAccessToken(newAccess);
+        } catch {
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          setUser(null);
+          setAccessToken(null);
         }
-        
-        // Step 1: Refresh the access token
-        const tokenData = await authAPI.refreshToken(refresh);
-        await saveTokens(tokenData.access, refresh);
-        setAccessToken(tokenData.access);
-        
-        // Step 2: Fetch real user profile (NOT hardcoded values)
-        const meResult = await authAPI.getMe(tokenData.access);
-        setUser({
-          ...meResult.data,
-          accessToken: tokenData.access,
-        });
-        
-      } catch (err) {
-        // Token refresh or /me/ failed — clear everything
-        await clearTokens();
-        setUser(null);
-        setAccessToken(null);
       } finally {
         setIsLoading(false);
       }
     };
-    
-    // Listen for auth-expired events from axios interceptor
+
     const handleAuthExpired = () => {
-      console.log('🔐 Auth expired event received, clearing state');
       setUser(null);
       setAccessToken(null);
       setIsLoading(false);
     };
-    
+
     window.addEventListener('auth-expired', handleAuthExpired);
-    
-    // Cleanup event listener
-    const cleanup = () => {
+
+    restoreSession();
+
+    return () => {
       window.removeEventListener('auth-expired', handleAuthExpired);
     };
-    
-    bootstrapAuth();
-    
-    return cleanup;
   }, []);
 
   const login = async (credentials: { email: string; password: string }) => {
@@ -111,13 +116,47 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return data;
   };
 
+  const routeAfterLogin = (user: any) => {
+    if (!user.is_email_verified) return '/verify-email';
+    if (!['clinician', 'patient', 'fhc_staff', 'fhc_admin', 'hcc_staff', 'hcc_admin'].includes(user.role)) return '/role-mismatch';
+    
+    // FMC roles
+    if (user.role === 'fhc_staff' || user.role === 'fhc_admin') {
+      return '/fmc/dashboard';
+    }
+    
+    // PHC roles
+    if (user.role === 'hcc_staff' || user.role === 'hcc_admin') {
+      return '/phc/dashboard';
+    }
+    
+    // Clinician role
+    if (user.role === 'clinician') {
+      if (!user.center_info || !user.center_info.is_verified) {
+        return '/clinician/pending-verification';
+      }
+      return '/clinician/dashboard';
+    }
+    
+    // Patient role
+    if (user.role === 'patient') {
+      if (!user.onboarding_completed) {
+        return '/onboarding';
+      }
+      return '/dashboard';
+    }
+    
+    return '/dashboard';
+  };
+
   const logout = async () => {
-    const refresh = await getRefreshToken();
-    const access = user?.accessToken;
+    const refresh = localStorage.getItem('refresh_token');
+    const access = localStorage.getItem('access_token') || user?.accessToken;
     if (refresh && access) {
       await authAPI.logout(refresh, access);
     }
-    await clearTokens();
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
     setUser(null);
     setAccessToken(null);
     
@@ -125,10 +164,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     window.dispatchEvent(new CustomEvent('auth-expired'));
   };
 
-  const loginWithTokens = (userData: any, accessToken: string) => {
-    // Set access token state
+  const loginWithTokens = (userData: any, accessToken: string, refreshToken?: string) => {
+    // Set access token state and localStorage
     setAccessToken(accessToken);
-    
+    localStorage.setItem('access_token', accessToken);
+    if (refreshToken) {
+      localStorage.setItem('refresh_token', refreshToken);
+    }
+
     setUser({
       id: userData.id,
       email: userData.email,
@@ -145,7 +188,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, accessToken, isLoading, login, logout, loginWithTokens }}>
+    <AuthContext.Provider value={{ user, accessToken, isLoading, login, logout, loginWithTokens, routeAfterLogin }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,28 +1,61 @@
 import { ReactNode, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 import {
   Home, Users, UserPlus, MessageCircle, ArrowUpRight,
   BarChart3, Settings, Bell, LogOut, Menu, X
 } from 'lucide-react';
-import { mockStaff, mockAlerts } from '@/data/phcMockData';
+import { mockAlerts } from '@/data/phcMockData';
+import { phcAPI } from '@/services/phcService';
 
 const navItems = [
   { label: 'Dashboard', icon: Home, path: '/phc/dashboard' },
   { label: 'Patients', icon: Users, path: '/phc/patients' },
   { label: 'Register', icon: UserPlus, path: '/phc/register' },
-  { label: 'Send Advice', icon: MessageCircle, path: '/phc/advice' },
-  { label: 'Refer to FMC', icon: ArrowUpRight, path: '/phc/refer' },
+  { label: 'Advice', icon: MessageCircle, path: '/phc/advice' },
+  { label: 'Escalation', icon: ArrowUpRight, path: '/phc/escalation' },
   { label: 'Analytics', icon: BarChart3, path: '/phc/analytics' },
-  { label: 'Settings', icon: Settings, path: '/phc/settings' },
+  { label: 'Alerts', icon: Bell, path: '/phc/notifications' },
+  { label: 'Settings', icon: Settings, path: '/phc/profile' },
 ];
+
+const getInitials = (name?: string) => {
+  return name
+    ?.split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) || 'AI';
+};
 
 export default function PHCLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const unreadCount = mockAlerts.filter(a => !a.read).length;
 
+  const facilityName = user?.center_info?.center_name;
+  const facilityDisplayName = facilityName || 'Primary Health Centre';
+  const logoSubtitle = facilityName || 'PHC Portal';
+  const userFullName = user?.full_name || 'PHC Staff';
+  const userInitials = getInitials(user?.full_name || '');
+
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
+
+  const handleLogout = async () => {
+    const refresh = localStorage.getItem('refresh_token');
+    try {
+      await phcAPI.logout(refresh!, '');
+    } catch (e) {
+      console.error('Logout error:', e);
+    } finally {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      logout();
+      navigate('/phc/login');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] font-['Inter',sans-serif]">
@@ -35,7 +68,7 @@ export default function PHCLayout({ children }: { children: ReactNode }) {
             </div>
             <span className="font-semibold text-[#1E1E2E] text-sm">AI-MSHM</span>
           </div>
-          <p className="text-xs text-gray-500 mt-1">{mockStaff.facilityName}</p>
+          <p className="text-xs text-gray-500 mt-1">{logoSubtitle}</p>
         </div>
 
         <nav className="flex-1 py-4 px-3 space-y-1">
@@ -56,18 +89,25 @@ export default function PHCLayout({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="p-4 border-t border-gray-100">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-full bg-[#E8F5E9] flex items-center justify-center text-[#2E8B57] font-semibold text-sm">
-              {mockStaff.firstName[0]}{mockStaff.lastName[0]}
+              {userInitials}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-[#1E1E2E] truncate">{mockStaff.firstName} {mockStaff.lastName}</p>
+              <p className="text-sm font-medium text-[#1E1E2E] truncate">{userFullName}</p>
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-[#2E8B57] animate-pulse" />
                 <span className="text-xs text-gray-500">Online</span>
               </div>
             </div>
           </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors w-full"
+          >
+            <LogOut size={18} />
+            <span>Logout</span>
+          </button>
         </div>
       </aside>
 
@@ -98,7 +138,7 @@ export default function PHCLayout({ children }: { children: ReactNode }) {
           <div className="w-64 bg-white h-full" onClick={e => e.stopPropagation()}>
             <div className="p-5 border-b border-gray-100">
               <p className="font-semibold text-[#1E1E2E] text-sm">AI-MSHM</p>
-              <p className="text-xs text-gray-500">{mockStaff.facilityName}</p>
+              <p className="text-xs text-gray-500">{facilityDisplayName}</p>
             </div>
             <nav className="py-4 px-3 space-y-1">
               {navItems.map(item => (
@@ -114,6 +154,16 @@ export default function PHCLayout({ children }: { children: ReactNode }) {
                   <span>{item.label}</span>
                 </Link>
               ))}
+              <button
+                onClick={() => {
+                  handleLogout();
+                  setSidebarOpen(false);
+                }}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors w-full"
+              >
+                <LogOut size={18} />
+                <span>Logout</span>
+              </button>
             </nav>
           </div>
         </div>

@@ -32,12 +32,11 @@ const Step6rPPG = () => {
       setErrors({});
       
       await onboardingAPI.saveStep6rPPG(user!.accessToken!);
-      await onboardingAPI.markComplete(user!.accessToken!);
       
       // Refresh profile data
       await refreshProfile();
       
-      navigate('/dashboard');
+      navigate('/onboarding/step/7');
     } catch (err: any) {
       const backendErrors: Record<string, string> = {};
       if (err?.errors) {
@@ -61,13 +60,8 @@ const Step6rPPG = () => {
       setIsLoading(true);
       setErrors({});
       
-      // Skip rPPG, go straight to complete
-      const result = await onboardingAPI.markComplete(user!.accessToken!);
-      
-      // Refresh profile data
-      await refreshProfile();
-      
-      navigate(result.data.redirect); // '/dashboard'
+      // Skip rPPG, go to step 7
+      navigate('/onboarding/step/7');
     } catch (err: any) {
       const backendErrors: Record<string, string> = {};
       if (err?.errors) {
@@ -171,7 +165,7 @@ const Step6rPPG = () => {
                 onClick={handleComplete}
                 disabled={isLoading}
               >
-                {isLoading ? "Completing..." : "Complete Onboarding"}
+                {isLoading ? "Saving..." : "Continue"}
               </Button>
             )}
             
@@ -181,7 +175,7 @@ const Step6rPPG = () => {
               onClick={handleSkipAndFinish}
               disabled={isLoading}
             >
-              Skip & Finish
+              Skip
             </Button>
           </div>
         </motion.div>

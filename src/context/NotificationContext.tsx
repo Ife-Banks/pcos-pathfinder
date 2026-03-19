@@ -145,26 +145,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
   // ── Wake up Render instance before WebSocket connection ──────────────────────
   const wakeUpRender = useCallback(async () => {
     if (!token) return false;
-    
-    try {
-      console.log('🔄 Waking up Render instance...');
-      // Simple ping to wake up the backend
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://ai-mshm-backend.onrender.com/api/v1'}/../health`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      
-      if (response.ok) {
-        console.log('✅ Render instance awake');
-        return true;
-      } else {
-        console.error('❌ Failed to wake up Render instance');
-        return false;
-      }
-    } catch (error) {
-      console.error('❌ Wake-up error:', error);
-      return false;
-    }
+    return true;
   }, [token]);
 
   // ── WebSocket connect with retry logic ───────────────────────────────
