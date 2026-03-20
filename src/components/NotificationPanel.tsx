@@ -42,16 +42,19 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, on
     // Handle navigation based on action
     switch (notification.data.action) {
       case 'open_morning_checkin':
-        navigate('/check-in/morning');
+        navigate('/checkin/morning');
         break;
       case 'open_evening_checkin':
-        navigate('/check-in/evening');
+        navigate('/checkin/evening');
         break;
       case 'open_weekly_tools':
         navigate('/weekly-tools');
         break;
       case 'open_risk_details':
-        navigate('/risk-score');
+        navigate('/results');
+        break;
+      case 'open_dashboard':
+        navigate('/dashboard');
         break;
       case 'open_devices':
         navigate('/settings/devices');

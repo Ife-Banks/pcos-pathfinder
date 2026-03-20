@@ -1,110 +1,231 @@
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowUpRight, ArrowDownRight, Minus, Info } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ArrowDownRight, Minus, Info, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { predictionService, SHAPFeature, PredictionRecord } from "@/services/predictionService";
 
-interface FeatureDetail {
-  feature: string;
-  currentValue: string;
-  shapCurrent: number;
-  shapPrevious: number;
-  unit: string;
-  explanation: string;
-}
-
-const FEATURES: FeatureDetail[] = [
-  { feature: "LH/FSH Ratio", currentValue: "2.4", shapCurrent: 0.14, shapPrevious: 0.12, unit: "", explanation: "Your LH/FSH ratio increased from 2.1 to 2.4, amplifying its contribution. A ratio above 2.0 is associated with PCOS." },
-  { feature: "Fasting Insulin", currentValue: "18.3", shapCurrent: 0.11, shapPrevious: 0.10, unit: "µIU/mL", explanation: "Fasting insulin remained elevated. Levels above 15 µIU/mL suggest insulin resistance, a key PCOS driver." },
-  { feature: "Cycle Irregularity", currentValue: "Score 3", shapCurrent: 0.09, shapPrevious: 0.11, unit: "", explanation: "Your cycle regularity slightly improved this week, reducing this factor's contribution compared to last week." },
-  { feature: "Ovarian Volume", currentValue: "12.0", shapCurrent: 0.07, shapPrevious: 0.07, unit: "mL", explanation: "Ovarian volume remained stable. Volumes above 10 mL are considered enlarged and contribute to risk." },
-  { feature: "BMI", currentValue: "23.1", shapCurrent: -0.04, shapPrevious: -0.05, unit: "kg/m²", explanation: "Your BMI remains healthy, continuing to lower your overall risk. Slight increase reduced its protective effect." },
-  { feature: "Hirsutism Score", currentValue: "8", shapCurrent: 0.05, shapPrevious: 0.04, unit: "/36", explanation: "Modified Ferriman-Gallwey score increased slightly, indicating mild excess hair growth contributing to risk." },
-  { feature: "PHQ-4 Score", currentValue: "4", shapCurrent: 0.02, shapPrevious: 0.03, unit: "/12", explanation: "Psychological distress decreased this week, slightly reducing its contribution to your overall score." },
-  { feature: "HbA1c", currentValue: "5.4", shapCurrent: 0.01, shapPrevious: 0.01, unit: "%", explanation: "HbA1c remains normal. This value has minimal effect on your risk score." },
-  { feature: "Acne Severity", currentValue: "6", shapCurrent: 0.03, shapPrevious: 0.02, unit: "/10", explanation: "Acne severity increased from last week's evening check-ins, adding slightly more risk contribution." },
-];
+const TEAL = '#00897B';
 
 const SHAPExplanationDetail = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [features, setFeatures] = useState<SHAPFeature[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [predictionId, setPredictionId] = useState<string | null>(null);
+
+  const fetchFeatures = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const storedId = localStorage.getItem('latest_prediction_id');
+
+      if (storedId) {
+        setPredictionId(storedId);
+        const featuresRes = await predictionService.getFeatures(storedId);
+        setFeatures(featuresRes.data.features);
+        return;
+      }
+
+      const latestRes = await predictionService.getLatest();
+      const id = latestRes.data.id;
+      localStorage.setItem('latest_prediction_id', id);
+      setPredictionId(id);
+      const featuresRes = await predictionService.getFeatures(id);
+      setFeatures(featuresRes.data.features);
+    } catch (err: any) {
+      if (err?.status === 401) {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        navigate('/login');
+        return;
+      }
+      setError('Detailed breakdown not available for this prediction.');
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    fetchFeatures();
+  }, [fetchFeatures]);
+
+  const sortedFeatures = [...features].sort(
+    (a, b) => Math.abs(b.shap_value) - Math.abs(a.shap_value)
+  );
+
+  const formatValue = (feature: SHAPFeature) => {
+    const val = feature.value;
+    if (feature.unit === '/36') return `${val}/36`;
+    if (feature.unit === '/12') return `${val}/12`;
+    if (feature.unit === '/10') return `${val}/10`;
+    if (feature.unit === 'kg/m²') return `${val} kg/m²`;
+    if (feature.unit === 'µIU/mL') return `${val} µIU/mL`;
+    if (feature.unit === '%') return `${val}%`;
+    if (feature.unit) return `${val} ${feature.unit}`;
+    return String(val);
+  };
+
+  const getDeltaDisplay = (feature: SHAPFeature) => {
+    if (feature.vs_last_week) {
+      const { delta, direction } = feature.vs_last_week;
+      if (direction === 'stable') return { text: 'No change', color: 'text-gray-400', icon: null };
+      return {
+        text: `${delta >= 0 ? '+' : ''}${delta.toFixed(2)} vs last wk`,
+        color: direction === 'up' ? '#E74C3C' : TEAL,
+        icon: direction === 'up' ? '↗' : '↘',
+      };
+    }
+    return { text: '—', color: 'text-gray-400', icon: null };
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-3 flex items-center gap-3">
+          <button className="p-1.5 rounded-lg hover:bg-gray-100">
+            <ArrowLeft className="w-5 h-5 text-gray-700" />
+          </button>
+          <div>
+            <h1 className="font-display text-lg font-bold text-gray-900">Score Breakdown</h1>
+            <p className="text-xs text-gray-500">SHAP feature contributions</p>
+          </div>
+        </header>
+        <div className="p-4 space-y-3">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-gray-100 rounded-lg" />
+                  <div>
+                    <div className="h-4 bg-gray-100 rounded w-24 mb-1" />
+                    <div className="h-3 bg-gray-100 rounded w-16" />
+                  </div>
+                </div>
+                <div className="h-4 bg-gray-100 rounded w-12" />
+              </div>
+              <div className="h-2 bg-gray-100 rounded-full mt-3" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error || features.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-3 flex items-center gap-3">
+          <button onClick={() => navigate(-1)} className="p-1.5 rounded-lg hover:bg-gray-100">
+            <ArrowLeft className="w-5 h-5 text-gray-700" />
+          </button>
+          <div>
+            <h1 className="font-display text-lg font-bold text-gray-900">Score Breakdown</h1>
+            <p className="text-xs text-gray-500">SHAP feature contributions</p>
+          </div>
+        </header>
+        <div className="p-4 flex flex-col items-center justify-center min-h-[60vh] text-center">
+          <div className="text-6xl mb-4">📋</div>
+          <h2 className="text-lg font-bold text-gray-900 mb-2">Detailed breakdown not available</h2>
+          <p className="text-sm text-gray-500 max-w-xs">
+            {error || 'Complete more check-ins to generate feature-level insights.'}
+          </p>
+          <Button
+            onClick={() => navigate('/risk-score')}
+            className="mt-6 rounded-xl text-white"
+            style={{ backgroundColor: TEAL }}
+          >
+            Back to Risk Score
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border px-4 py-3 flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="p-1.5 rounded-lg hover:bg-secondary">
-          <ArrowLeft className="w-5 h-5 text-foreground" />
+    <div className="min-h-screen bg-gray-50">
+      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-3 flex items-center gap-3">
+        <button onClick={() => navigate(-1)} className="p-1.5 rounded-lg hover:bg-gray-100">
+          <ArrowLeft className="w-5 h-5 text-gray-700" />
         </button>
         <div className="flex-1">
-          <h1 className="font-display text-lg font-bold text-foreground">Score Breakdown</h1>
-          <p className="text-xs text-muted-foreground">SHAP feature contributions</p>
+          <h1 className="font-display text-lg font-bold text-gray-900">Score Breakdown</h1>
+          <p className="text-xs text-gray-500">SHAP feature contributions</p>
         </div>
       </header>
 
       <div className="p-4 space-y-4">
-        {/* Legend */}
-        <div className="flex gap-4 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1"><ArrowUpRight className="w-3.5 h-3.5 text-[hsl(var(--destructive))]" /> Increases risk</span>
-          <span className="flex items-center gap-1"><ArrowDownRight className="w-3.5 h-3.5 text-accent" /> Decreases risk</span>
+        <div className="flex gap-4 text-xs text-gray-500">
+          <span className="flex items-center gap-1">
+            <ArrowUpRight className="w-3.5 h-3.5 text-[#E74C3C]" /> Increases risk
+          </span>
+          <span className="flex items-center gap-1">
+            <ArrowDownRight className="w-3.5 h-3.5" style={{ color: TEAL }} /> Decreases risk
+          </span>
         </div>
 
-        {/* Feature Cards */}
         <div className="space-y-2.5">
-          {FEATURES.map((f, i) => {
-            const delta = f.shapCurrent - f.shapPrevious;
-            const isPositive = f.shapCurrent > 0;
-            const deltaDirection = delta > 0.005 ? "up" : delta < -0.005 ? "down" : "stable";
+          {sortedFeatures.map((feature, i) => {
+            const isPositive = feature.direction === 'increases_risk';
+            const delta = getDeltaDisplay(feature);
 
             return (
               <motion.div
-                key={f.feature}
+                key={feature.feature_key}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
               >
-                <Card className="border-border">
+                <Card className="border border-gray-200">
                   <CardContent className="p-4 space-y-2.5">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isPositive ? "bg-destructive/10" : "bg-accent/10"}`}>
+                        <div
+                          className="w-8 h-8 rounded-lg flex items-center justify-center"
+                          style={{ backgroundColor: isPositive ? '#FEE2E2' : '#E0F2F1' }}
+                        >
                           {isPositive ? (
-                            <ArrowUpRight className="w-4 h-4 text-[hsl(var(--destructive))]" />
+                            <ArrowUpRight className="w-4 h-4 text-[#E74C3C]" />
                           ) : (
-                            <ArrowDownRight className="w-4 h-4 text-accent" />
+                            <ArrowDownRight className="w-4 h-4" style={{ color: TEAL }} />
                           )}
                         </div>
                         <div>
-                          <p className="font-display font-semibold text-sm text-foreground">{f.feature}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {f.currentValue} {f.unit}
-                          </p>
+                          <p className="font-display font-semibold text-sm text-gray-900">{feature.display_name}</p>
+                          <p className="text-xs text-gray-500">{formatValue(feature)}</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className={`text-sm font-bold font-display ${isPositive ? "text-[hsl(var(--destructive))]" : "text-accent"}`}>
-                          {f.shapCurrent > 0 ? "+" : ""}{f.shapCurrent.toFixed(2)}
+                        <p
+                          className="text-sm font-bold font-display"
+                          style={{ color: isPositive ? '#E74C3C' : TEAL }}
+                        >
+                          {feature.shap_value >= 0 ? '+' : ''}{feature.shap_value.toFixed(2)}
                         </p>
                         <div className="flex items-center gap-0.5 justify-end mt-0.5">
-                          {deltaDirection === "up" && <ArrowUpRight className="w-3 h-3 text-[hsl(var(--destructive))]" />}
-                          {deltaDirection === "down" && <ArrowDownRight className="w-3 h-3 text-accent" />}
-                          {deltaDirection === "stable" && <Minus className="w-3 h-3 text-muted-foreground" />}
-                          <span className="text-xs text-muted-foreground">
-                            {deltaDirection === "stable" ? "No change" : `${delta > 0 ? "+" : ""}${delta.toFixed(2)} vs last wk`}
+                          {delta.icon === '↗' && <ArrowUpRight className="w-3 h-3 text-[#E74C3C]" />}
+                          {delta.icon === '↘' && <ArrowDownRight className="w-3 h-3" style={{ color: TEAL }} />}
+                          {delta.icon === null && <Minus className="w-3 h-3 text-gray-400" />}
+                          <span className="text-xs" style={{ color: delta.color }}>
+                            {delta.text}
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* SHAP bar */}
-                    <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                       <motion.div
-                        className={`h-full rounded-full ${isPositive ? "bg-[hsl(var(--destructive))]" : "bg-accent"}`}
+                        className="h-full rounded-full"
                         initial={{ width: 0 }}
-                        animate={{ width: `${Math.abs(f.shapCurrent) * 500}%` }}
+                        animate={{ width: `${Math.min(Math.abs(feature.shap_value) * 500, 100)}%` }}
                         transition={{ delay: 0.3 + i * 0.05, duration: 0.5 }}
+                        style={{ backgroundColor: isPositive ? '#E74C3C' : TEAL }}
                       />
                     </div>
 
-                    <p className="text-xs text-muted-foreground leading-relaxed">{f.explanation}</p>
+                    <p className="text-xs text-gray-500 leading-relaxed">{feature.explanation}</p>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -112,9 +233,9 @@ const SHAPExplanationDetail = () => {
           })}
         </div>
 
-        <div className="bg-secondary/50 rounded-xl p-4 flex gap-3">
-          <Info className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
-          <p className="text-xs text-muted-foreground leading-relaxed">
+        <div className="bg-gray-100 rounded-xl p-4 flex gap-3">
+          <Info className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" />
+          <p className="text-xs text-gray-500 leading-relaxed">
             SHAP values show how each feature pushes the score up or down from a baseline. Larger bars = stronger contribution.
             Week-over-week changes highlight what shifted since your last assessment.
           </p>

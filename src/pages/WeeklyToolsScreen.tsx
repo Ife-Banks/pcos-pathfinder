@@ -27,6 +27,7 @@ const WeeklyToolsScreen = () => {
     const affectInfo = getToolCompletionInfo('affect');
     const focusInfo = getToolCompletionInfo('focus');
     const sleepInfo = getToolCompletionInfo('sleep');
+    const mfgInfo = getToolCompletionInfo('mfg');
     
     return [
       {
@@ -35,9 +36,10 @@ const WeeklyToolsScreen = () => {
         subtitle: "Modified Ferriman-Gallwey (mFG)",
         description: "Quantify hair growth patterns across 8 body zones to assess hyperandrogenism.",
         icon: Scissors,
-        route: "/hirsutism",
+        route: "/weekly-tools/hirsutism",
         gradient: "gradient-clinical",
-        completed: false,
+        completed: mfgInfo.completed,
+        lastCompleted: mfgInfo.lastCompleted,
         frequency: "Weekly",
       },
       {

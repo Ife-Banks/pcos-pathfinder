@@ -10,7 +10,7 @@ export function getCurrentWeekKey(): string {
 }
 
 export function markToolComplete(
-  tool: 'phq4' | 'affect' | 'focus' | 'sleep'
+  tool: 'phq4' | 'affect' | 'focus' | 'sleep' | 'mfg'
 ): void {
   localStorage.setItem(
     `mshm_${tool}_completed_week`,
@@ -19,7 +19,7 @@ export function markToolComplete(
 }
 
 export function isToolCompleteThisWeek(
-  tool: 'phq4' | 'affect' | 'focus' | 'sleep'
+  tool: 'phq4' | 'affect' | 'focus' | 'sleep' | 'mfg'
 ): boolean {
   const stored = localStorage.getItem(`mshm_${tool}_completed_week`);
   return stored === getCurrentWeekKey();
@@ -30,12 +30,13 @@ export function areAllToolsComplete(): boolean {
     isToolCompleteThisWeek('phq4') &&
     isToolCompleteThisWeek('affect') &&
     isToolCompleteThisWeek('focus') &&
-    isToolCompleteThisWeek('sleep')
+    isToolCompleteThisWeek('sleep') &&
+    isToolCompleteThisWeek('mfg')
   );
 }
 
 export function getToolCompletionInfo(
-  tool: 'phq4' | 'affect' | 'focus' | 'sleep'
+  tool: 'phq4' | 'affect' | 'focus' | 'sleep' | 'mfg'
 ): { completed: boolean; lastCompleted?: string } {
   const stored = localStorage.getItem(`mshm_${tool}_completed_week`);
   if (!stored) return { completed: false };
