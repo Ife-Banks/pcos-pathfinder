@@ -1,574 +1,305 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { 
-  ArrowLeft, 
-  Bell, 
-  AlertTriangle, 
-  CheckCircle, 
-  Clock, 
-  Users, 
-  Activity, 
-  Heart,
-  MessageSquare,
-  Search,
+import {
+  Bell,
+  BellOff,
+  Users,
+  TrendingUp,
+  Clock,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
+  ArrowRight,
+  BellRing,
   Filter,
-  Eye,
-  EyeOff,
-  Trash2,
-  Send,
-  Calendar,
-  Settings,
-  Smartphone,
-  Mail,
-  Volume2,
-  Info
 } from "lucide-react";
+import PHCLayout from "@/components/phc/PHCLayout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { phcAPI } from "@/services/phcService";
-import { PHCNotification, PHCNotificationPreferences } from "@/types/phc";
 
-const PHCNotificationsScreen = () => {
+type NotificationType = "new_referral" | "score_change" | "overdue_followup" | "missed_checkin";
+
+interface Notification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  is_read: boolean;
+  created_at: string;
+  data: {
+    action: "open_patient" | "open_dashboard";
+    queue_record_id: string;
+  };
+}
+
+const FILTERS: { label: string; value: NotificationType | "all" }[] = [
+  { label: "All", value: "all" },
+  { label: "New Referrals", value: "new_referral" },
+  { label: "Score Changes", value: "score_change" },
+  { label: "Overdue Follow-Ups", value: "overdue_followup" },
+  { label: "Missed Check-Ins", value: "missed_checkin" },
+];
+
+const ACCENT_COLOR = "#2E8B57";
+
+function formatTimestamp(isoString: string): string {
+  const date = new Date(isoString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 60) return `${diffMins} min ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+  if (diffDays === 1) return "Yesterday";
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function getNotificationIcon(type: NotificationType, className = "h-5 w-5") {
+  const iconProps = { className, strokeWidth: 2 };
+  switch (type) {
+    case "new_referral":
+      return <Users {...iconProps} />;
+    case "score_change":
+      return <TrendingUp {...iconProps} />;
+    case "overdue_followup":
+      return <Clock {...iconProps} />;
+    case "missed_checkin":
+      return <BellOff {...iconProps} />;
+  }
+}
+
+function getIconBgColor(type: NotificationType): string {
+  switch (type) {
+    case "new_referral":
+      return "bg-red-100 text-red-600";
+    case "score_change":
+      return "bg-orange-100 text-orange-600";
+    case "overdue_followup":
+      return "bg-amber-100 text-amber-600";
+    case "missed_checkin":
+      return "bg-gray-100 text-gray-500";
+  }
+}
+
+function getActionButton(type: NotificationType) {
+  const baseClass = "text-xs font-medium flex items-center gap-1 px-3 py-1.5 rounded-md transition-colors";
+  switch (type) {
+    case "new_referral":
+      return (
+        <Button variant="ghost" className={`${baseClass} bg-emerald-50 text-emerald-700 hover:bg-emerald-100`} size="sm">
+          Review Patient <ArrowRight className="h-3 w-3" />
+        </Button>
+      );
+    case "score_change":
+      return (
+        <Button variant="ghost" className={`${baseClass} bg-blue-50 text-blue-700 hover:bg-blue-100`} size="sm">
+          View Details <ArrowRight className="h-3 w-3" />
+        </Button>
+      );
+    case "overdue_followup":
+      return (
+        <Button variant="outline" className={`${baseClass} border-amber-300 text-amber-700 hover:bg-amber-50`} size="sm">
+          View Patient <ArrowRight className="h-3 w-3" />
+        </Button>
+      );
+    case "missed_checkin":
+      return (
+        <Button variant="outline" className={`${baseClass} border-gray-300 text-gray-600 hover:bg-gray-50`} size="sm">
+          Send Reminder <ArrowRight className="h-3 w-3" />
+        </Button>
+      );
+  }
+}
+
+export default function PHCNotificationsScreen() {
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState<PHCNotification[]>([]);
-  const [preferences, setPreferences] = useState<PHCNotificationPreferences | null>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [activeFilter, setActiveFilter] = useState<NotificationType | "all">("all");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState('all');
-  const [selectedNotification, setSelectedNotification] = useState<PHCNotification | null>(null);
-  const [showUnreadOnly, setShowUnreadOnly] = useState(false);
-  const [isUpdatingPrefs, setIsUpdatingPrefs] = useState(false);
-
-  const fetchNotifications = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await phcAPI.getNotifications();
-      setNotifications(response.data);
-      
-    } catch (error: any) {
-      console.error('Error fetching notifications:', error);
-      setError('Failed to load notifications. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchPreferences = async () => {
-    try {
-      const response = await phcAPI.getNotificationPreferences();
-      setPreferences(response.data);
-    } catch (error: any) {
-      console.error('Error fetching preferences:', error);
-      // Preferences are optional, so don't set error
-    }
-  };
-
-  const handleMarkAsRead = async (notificationId: string, actionTaken?: string) => {
-    try {
-      setError(null);
-      
-      await phcAPI.markNotificationRead(notificationId, actionTaken);
-      
-      // Update notifications list
-      setNotifications(prev => prev.map(n => 
-        n.id === notificationId ? { ...n, is_read: true, action_taken: actionTaken } : n
-      ));
-      
-      if (selectedNotification?.id === notificationId) {
-        setSelectedNotification(prev => prev ? { ...prev, is_read: true, action_taken: actionTaken } : null);
-      }
-      
-    } catch (error: any) {
-      console.error('Error marking notification as read:', error);
-      setError('Failed to mark notification as read. Please try again.');
-    }
-  };
-
-  const handleUpdatePreferences = async (prefs: Partial<PHCNotificationPreferences>) => {
-    try {
-      setError(null);
-      setIsUpdatingPrefs(true);
-      
-      await phcAPI.updateNotificationPreferences(prefs);
-      
-      // Refresh preferences
-      await fetchPreferences();
-      
-      setSuccess('Notification preferences updated successfully!');
-      setTimeout(() => setSuccess(null), 3000);
-      
-    } catch (error: any) {
-      console.error('Error updating preferences:', error);
-      setError('Failed to update preferences. Please try again.');
-    } finally {
-      setIsUpdatingPrefs(false);
-    }
-  };
-
-  const handleSendCustomNotification = async () => {
-    // This would be implemented if the API supports sending custom notifications
-    setSuccess('Custom notification feature coming soon!');
-    setTimeout(() => setSuccess(null), 3000);
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'escalation': return 'bg-red-100 text-red-800';
-      case 'new_referral': return 'bg-blue-100 text-blue-800';
-      case 'follow_up': return 'bg-amber-100 text-amber-800';
-      case 'system': return 'bg-gray-100 text-gray-800';
-      case 'advice_sent': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'escalation': return <AlertTriangle className="h-4 w-4 text-red-600" />;
-      case 'new_referral': return <Users className="h-4 w-4 text-blue-600" />;
-      case 'follow_up': return <Calendar className="h-4 w-4 text-amber-600" />;
-      case 'system': return <Settings className="h-4 w-4 text-gray-600" />;
-      case 'advice_sent': return <MessageSquare className="h-4 w-4 text-green-600" />;
-      default: return <Bell className="h-4 w-4 text-gray-600" />;
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'bg-red-500';
-      case 'medium': return 'bg-amber-500';
-      case 'low': return 'bg-blue-500';
-      default: return 'bg-gray-500';
-    }
-  };
-
-  const getTimeSince = (timestamp: string) => {
-    const now = new Date();
-    const notificationTime = new Date(timestamp);
-    const diffInMinutes = Math.floor((now.getTime() - notificationTime.getTime()) / (1000 * 60));
-    
-    if (diffInMinutes < 1) return 'Just now';
-    if (diffInMinutes < 60) return `${diffInMinutes} minutes ago`;
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} hours ago`;
-    if (diffInMinutes < 10080) return `${Math.floor(diffInMinutes / 1440)} days ago`;
-    return `${Math.floor(diffInMinutes / 10080)} weeks ago`;
-  };
-
-  const filteredNotifications = notifications.filter(notification => {
-    const matchesSearch = notification.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         notification.message.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || 
-      (statusFilter === 'read' && notification.is_read) ||
-      (statusFilter === 'unread' && !notification.is_read);
-    
-    const matchesType = typeFilter === 'all' || notification.type === typeFilter;
-    
-    return matchesSearch && matchesStatus && matchesType;
-  });
-
-  const unreadCount = notifications.filter(n => !n.is_read).length;
-  const highPriorityCount = notifications.filter(n => n.priority === 'high' && !n.is_read).length;
-
-  const statusOptions = [
-    { value: 'all', label: 'All Notifications' },
-    { value: 'unread', label: 'Unread' },
-    { value: 'read', label: 'Read' },
-  ];
-
-  const typeOptions = [
-    { value: 'all', label: 'All Types' },
-    { value: 'escalation', label: 'Escalations' },
-    { value: 'new_referral', label: 'New Referrals' },
-    { value: 'follow_up', label: 'Follow-ups' },
-    { value: 'system', label: 'System' },
-    { value: 'advice_sent', label: 'Advice Sent' },
-  ];
 
   useEffect(() => {
     fetchNotifications();
-    fetchPreferences();
+    fetchUnreadCount();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2E8B57]"></div>
-      </div>
-    );
+  async function fetchNotifications() {
+    try {
+      const data = await phcAPI.getNotifications();
+      const results = Array.isArray(data) ? data : (data?.data?.results || data?.data || []);
+      setNotifications(results);
+    } catch {
+      setNotifications([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
+  async function fetchUnreadCount() {
+    try {
+      const data = await phcAPI.getUnreadCount();
+      const count = typeof data === 'number' ? data : (data?.unread_count ?? 0);
+      setUnreadCount(count);
+    } catch {
+      setUnreadCount(0);
+    }
+  }
+
+  async function handleNotificationClick(notification: Notification) {
+    if (!notification.is_read) {
+      try {
+        await phcAPI.markNotificationRead(notification.id);
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === notification.id ? { ...n, is_read: true } : n))
+        );
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      } catch {
+        // continue anyway
+      }
+    }
+    if (notification.data.queue_record_id) {
+      navigate(`/phc/patients/${notification.data.queue_record_id}`);
+    }
+  }
+
+  async function handleMarkAllRead() {
+    try {
+      await phcAPI.markAllNotificationsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+    } catch {
+      // silent fail
+    }
+  }
+
+  const filteredNotifications = notifications
+    .filter((n) => activeFilter === "all" || n.type === activeFilter)
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                onClick={() => navigate('/phc/dashboard')}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to Dashboard
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Notifications & Alerts</h1>
-                <p className="text-gray-600">Stay updated with important PHC activities</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
+    <PHCLayout>
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-2xl mx-auto px-4 py-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <BellRing className="h-6 w-6 text-emerald-600" />
+              <h1 className="text-2xl font-bold text-gray-900">Alerts & Notifications</h1>
               {unreadCount > 0 && (
-                <Badge className="bg-red-500 text-white">
-                  {unreadCount} unread
+                <Badge
+                  className="h-6 min-w-6 px-1.5 flex items-center justify-center text-xs font-semibold"
+                  style={{ backgroundColor: ACCENT_COLOR, color: "white" }}
+                >
+                  {unreadCount}
                 </Badge>
               )}
-              <Button className="bg-[#2E8B57] hover:bg-[#236F47]">
-                <Bell className="h-4 w-4 mr-2" />
-                Mark All as Read
-              </Button>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Success/Error Alerts */}
-        {success && (
-          <Alert className="mb-6 border-green-200 bg-green-50">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800">{success}</AlertDescription>
-          </Alert>
-        )}
-        
-        {error && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+          <div className="flex flex-wrap gap-2 mb-6">
+            {FILTERS.map((filter) => (
+              <button
+                key={filter.value}
+                onClick={() => setActiveFilter(filter.value)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  activeFilter === filter.value
+                    ? "text-white shadow-sm"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+                style={activeFilter === filter.value ? { backgroundColor: ACCENT_COLOR } : {}}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Notifications List */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <Bell className="h-5 w-5 text-[#2E8B57]" />
-                    Notifications
-                  </span>
-                  <div className="flex gap-2">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input
-                        placeholder="Search notifications..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10"
-                      />
+          {filteredNotifications.length > 0 && unreadCount > 0 && (
+            <div className="flex justify-end mb-3">
+              <button
+                onClick={handleMarkAllRead}
+                className="text-sm text-emerald-600 hover:text-emerald-700 font-medium underline-offset-2 hover:underline"
+              >
+                Mark All Read
+              </button>
+            </div>
+          )}
+
+          {loading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 bg-gray-200 rounded-full" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-3/4" />
+                        <div className="h-3 bg-gray-200 rounded w-1/2" />
+                      </div>
                     </div>
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {statusOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select value={typeFilter} onValueChange={setTypeFilter}>
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {typeOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="max-h-96 overflow-y-auto">
-                  {filteredNotifications.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500">
-                      <Bell className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No Notifications</h3>
-                      <p>You're all caught up! No new notifications to display.</p>
-                    </div>
-                  ) : (
-                    filteredNotifications.map((notification, index) => (
-                      <motion.div
-                        key={notification.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className={`p-4 border-b cursor-pointer hover:bg-gray-50 transition-colors ${
-                          !notification.is_read ? 'bg-blue-50' : ''
-                        }`}
-                        onClick={() => setSelectedNotification(notification)}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className={`w-2 h-2 rounded-full mt-2 ${
-                            notification.is_read ? 'bg-gray-300' : getPriorityColor(notification.priority)
-                          }`} />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="font-semibold text-gray-900">
-                                {notification.title}
-                              </h4>
-                              <div className="flex gap-2">
-                                <Badge className={getTypeColor(notification.type)}>
-                                  {notification.type.replace('_', ' ').toUpperCase()}
-                                </Badge>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : filteredNotifications.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16">
+              <div className="w-24 h-24 bg-gray-100 rounded-xl flex items-center justify-center mb-4">
+                <CheckCircle className="h-12 w-12 text-gray-300" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-700 mb-1">You're all caught up!</h3>
+              <p className="text-sm text-gray-500">No new alerts at this time.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filteredNotifications.map((notification, index) => (
+                <motion.div
+                  key={notification.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <Card
+                    className={`cursor-pointer transition-colors hover:bg-gray-50 ${
+                      !notification.is_read ? "bg-blue-50/50" : "bg-white"
+                    }`}
+                    onClick={() => handleNotificationClick(notification)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className={`mt-0.5 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${getIconBgColor(notification.type)}`}>
+                          {getNotificationIcon(notification.type)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className={`text-sm font-semibold text-gray-900 truncate ${!notification.is_read ? "font-bold" : ""}`}>
+                                  {notification.title}
+                                </p>
                                 {!notification.is_read && (
-                                  <Badge className="bg-blue-500 text-white text-xs">
-                                    NEW
-                                  </Badge>
+                                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: ACCENT_COLOR }} />
                                 )}
                               </div>
+                              <p className="text-sm text-gray-600 mt-0.5 line-clamp-2">{notification.body}</p>
+                              <p className="text-xs text-gray-400 mt-1">{formatTimestamp(notification.created_at)}</p>
                             </div>
-                            <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                              {notification.message}
-                            </p>
-                            <div className="flex items-center justify-between text-xs text-gray-500">
-                              <span>{getTimeSince(notification.created_at)}</span>
-                              {notification.patient_name && (
-                                <span>Patient: {notification.patient_name}</span>
-                              )}
+                            <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                              {getActionButton(notification.type)}
                             </div>
                           </div>
                         </div>
-                      </motion.div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Notification Details & Settings */}
-          <div className="lg:col-span-1">
-            {selectedNotification ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    {getTypeIcon(selectedNotification.type)}
-                    Notification Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-2">
-                      {selectedNotification.title}
-                    </h4>
-                    <Badge className={getTypeColor(selectedNotification.type)}>
-                      {selectedNotification.type.replace('_', ' ').toUpperCase()}
-                    </Badge>
-                  </div>
-                  
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Priority:</span>
-                      <Badge className={getPriorityColor(selectedNotification.priority)}>
-                        {selectedNotification.priority.toUpperCase()}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Status:</span>
-                      <span className={`font-medium ${
-                        selectedNotification.is_read ? 'text-gray-600' : 'text-blue-600'
-                      }`}>
-                        {selectedNotification.is_read ? 'Read' : 'Unread'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Created:</span>
-                      <span className="font-medium">
-                        {new Date(selectedNotification.created_at).toLocaleString()}
-                      </span>
-                    </div>
-                    {selectedNotification.patient_name && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Patient:</span>
-                        <span className="font-medium">{selectedNotification.patient_name}</span>
                       </div>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <h5 className="font-medium text-gray-900 mb-2">Message</h5>
-                    <p className="text-sm text-gray-600">
-                      {selectedNotification.message}
-                    </p>
-                  </div>
-                  
-                  {selectedNotification.action_taken && (
-                    <div>
-                      <h5 className="font-medium text-gray-900 mb-2">Action Taken</h5>
-                      <p className="text-sm text-gray-600">
-                        {selectedNotification.action_taken}
-                      </p>
-                    </div>
-                  )}
-                  
-                  {!selectedNotification.is_read && (
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => handleMarkAsRead(selectedNotification.id)}
-                        className="bg-[#2E8B57] hover:bg-[#236F47]"
-                      >
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Mark as Read
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => handleMarkAsRead(selectedNotification.id, 'Reviewed')}
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        Mark as Reviewed
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Notification Details</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8">
-                    <Info className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Select a Notification</h3>
-                    <p className="text-gray-600">Choose a notification from the list to view details</p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Notification Settings */}
-            <Card className="mt-4">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5 text-[#2E8B57]" />
-                  Notification Preferences
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {preferences ? (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">New Referral Alerts</p>
-                        <p className="text-sm text-gray-600">Get notified for new patient referrals</p>
-                      </div>
-                      <Switch
-                        checked={preferences.new_referral_alert}
-                        onCheckedChange={(checked) => handleUpdatePreferences({ new_referral_alert: checked })}
-                      />
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">Score Change Alerts</p>
-                        <p className="text-sm text-gray-600">Alert when patient risk scores change</p>
-                      </div>
-                      <Switch
-                        checked={preferences.score_change_alert}
-                        onCheckedChange={(checked) => handleUpdatePreferences({ score_change_alert: checked })}
-                      />
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">Overdue Follow-up Reminders</p>
-                        <p className="text-sm text-gray-600">Remind about missed follow-ups</p>
-                      </div>
-                      <Switch
-                        checked={preferences.overdue_followup_reminder}
-                        onCheckedChange={(checked) => handleUpdatePreferences({ overdue_followup_reminder: checked })}
-                      />
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">Escalation Notifications</p>
-                        <p className="text-sm text-gray-600">Alert when patients are escalated</p>
-                      </div>
-                      <Switch
-                        checked={preferences.escalation_alert}
-                        onCheckedChange={(checked) => handleUpdatePreferences({ escalation_alert: checked })}
-                      />
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">Email Notifications</p>
-                        <p className="text-sm text-gray-600">Send email summaries</p>
-                      </div>
-                      <Switch
-                        checked={preferences.email_notifications}
-                        onCheckedChange={(checked) => handleUpdatePreferences({ email_notifications: checked })}
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center py-4">
-                    <p className="text-sm text-gray-600">Loading preferences...</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Quick Stats */}
-            <Card className="mt-4">
-              <CardHeader>
-                <CardTitle className="text-lg">Quick Stats</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Total Notifications</span>
-                    <span className="font-semibold">{notifications.length}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Unread</span>
-                    <Badge className="bg-red-500 text-white">{unreadCount}</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">High Priority</span>
-                    <Badge className="bg-red-500 text-white">{highPriorityCount}</Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
-    </div>
+    </PHCLayout>
   );
-};
-
-export default PHCNotificationsScreen;
+}

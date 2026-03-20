@@ -91,7 +91,7 @@ const Step2PhysicalMeasurements = () => {
       
       const { height_cm, weight_kg } = convertToMetric();
       
-      const result = await onboardingAPI.saveStep2(user!.accessToken!, {
+      const result = await onboardingAPI.saveStep2({
         height_cm,
         weight_kg,
       });

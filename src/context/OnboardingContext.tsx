@@ -23,7 +23,7 @@ export const OnboardingProvider = ({ children }: { children: React.ReactNode }) 
     }
     try {
       setIsLoading(true);
-      const result = await onboardingAPI.getProfile(accessToken);
+      const result = await onboardingAPI.getProfile();
       setProfile(result.data);
     } catch (err) {
       console.error('Failed to load onboarding profile:', err);
@@ -33,11 +33,15 @@ export const OnboardingProvider = ({ children }: { children: React.ReactNode }) 
   };
 
   useEffect(() => {
-    // Only fetch when accessToken becomes available
-    if (accessToken) {
-      refreshProfile();
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const role = user?.role;
+
+    if (!accessToken || !role || role !== 'patient') {
+      return;
     }
-  }, [accessToken]); // ← dependency on accessToken, not called at render
+
+    refreshProfile();
+  }, [accessToken, refreshProfile]); // ← only run for patient roles with a token
 
   return (
     <OnboardingContext.Provider value={{ profile, isLoading, refreshProfile }}>

@@ -151,13 +151,13 @@ const App = () => {
                     {/* PHC Routes */}
                     <Route path="/phc/login" element={<PHCStaffLoginScreen />} />
                     <Route path="/phc/dashboard" element={<PHCMinorRiskDashboardScreen />} />
-                    <Route path="/phc/patient/:id" element={<PHCPatientDetailScreen />} />
+                    <Route path="/phc/patients/:id" element={<PHCPatientDetailScreen />} />
                     <Route path="/phc/register" element={<PHCWalkInRegistrationScreen />} />
-                    <Route path="/phc/advice" element={<PHCAdviceInterventionScreen />} />
+                    <Route path="/phc/advice" element={<PHCAdviceScreen />} />
                     <Route path="/phc/escalation" element={<PHCEscalationScreen />} />
                     <Route path="/phc/analytics" element={<PHCAnalyticsScreen />} />
-                    <Route path="/phc/notifications" element={<PHCNotificationsScreen />} />
-                    <Route path="/phc/profile" element={<PHCProfileSettingsScreen />} />
+                    <Route path="/phc/alerts" element={<PHCNotificationsScreen />} />
+                    <Route path="/phc/settings" element={<PHCProfileSettingsScreen />} />
                     {/* Patient Routes */}
                     <Route path="/onboarding" element={<OnboardingScreen />} />
                     <Route path="/onboarding/step/1" element={<Step1PersonalInfo />} />
@@ -200,14 +200,9 @@ const App = () => {
                     <Route path="/clinician/patients" element={<PatientPanelScreen />} />
                     <Route path="/clinician/patient/:id" element={<PatientDetailScreen />} />
                     <Route path="/clinician/patient/:id/export" element={<ClinicianExportScreen />} />
-                    {/* PHC Portal */}
-                    <Route path="/phc/login" element={<PHCLoginScreen />} />
-                    <Route path="/phc/dashboard" element={<PHCDashboardScreen />} />
-                    <Route path="/phc/register" element={<PHCRegisterScreen />} />
-                    <Route path="/phc/patients/:id" element={<PHCPatientDetailScreen />} />
+                    {/* PHC Portal — alias routes */}
+                    <Route path="/phc/register" element={<PHCWalkInRegistrationScreen />} />
                     <Route path="/phc/advice" element={<PHCAdviceScreen />} />
-                    <Route path="/phc/refer" element={<PHCReferScreen />} />
-                    <Route path="/phc/refer/:id" element={<PHCReferScreen />} />
                     {/* FMC Portal */}
                     <Route path="/fmc/login" element={<FMCLoginScreen />} />
                     <Route path="/fmc/dashboard" element={<FMCDashboardScreen />} />

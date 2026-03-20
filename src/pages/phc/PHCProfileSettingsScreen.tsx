@@ -1,657 +1,535 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  ArrowLeft, 
-  User, 
-  Settings, 
-  Bell, 
-  Shield, 
-  Camera, 
-  Save, 
-  CheckCircle, 
-  AlertTriangle,
-  Mail,
-  Phone,
-  MapPin,
-  Calendar,
-  Building,
-  Users,
-  Lock,
-  Eye,
-  EyeOff,
-  Download,
-  Trash2,
-  Smartphone,
-  Edit,
-  Hospital,
-  Stethoscope,
-  Clock,
-  FileText
-} from "lucide-react";
-import { phcAPI } from "@/services/phcService";
-import { PHCProfile, PHCNotificationPreferences } from "@/types/phc";
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import {
+  Settings, User, Users, Bell, ShieldCheck, Lock, Eye, EyeOff,
+  Plus, Edit, Trash2, Copy, Check, LogOut, HelpCircle, ExternalLink,
+  Mail, Phone, Building, MapPin, Clock, AlertTriangle, CheckCircle,
+  UserPlus, X
+} from 'lucide-react';
+import  PHCLayout  from '@/components/phc/PHCLayout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
+} from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAuth } from '../../context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import apiClient from '@/services/apiClient';
 
-const PHCProfileSettingsScreen = () => {
+interface PHCProfile {
+  id: string;
+  name: string;
+  code: string;
+  state: string;
+  lga: string;
+  phone: string;
+  email: string;
+  address: string;
+  escalation_fmc_name?: string;
+}
+
+interface StaffMember {
+  id: string;
+  user_email: string;
+  user_full_name: string;
+  hcc_name: string;
+  hcc_code: string;
+  staff_role: string;
+  employee_id: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface NotificationSettings {
+  new_referral: boolean;
+  score_change: boolean;
+  overdue_followup: boolean;
+  missed_checkin: boolean;
+}
+
+const ensureResponseSuccess = (body: any) => {
+  if (body?.status && body.status !== 'success') {
+    throw body;
+  }
+  return body;
+};
+
+export default function PHCProfileSettingsScreen() {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const { toast } = useToast();
+  const isAdmin = user?.role === 'hcc_admin';
+
   const [profile, setProfile] = useState<PHCProfile | null>(null);
-  const [preferences, setPreferences] = useState<PHCNotificationPreferences | null>(null);
+  const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [notifications, setNotifications] = useState<NotificationSettings>({
+    new_referral: true,
+    score_change: true,
+    overdue_followup: true,
+    missed_checkin: true,
+  });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('profile');
-  const [showPassword, setShowPassword] = useState(false);
+
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [showAddStaffModal, setShowAddStaffModal] = useState(false);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
+  const [deactivateTarget, setDeactivateTarget] = useState<StaffMember | null>(null);
+  const [deactivating, setDeactivating] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isUpdatingPrefs, setIsUpdatingPrefs] = useState(false);
-  
-  const [formData, setFormData] = useState({
-    name: '',
-    address: '',
-    phone: '',
+  const [passwordError, setPasswordError] = useState('');
+
+  const [editProfile, setEditProfile] = useState<PHCProfile | null>(null);
+
+  const [newStaffForm, setNewStaffForm] = useState({
+    full_name: '',
     email: '',
-    lga: '',
-    state: '',
+    staff_role: 'cho',
+    employee_id: '',
   });
-  
-  const [passwordData, setPasswordData] = useState({
-    current_password: '',
-    new_password: '',
-    confirm_password: '',
-  });
+  const [formErrors, setFormErrors] = useState<{ email?: string; full_name?: string; employee_id?: string }>({});
 
-  const fetchProfile = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const [profileResponse, prefsResponse] = await Promise.all([
-        phcAPI.getPHCProfile(),
-        phcAPI.getNotificationPreferences()
-      ]);
-      
-      setProfile(profileResponse.data);
-      setPreferences(prefsResponse.data);
-      
-      // Set form data
-      const p = profileResponse.data;
-      setFormData({
-        name: p.name || '',
-        address: p.address || '',
-        phone: p.phone || '',
-        email: p.email || '',
-        lga: p.lga || '',
-        state: p.state || '',
-      });
-      
-    } catch (error: any) {
-      console.error('Error fetching profile:', error);
-      setError('Failed to load profile data. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUpdateProfile = async () => {
-    try {
-      setError(null);
-      setSuccess(null);
-      
-      await phcAPI.updatePHCProfile(formData);
-      
-      // Refetch profile
-      await fetchProfile();
-      
-      setIsEditing(false);
-      setSuccess('Profile updated successfully!');
-      setTimeout(() => setSuccess(null), 3000);
-      
-    } catch (error: any) {
-      console.error('Error updating profile:', error);
-      setError('Failed to update profile. Please try again.');
-    }
-  };
-
-  const handleChangePassword = async () => {
-    try {
-      setError(null);
-      setSuccess(null);
-      
-      if (passwordData.new_password !== passwordData.confirm_password) {
-        setError('New passwords do not match');
-        return;
-      }
-      
-      await phcAPI.changePassword({
-        old_password: passwordData.current_password,
-        new_password: passwordData.new_password,
-      });
-      
-      setPasswordData({
-        current_password: '',
-        new_password: '',
-        confirm_password: '',
-      });
-      
-      setSuccess('Password changed successfully!');
-      setTimeout(() => setSuccess(null), 3000);
-      
-    } catch (error: any) {
-      console.error('Error changing password:', error);
-      setError('Failed to change password. Please check your current password.');
-    }
-  };
-
-  const handleUpdateNotificationPreferences = async (prefs: Partial<PHCNotificationPreferences>) => {
-    try {
-      setError(null);
-      setSuccess(null);
-      setIsUpdatingPrefs(true);
-      
-      await phcAPI.updateNotificationPreferences(prefs);
-      
-      // Refetch preferences
-      const response = await phcAPI.getNotificationPreferences();
-      setPreferences(response.data);
-      
-      setSuccess('Notification preferences updated!');
-      setTimeout(() => setSuccess(null), 3000);
-      
-    } catch (error: any) {
-      console.error('Error updating preferences:', error);
-      setError('Failed to update notification preferences.');
-    } finally {
-      setIsUpdatingPrefs(false);
-    }
-  };
-
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      try {
-        setError(null);
-        
-        const formData = new FormData();
-        formData.append('avatar', file);
-        
-        await phcAPI.uploadAvatar(formData);
-        await fetchProfile();
-        
-        setSuccess('Avatar updated successfully!');
-        setTimeout(() => setSuccess(null), 3000);
-        
-      } catch (error: any) {
-        console.error('Error uploading avatar:', error);
-        setError('Failed to upload avatar. Please try again.');
-      }
-    }
-  };
-
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'hcc_admin': return 'bg-purple-100 text-purple-800';
-      case 'hcc_staff': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const states = [
-    'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 'Borno',
-    'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu', 'Gombe', 'Imo',
-    'Jigawa', 'Kaduna', 'Kano', 'Katsina', 'Kebbi', 'Kogi', 'Kwara', 'Lagos',
-    'Nasarawa', 'Niger', 'Ogun', 'Ondo', 'Osun', 'Oyo', 'Plateau', 'Rivers',
-    'Sokoto', 'Taraba', 'Yobe', 'Zamfara'
-  ];
+  const [webhookUrl, setWebhookUrl] = useState('https://hospital-ehr.internal/hl7-webhook');
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    fetchProfile();
-  }, []);
+    const fetchData = async () => {
+      try {
+        const profileRes = await apiClient.get('/centers/phc/profile/');
+        const profileData = profileRes.data?.data || profileRes.data || {};
+        setProfile(profileData as PHCProfile);
+        setEditProfile(profileData as PHCProfile);
+
+        if (isAdmin) {
+          const staffRes = await apiClient.get('/centers/phc/staff/');
+          const sData = staffRes.data?.data ?? staffRes.data ?? [];
+          const staffList = Array.isArray(sData) ? sData : [sData];
+          setStaff(staffList as StaffMember[]);
+        }
+
+        const notifRes = await apiClient.get('/settings/notifications/');
+        const nData = notifRes.data;
+        const notifData = nData?.status === 'success' ? nData.data : nData;
+        if (notifData && typeof notifData === 'object') {
+          setNotifications({
+            new_referral: !!(notifData.new_referral ?? notifData.new_referral_alerts),
+            score_change: !!(notifData.score_change ?? notifData.score_change_alerts),
+            overdue_followup: !!(notifData.overdue_followup ?? notifData.overdue_followup_reminders),
+            missed_checkin: !!(notifData.missed_checkin ?? notifData.missed_checkin_alerts),
+          });
+        }
+      } catch {
+        // non-critical — silently fail
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [isAdmin]);
+
+  const handlePasswordChange = async () => {
+    setPasswordError('');
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordError('Password must be at least 8 characters');
+      return;
+    }
+
+    try {
+      const res = await apiClient.post('/auth/me/change-password/', { old_password: oldPassword, new_password: newPassword });
+      if (res.data?.status === 'success' || res.status === 200) {
+        toast({ title: 'Password updated successfully' });
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setShowPasswordForm(false);
+      } else {
+        setPasswordError(res.data?.detail || 'Failed to update password');
+      }
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string } } };
+      setPasswordError(error.response?.data?.detail || 'Network error');
+    }
+  };
+
+  const handleAddStaff = async () => {
+    if (!newStaffForm.full_name || !newStaffForm.email) return;
+
+    try {
+      const payload: Record<string, string> = {
+        full_name: newStaffForm.full_name,
+        email: newStaffForm.email,
+        staff_role: newStaffForm.staff_role,
+      };
+      if (newStaffForm.employee_id.trim()) {
+        payload.employee_id = newStaffForm.employee_id.trim();
+      }
+
+      console.log('Creating staff with payload:', JSON.stringify(payload, null, 2));
+      const res = await apiClient.post('/centers/phc/staff/', payload);
+      const body = ensureResponseSuccess(res.data);
+      const created: StaffMember = body.data ?? body;
+      setStaff((prev) => [...prev, created]);
+      setShowAddStaffModal(false);
+      setNewStaffForm({ full_name: '', email: '', staff_role: 'cho', employee_id: '' });
+      toast({ title: 'Staff account created' });
+    } catch (err: unknown) {
+      const error = err as { response?: { status?: number; data?: { message?: string; errors?: Record<string, string[]>; detail?: string } } };
+      console.error('Add staff error:', {
+        status: error?.response?.status,
+        data: JSON.stringify(error?.response?.data, null, 2),
+      });
+      const data = error?.response?.data;
+      const fieldErrors = data?.errors;
+
+      if (fieldErrors) {
+        const firstField = Object.keys(fieldErrors)[0];
+        const firstError = fieldErrors[firstField]?.[0];
+        if (firstError) {
+          toast({ title: firstError, variant: 'destructive' });
+          setFormErrors({ [firstField]: firstError });
+        } else {
+          toast({ title: data?.message || 'Validation failed', variant: 'destructive' });
+        }
+      } else {
+        toast({ title: data?.message || data?.detail || 'Failed to create staff account', variant: 'destructive' });
+      }
+    }
+  };
+
+  const handleDeactivate = async () => {
+    if (!deactivateTarget) return;
+    setDeactivating(true);
+    try {
+      await apiClient.delete(`/centers/phc/staff/${deactivateTarget.id}/`);
+      setStaff((prev) => prev.map((m) => m.id === deactivateTarget.id ? { ...m, is_active: false } : m));
+      setShowDeactivateDialog(false);
+      setDeactivateTarget(null);
+      toast({ title: 'Staff account deactivated' });
+    } catch (err) {
+      console.error('Deactivate error:', err);
+      toast({ title: 'Failed to deactivate staff', variant: 'destructive' });
+    } finally {
+      setDeactivating(false);
+    }
+  };
+
+  const handleNotificationToggle = async (key: keyof NotificationSettings) => {
+    const updated = { ...notifications, [key]: !notifications[key] };
+    setNotifications(updated);
+
+    try {
+      const res = await apiClient.patch('/settings/notifications/', updated);
+      ensureResponseSuccess(res.data);
+    } catch {
+      setNotifications(notifications);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await apiClient.post('/auth/logout/', { refresh: localStorage.getItem('refresh_token') });
+    } catch { /* ignore */ }
+
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    logout();
+    navigate('/phc/login');
+  };
+
+  const copyWebhookUrl = () => {
+    navigator.clipboard.writeText(webhookUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const getRoleBadge = (role: string) => {
+    const colors: Record<string, string> = {
+      cho: 'bg-blue-100 text-blue-800',
+      assistant: 'bg-amber-100 text-amber-800',
+      receptionist: 'bg-purple-100 text-purple-800',
+      other: 'bg-gray-100 text-gray-800',
+    };
+    const labels: Record<string, string> = {
+      cho: 'CHO',
+      assistant: 'Assistant',
+      receptionist: 'Receptionist',
+      other: 'Other',
+    };
+    return <Badge className={colors[role] || 'bg-gray-100 text-gray-800'}>{labels[role] || role}</Badge>;
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2E8B57]"></div>
-      </div>
-    );
-  }
-
-  if (error && !profile) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Alert variant="destructive" className="max-w-md">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      </div>
+      <PHCLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2E8B57]" />
+        </div>
+      </PHCLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-4">
+    <PHCLayout>
+      <div className="space-y-6 max-w-4xl mx-auto pb-12">
+        <div className="flex items-center gap-3">
+          <Settings className="w-6 h-6 text-[#2E8B57]" />
+          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+        </div>
+
+        {/* Facility Profile */}
+        <Card className="border-l-4 border-[#2E8B57]">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Building className="w-5 h-5" /> Facility Profile
+              </CardTitle>
               <Button
-                variant="ghost"
-                onClick={() => navigate('/phc/dashboard')}
-                className="flex items-center gap-2"
+                variant="outline"
+                size="sm"
+                className="border-[#2E8B57] text-[#2E8B57] hover:bg-green-50"
+                onClick={() => setShowEditProfile(!showEditProfile)}
               >
-                <ArrowLeft className="h-4 w-4" />
-                Back to Dashboard
+                <Edit className="w-4 h-4 mr-1" /> Edit Profile
               </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {showEditProfile && editProfile ? (
+              <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                <div className="grid grid-cols-2 gap-4">
+                  <div><Label>Facility Name</Label><Input value={editProfile.name} disabled /></div>
+                  <div><Label>Facility Code</Label><Input value={editProfile.code} disabled /></div>
+                  <div><Label>State</Label><Input value={editProfile.state} disabled /></div>
+                  <div><Label>LGA</Label><Input value={editProfile.lga} disabled /></div>
+                  <div><Label>Phone</Label><Input value={editProfile.phone} disabled /></div>
+                  <div><Label>Escalation FMC</Label><Input value={editProfile.escalation_fmc_name || 'Not set'} disabled /></div>
+                </div>
+                <p className="text-sm text-gray-500">Operating Hours: Mon-Fri 8am-5pm</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="flex items-center gap-2"><Building className="w-4 h-4 text-gray-400" /><span className="text-gray-600">Name:</span><span className="font-medium">{profile?.name || 'N/A'}</span></div>
+                <div className="flex items-center gap-2"><span className="text-gray-600">Code:</span><span className="font-medium">{profile?.code || 'N/A'}</span></div>
+                <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-gray-400" /><span className="text-gray-600">State:</span><span className="font-medium">{profile?.state || 'N/A'}</span></div>
+                <div className="flex items-center gap-2"><span className="text-gray-600">LGA:</span><span className="font-medium">{profile?.lga || 'N/A'}</span></div>
+                <div className="flex items-center gap-2"><Phone className="w-4 h-4 text-gray-400" /><span className="text-gray-600">Phone:</span><span className="font-medium">{profile?.phone || 'N/A'}</span></div>
+                <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-gray-400" /><span className="text-gray-600">Hours:</span><span className="font-medium">Mon-Fri 8am-5pm</span></div>
+                {profile?.escalation_fmc_name && <div className="col-span-2 flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-gray-400" /><span className="text-gray-600">Escalation FMC:</span><span className="font-medium">{profile.escalation_fmc_name}</span></div>}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* My Account */}
+        <Card>
+          <CardHeader><CardTitle className="flex items-center gap-2"><User className="w-5 h-5" /> My Account</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-[#2E8B57] flex items-center justify-center text-white font-bold text-lg">{user?.full_name?.charAt(0) || 'U'}</div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">PHC Profile & Settings</h1>
-                <p className="text-gray-600">Manage your PHC facility and preferences</p>
+                <p className="font-semibold text-lg">{user?.full_name || 'PHC Staff'}</p>
+                <Badge className={isAdmin ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>{isAdmin ? 'PHC Admin' : 'PHC Staff'}</Badge>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
+            <div className="text-sm text-gray-600"><p>Employee Number: {((user as unknown) as { employee_id?: string })?.employee_id || 'N/A'}</p></div>
+            <Button variant="link" className="text-[#2E8B57] p-0 h-auto font-normal" onClick={() => setShowPasswordForm(!showPasswordForm)}>Change Password</Button>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Success/Error Alerts */}
-        {success && (
-          <Alert className="mb-6 border-green-200 bg-green-50">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800">{success}</AlertDescription>
-          </Alert>
-        )}
-        
-        {error && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Profile Sidebar */}
-          <div className="lg:col-span-1">
-            <Card>
-              <CardContent className="p-6">
-                <div className="text-center">
-                  <div className="relative inline-block">
-                    <Avatar className="w-24 h-24 mx-auto mb-4">
-                      <AvatarImage src={profile?.avatar_url} />
-                      <AvatarFallback className="text-2xl">
-                        <Building className="h-12 w-12 text-[#2E8B57]" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <label className="absolute bottom-2 right-2 bg-[#2E8B57] text-white rounded-full p-1 cursor-pointer hover:bg-[#236F47]">
-                      <Camera className="h-4 w-4" />
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleAvatarUpload}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-                  
-                  <h3 className="text-lg font-semibold text-gray-900">{profile?.name}</h3>
-                  <Badge className={getRoleColor(profile?.role || '')}>
-                    {profile?.role?.replace('_', ' ').toUpperCase()}
-                  </Badge>
-                  
-                  <div className="mt-4 space-y-2 text-sm text-gray-600">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4" />
-                      <span>{profile?.address || 'Not provided'}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4" />
-                      <span>{profile?.phone || 'Not provided'}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4" />
-                      <span>{profile?.email || 'Not provided'}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      <span>Established: {new Date(profile?.established_date || '').toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-6 pt-6 border-t">
-                    <div className="grid grid-cols-2 gap-4 text-center">
-                      <div>
-                        <p className="text-2xl font-bold text-[#2E8B57]">{profile?.total_patients || 0}</p>
-                        <p className="text-sm text-gray-600">Total Patients</p>
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold text-[#2E8B57]">{profile?.staff_count || 0}</p>
-                        <p className="text-sm text-gray-600">Staff Members</p>
-                      </div>
-                    </div>
+            {showPasswordForm && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                {passwordError && <Alert variant="destructive"><AlertDescription>{passwordError}</AlertDescription></Alert>}
+                <div>
+                  <Label>Old Password</Label>
+                  <div className="relative">
+                    <Input type={showOldPassword ? 'text' : 'password'} value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} className="pr-10" />
+                    <button type="button" onClick={() => setShowOldPassword(!showOldPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">{showOldPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+                <div>
+                  <Label>New Password</Label>
+                  <div className="relative">
+                    <Input type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="pr-10" />
+                    <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">{showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
+                  </div>
+                </div>
+                <div><Label>Confirm Password</Label><Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} /></div>
+                <div className="flex gap-2">
+                  <Button onClick={handlePasswordChange} className="bg-[#2E8B57] hover:bg-[#246b47]">Update Password</Button>
+                  <Button variant="outline" onClick={() => setShowPasswordForm(false)}>Cancel</Button>
+                </div>
+              </motion.div>
+            )}
+          </CardContent>
+        </Card>
 
-          {/* Main Content */}
-          <div className="lg:col-span-2">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="profile">Facility Profile</TabsTrigger>
-                <TabsTrigger value="security">Security</TabsTrigger>
-                <TabsTrigger value="notifications">Notifications</TabsTrigger>
-                <TabsTrigger value="staff">Staff Management</TabsTrigger>
-              </TabsList>
+        {/* Staff Management - Admin Only */}
+        {isAdmin && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2"><Users className="w-5 h-5" /> Staff Management</CardTitle>
+                <Button size="sm" className="bg-[#2E8B57] hover:bg-[#246b47]" onClick={() => { setShowAddStaffModal(true); setFormErrors({}); }}><Plus className="w-4 h-4 mr-1" /> Add Staff</Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b text-left"><th className="pb-2 font-medium">Name</th><th className="pb-2 font-medium">Role</th><th className="pb-2 font-medium">Email</th><th className="pb-2 font-medium">Status</th><th className="pb-2 font-medium">Employee ID</th><th className="pb-2 font-medium">Actions</th></tr></thead>
+                  <tbody>
+                    {staff.map((member) => (
+                      <tr key={member.id} className="border-b">
+                        <td className="py-3">{member.user_full_name}</td>
+                        <td className="py-3">{getRoleBadge(member.staff_role)}</td>
+                        <td className="py-3 text-gray-600">{member.user_email}</td>
+                        <td className="py-3"><span className="flex items-center gap-1"><span className={`w-2 h-2 rounded-full ${member.is_active ? 'bg-green-500' : 'bg-gray-400'}`} />{member.is_active ? 'Active' : 'Inactive'}</span></td>
+                        <td className="py-3 text-gray-600">{member.employee_id || '—'}</td>
+                        <td className="py-3"><div className="flex gap-2">{member.is_active && <Button variant="link" size="sm" className="text-red-600 p-0 h-auto" onClick={() => { setDeactivateTarget(member); setShowDeactivateDialog(true); }}>Deactivate</Button>}</div></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-              {/* Facility Profile Tab */}
-              <TabsContent value="profile" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle>Facility Information</CardTitle>
-                      <Button
-                        variant={isEditing ? "outline" : "default"}
-                        onClick={() => setIsEditing(!isEditing)}
-                      >
-                        {isEditing ? 'Cancel' : 'Edit Profile'}
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="name">Facility Name</Label>
-                        <Input
-                          id="name"
-                          value={formData.name}
-                          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                          disabled={!isEditing}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                          disabled={!isEditing}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="phone">Phone</Label>
-                        <Input
-                          id="phone"
-                          value={formData.phone}
-                          onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                          disabled={!isEditing}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="state">State</Label>
-                        <Select value={formData.state} onValueChange={(value) => setFormData(prev => ({ ...prev, state: value }))} disabled={!isEditing}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {states.map((state) => (
-                              <SelectItem key={state} value={state}>
-                                {state}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="lga">LGA</Label>
-                      <Input
-                        id="lga"
-                        value={formData.lga}
-                        onChange={(e) => setFormData(prev => ({ ...prev, lga: e.target.value }))}
-                        disabled={!isEditing}
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="address">Address</Label>
-                      <Textarea
-                        id="address"
-                        value={formData.address}
-                        onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-                        disabled={!isEditing}
-                        rows={3}
-                        placeholder="Full facility address..."
-                      />
-                    </div>
-                    
-                    {isEditing && (
-                      <div className="flex justify-end gap-2 pt-4">
-                        <Button variant="outline" onClick={() => setIsEditing(false)}>
-                          Cancel
-                        </Button>
-                        <Button className="bg-[#2E8B57] hover:bg-[#236F47]" onClick={handleUpdateProfile}>
-                          <Save className="h-4 w-4 mr-2" />
-                          Save Changes
-                        </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
+        {/* Notification Preferences */}
+        <Card>
+          <CardHeader><CardTitle className="flex items-center gap-2"><Bell className="w-5 h-5" /> Notification Preferences</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            {[
+              { key: 'new_referral', label: 'New patient referral alerts' },
+              { key: 'score_change', label: 'Patient score change alerts' },
+              { key: 'overdue_followup', label: 'Overdue follow-up reminders' },
+              { key: 'missed_checkin', label: 'Missed check-in alerts' },
+            ].map((item) => (
+              <div key={item.key} className="flex items-center justify-between">
+                <span>{item.label}</span>
+                <Switch checked={notifications[item.key as keyof NotificationSettings]} onCheckedChange={() => handleNotificationToggle(item.key as keyof NotificationSettings)} />
+              </div>
+            ))}
+            <div className="flex items-center justify-between pt-2 border-t">
+              <div className="flex items-center gap-2"><span>Critical escalation alerts</span><Lock className="w-3 h-3 text-gray-400" /></div>
+              <Switch checked={true} disabled />
+            </div>
+          </CardContent>
+        </Card>
 
-              {/* Security Tab */}
-              <TabsContent value="security" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Lock className="h-5 w-5" />
-                      Change Password
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <Label htmlFor="current_password">Current Password</Label>
-                      <div className="relative">
-                        <Input
-                          id="current_password"
-                          type={showPassword ? "text" : "password"}
-                          value={passwordData.current_password}
-                          onChange={(e) => setPasswordData(prev => ({ ...prev, current_password: e.target.value }))}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="new_password">New Password</Label>
-                      <div className="relative">
-                        <Input
-                          id="new_password"
-                          type={showNewPassword ? "text" : "password"}
-                          value={passwordData.new_password}
-                          onChange={(e) => setPasswordData(prev => ({ ...prev, new_password: e.target.value }))}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowNewPassword(!showNewPassword)}
-                          className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-                        >
-                          {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="confirm_password">Confirm New Password</Label>
-                      <Input
-                        id="confirm_password"
-                        type="password"
-                        value={passwordData.confirm_password}
-                        onChange={(e) => setPasswordData(prev => ({ ...prev, confirm_password: e.target.value }))}
-                      />
-                    </div>
-                    
-                    <Button className="bg-[#2E8B57] hover:bg-[#236F47]" onClick={handleChangePassword}>
-                      <Lock className="h-4 w-4 mr-2" />
-                      Change Password
-                    </Button>
-                  </CardContent>
-                </Card>
+        {/* EHR Integration */}
+        <Card>
+          <CardHeader><CardTitle className="flex items-center gap-2"><ShieldCheck className="w-5 h-5" /> EHR Integration</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between"><span className="text-gray-600">FHIR Connection Status</span><Badge variant="outline" className="text-gray-600">Not Connected</Badge></div>
+            <Button variant="outline" className="border-gray-300">Connect to Hospital EHR</Button>
+            <div>
+              <Label>HL7 Webhook URL</Label>
+              <div className="flex gap-2">
+                <Input value={webhookUrl} readOnly className="font-mono text-sm" />
+                <Button variant="outline" size="icon" onClick={copyWebhookUrl}>{copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}</Button>
+              </div>
+            </div>
+            <Button variant="outline" className="border-gray-300">Test Connection</Button>
+          </CardContent>
+        </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Smartphone className="h-5 w-5" />
-                      Two-Factor Authentication
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">Enable 2FA</p>
-                        <p className="text-sm text-gray-600">Add an extra layer of security to your account</p>
-                      </div>
-                      <Switch />
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
+        {/* Support */}
+        <Card>
+          <CardHeader><CardTitle className="flex items-center gap-2"><HelpCircle className="w-5 h-5" /> Support</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <a href="#" className="flex items-center gap-2 text-[#2E8B57] hover:underline"><ExternalLink className="w-4 h-4" /> Help Documentation</a>
+            <a href="mailto:support@ai-mshm.org" className="flex items-center gap-2 text-[#2E8B57] hover:underline"><Mail className="w-4 h-4" /> Contact AI-MSHM Support</a>
+          </CardContent>
+        </Card>
 
-              {/* Notifications Tab */}
-              <TabsContent value="notifications" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Bell className="h-5 w-5" />
-                      Notification Preferences
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {preferences ? (
-                      <>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">New Patient Referrals</p>
-                            <p className="text-sm text-gray-600">Get notified when new patients are referred</p>
-                          </div>
-                          <Switch 
-                            checked={preferences.new_referral_alert}
-                            onCheckedChange={(checked) => handleUpdateNotificationPreferences({ new_referral_alert: checked })}
-                            disabled={isUpdatingPrefs}
-                          />
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">Risk Score Changes</p>
-                            <p className="text-sm text-gray-600">Alert when patient risk scores change significantly</p>
-                          </div>
-                          <Switch 
-                            checked={preferences.score_change_alert}
-                            onCheckedChange={(checked) => handleUpdateNotificationPreferences({ score_change_alert: checked })}
-                            disabled={isUpdatingPrefs}
-                          />
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">Severe Risk Cases</p>
-                            <p className="text-sm text-gray-600">Notify when patients reach severe risk levels</p>
-                          </div>
-                          <Switch 
-                            checked={preferences.notify_on_severe}
-                            onCheckedChange={(checked) => handleUpdateNotificationPreferences({ notify_on_severe: checked })}
-                            disabled={isUpdatingPrefs}
-                          />
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">Very Severe Risk Cases</p>
-                            <p className="text-sm text-gray-600">Urgent alerts for very severe cases</p>
-                          </div>
-                          <Switch 
-                            checked={preferences.notify_on_very_severe}
-                            onCheckedChange={(checked) => handleUpdateNotificationPreferences({ notify_on_very_severe: checked })}
-                            disabled={isUpdatingPrefs}
-                          />
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">Email Notifications</p>
-                            <p className="text-sm text-gray-600">Receive email summaries of notifications</p>
-                          </div>
-                          <Switch 
-                            checked={preferences.email_notifications}
-                            onCheckedChange={(checked) => handleUpdateNotificationPreferences({ email_notifications: checked })}
-                            disabled={isUpdatingPrefs}
-                          />
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-center py-4">
-                        <p className="text-sm text-gray-600">Loading preferences...</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* Staff Management Tab */}
-              <TabsContent value="staff" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="flex items-center gap-2">
-                        <Users className="h-5 w-5" />
-                        Staff Management
-                      </CardTitle>
-                      <Button className="bg-[#2E8B57] hover:bg-[#236F47]">
-                        <User className="h-4 w-4 mr-2" />
-                        Add Staff
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-8">
-                      <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">Staff Management</h3>
-                      <p className="text-gray-600 mb-4">Manage PHC staff members and permissions</p>
-                      <Button className="bg-[#2E8B57] hover:bg-[#236F47]">
-                        <Users className="h-4 w-4 mr-2" />
-                        View Staff Directory
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </div>
+        {/* Danger Zone */}
+        <Card className="border-red-200">
+          <CardContent className="pt-6">
+            <Button variant="outline" className="w-full border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => setShowLogoutDialog(true)}><LogOut className="w-4 h-4 mr-2" /> Log Out</Button>
+          </CardContent>
+        </Card>
       </div>
-    </div>
-  );
-};
 
-export default PHCProfileSettingsScreen;
+      {/* Add Staff Modal */}
+      <Dialog open={showAddStaffModal} onOpenChange={(open) => {
+        setShowAddStaffModal(open);
+        if (!open) {
+          setNewStaffForm({ full_name: '', email: '', staff_role: 'cho', employee_id: '' });
+          setFormErrors({});
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><UserPlus className="w-5 h-5" /> Add Staff Member</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div><Label>Full Name *</Label><Input value={newStaffForm.full_name} onChange={(e) => { setNewStaffForm({ ...newStaffForm, full_name: e.target.value }); setFormErrors((p) => ({ ...p, full_name: '' })); }} placeholder="Enter full name" className={formErrors.full_name ? 'border-red-500' : ''} /></div>
+            <div>
+              <Label>Email *</Label>
+              <Input type="email" value={newStaffForm.email} onChange={(e) => { setNewStaffForm({ ...newStaffForm, email: e.target.value }); setFormErrors((p) => ({ ...p, email: '' })); }} placeholder="Enter email address" className={formErrors.email ? 'border-red-500' : ''} />
+              {formErrors.email && <p className="text-sm text-red-600 mt-1">{formErrors.email}</p>}
+            </div>
+            <div>
+              <Label>Role</Label>
+              <select value={newStaffForm.staff_role} onChange={(e) => setNewStaffForm({ ...newStaffForm, staff_role: e.target.value })} className="w-full h-10 px-3 border rounded-md text-sm">
+                <option value="cho">CHO</option>
+                <option value="assistant">Assistant</option>
+                <option value="receptionist">Receptionist</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div><Label>Employee ID (Optional)</Label><Input value={newStaffForm.employee_id} onChange={(e) => setNewStaffForm({ ...newStaffForm, employee_id: e.target.value })} placeholder="Enter employee ID" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowAddStaffModal(false); setNewStaffForm({ full_name: '', email: '', staff_role: 'cho', employee_id: '' }); setFormErrors({}); }}>Cancel</Button>
+            <Button onClick={handleAddStaff} disabled={!newStaffForm.full_name || !newStaffForm.email} className="bg-[#2E8B57] hover:bg-[#246b47]">Create Staff Account</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Deactivate Staff Dialog */}
+      <Dialog open={showDeactivateDialog} onOpenChange={setShowDeactivateDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600"><AlertTriangle className="w-5 h-5" /> Deactivate Staff</DialogTitle>
+          </DialogHeader>
+          <p className="py-4">Are you sure you want to deactivate <strong>{deactivateTarget?.user_full_name}</strong>? They will no longer be able to access this portal.</p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setShowDeactivateDialog(false); setDeactivateTarget(null); }}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeactivate} disabled={deactivating} className="bg-red-600 hover:bg-red-700">{deactivating ? 'Deactivating...' : 'Deactivate'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Logout Confirmation Dialog */}
+      <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600"><LogOut className="w-5 h-5" /> Log Out</DialogTitle>
+          </DialogHeader>
+          <p className="py-4">Are you sure you want to log out?</p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleLogout} className="bg-red-600 hover:bg-red-700">Log Out</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </PHCLayout>
+  );
+}

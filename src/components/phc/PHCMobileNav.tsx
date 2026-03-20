@@ -15,7 +15,7 @@ const PHCMobileNav = () => {
 
   const navItems = [
     { icon: Home, label: "Dashboard", href: "/phc/dashboard" },
-    { icon: Users, label: "Patients", href: "/phc/patients" },
+    { icon: Users, label: "Patients", href: "/phc/dashboard" },
     { icon: UserPlus, label: "Register", href: "/phc/register" },
     { icon: MessageCircle, label: "Advice", href: "/phc/advice" },
     { icon: ArrowUpRight, label: "Refer", href: "/phc/refer" },

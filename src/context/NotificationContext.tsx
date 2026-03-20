@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect,
   useRef, useCallback } from 'react';
 import { useAuth } from './AuthContext';
+import apiClient from '@/services/apiClient';
 import { notificationAPI } from '@/services/notificationService';
 import { AppNotification, WSMessage } from '@/types/notifications';
 
@@ -47,8 +48,8 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
     if (!token) return;
     try {
       setIsLoading(true);
-      const result = await notificationAPI.getNotifications(token, { 
-        unread_only: unreadOnly 
+      const result = await notificationAPI.getNotifications({
+        unread_only: unreadOnly,
       });
       setNotifications(result.results);
     } catch (err) {
@@ -67,7 +68,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
         prev.map(n => n.id === id ? { ...n, is_read: true } : n)
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
-      await notificationAPI.markAsRead(token, id);
+      await notificationAPI.markAsRead(id);
     } catch (err) {
       console.error('Failed to mark as read:', err);
       // Revert optimistic update on failure
@@ -82,7 +83,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
       // Optimistic update
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       setUnreadCount(0);
-      await notificationAPI.markAllAsRead(token);
+      await notificationAPI.markAllAsRead();
     } catch (err) {
       console.error('Failed to mark all as read:', err);
       await loadNotifications();
@@ -99,7 +100,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
       if (deleted && !deleted.is_read) {
         setUnreadCount(prev => Math.max(0, prev - 1));
       }
-      await notificationAPI.deleteNotification(token, id);
+      await notificationAPI.deleteNotification(id);
     } catch (err) {
       console.error('Failed to delete notification:', err);
       await loadNotifications();
@@ -148,9 +149,32 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
     return true;
   }, [token]);
 
+  const fetchUnreadCountFallback = useCallback(async () => {
+    try {
+      const storedToken = localStorage.getItem('access_token');
+      if (!storedToken || storedToken === 'null' || storedToken === 'undefined') return;
+
+      const res = await apiClient.get('/notifications/unread-count/');
+      const body = res.data;
+      if (body.status === 'success') {
+        setUnreadCount(body.data?.unread_count ?? 0);
+      }
+    } catch {
+      // silent fail — notifications are non-critical
+    }
+  }, []);
+
   // ── WebSocket connect with retry logic ───────────────────────────────
   const connectWebSocket = useCallback(() => {
-    if (!token || wsRef.current?.readyState === WebSocket.OPEN || retryCount >= MAX_RETRIES) {
+    // Always read fresh token from localStorage — avoid stale closure
+    const freshToken = localStorage.getItem('access_token');
+    if (!freshToken || freshToken === 'undefined' || freshToken === 'null') {
+      console.log('No valid token — skipping WebSocket connection');
+      setWsConnecting(false);
+      setWsError('No authentication token');
+      return;
+    }
+    if (wsRef.current?.readyState === WebSocket.OPEN || retryCount >= MAX_RETRIES) {
       if (retryCount >= MAX_RETRIES) {
         setWsError('Maximum reconnection attempts reached');
         setWsConnecting(false);
@@ -164,8 +188,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
 
     try {
       // NOTE: WebSocket cannot use Vite proxy — connect directly
-      const wsUrl = `${WS_BASE_URL}/?token=${token}`;
-      console.log('Connecting to WebSocket:', wsUrl);
+      const wsUrl = `${WS_BASE_URL}/?token=${freshToken}`;
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
@@ -177,88 +200,72 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
         // Server sends unread_count immediately on connect
       };
 
-    ws.onmessage = (event) => {
-      try {
-        const msg: WSMessage = JSON.parse(event.data);
-        handleWSMessage(msg);
-      } catch (err) {
-        console.error('WS message parse error:', err);
-      }
-    };
+      ws.onmessage = (event) => {
+        try {
+          const msg: WSMessage = JSON.parse(event.data);
+          handleWSMessage(msg);
+        } catch {
+          // Silently ignore malformed messages
+        }
+      };
 
-    ws.onerror = (err) => {
-      console.error('WebSocket error:', err);
-      setWsConnected(false);
-    };
+      ws.onerror = () => {
+        // Silently ignore — 1006/connection errors happen when backend is down
+        // Do not console.error or setWsError here
+        setWsConnected(false);
+      };
 
-    ws.onclose = (event) => {
-      setWsConnected(false);
-      setWsConnecting(false);
-      wsRef.current = null;
-      console.log('Notifications WS closed, code:', event.code, event.reason);
+      ws.onclose = (event) => {
+        setWsConnected(false);
+        setWsConnecting(false);
+        wsRef.current = null;
 
-      switch (event.code) {
-        case 4001:
-          // Token expired — refresh then reconnect
-          console.warn('WS closed: token invalid/expired');
-          setRetryCount(0); // Reset retry count on token refresh
-          break;
-        case 1000:
-          // Normal closure (logout) — do NOT reconnect
-          console.log('WS closed normally');
-          setRetryCount(0);
-          break;
-        case 1006:
-          // Abnormal closure - retry with exponential backoff
-          if (retryCount < MAX_RETRIES) {
-            const delay = RECONNECT_DELAYS[Math.min(retryCount, RECONNECT_DELAYS.length - 1)];
-            console.log(`WS closed abnormally, retrying in ${delay}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`);
-            setRetryCount(prev => prev + 1);
-            reconnectTimerRef.current = setTimeout(connectWebSocket, delay);
-          } else {
-            console.error('WS closed: Maximum reconnection attempts reached');
-            setWsError('Connection failed after multiple attempts');
+        switch (event.code) {
+          case 4001:
+            // Token expired — refresh then reconnect
+            setRetryCount(0);
+            break;
+          case 1000:
+            // Normal closure (logout) — do NOT reconnect
+            setRetryCount(0);
+            break;
+          case 1006:
+          default: {
+            // Abnormal/network error — retry with exponential backoff, stop after MAX_RETRIES
+            if (retryCount < MAX_RETRIES) {
+              const delay = Math.min(3000 * Math.pow(2, retryCount), 30000);
+              reconnectTimerRef.current = setTimeout(connectWebSocket, delay);
+              setRetryCount(prev => prev + 1);
+            } else {
+              // After max retries: stop silently. Notifications load via REST fallback.
+              setRetryCount(0);
+            }
+            break;
           }
-          break;
-        default:
-          // Network/server error — retry with exponential backoff
-          if (retryCount < MAX_RETRIES) {
-            const delay = RECONNECT_DELAYS[Math.min(retryCount, RECONNECT_DELAYS.length - 1)];
-            console.log(`WS error, retrying in ${delay}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`);
-            setRetryCount(prev => prev + 1);
-            reconnectTimerRef.current = setTimeout(connectWebSocket, delay);
-          } else {
-            console.error('WS error: Maximum reconnection attempts reached');
-            setWsError('Connection failed after multiple attempts');
-          }
-          break;
-      }
-    };
+        }
+      };
 
-    } catch (err) {
-      console.error('Error connecting to WebSocket:', err);
+    } catch {
+      // Silently ignore connection errors — retry logic handles this
     }
-  }, [token, handleWSMessage]);
+  }, [handleWSMessage]);
 
   // ── Bootstrap on mount / token change ────────────────────────
   useEffect(() => {
     if (!token || !user) return;
+    // Only connect WebSocket for patient users — PHC/FMC portals use their own notification systems
+    if (user.role !== 'patient') return;
 
-    // Wake up Render instance before connecting WebSocket
-    wakeUpRender().then((success) => {
-      if (success) {
-        // Small delay to ensure backend is ready
-        setTimeout(connectWebSocket, 1000);
-      } else {
-        setWsError('Failed to wake up backend');
-        setWsConnecting(false);
-      }
-    });
+    // Small delay to ensure backend is ready
+    setTimeout(connectWebSocket, 1000);
 
     // 1. Fetch unread count ONCE via REST on load
-    notificationAPI.getUnreadCount(token)
+    notificationAPI.getUnreadCount()
       .then(result => setUnreadCount(result.data.unread_count))
-      .catch(err => console.error('Failed to get unread count:', err));
+      .catch(err => {
+        console.error('Failed to get unread count:', err);
+        fetchUnreadCountFallback();
+      });
 
     // Cleanup on unmount or token change
     return () => {
@@ -267,7 +274,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
         wsRef.current.close(1000); // Normal closure
       }
     };
-  }, [token, user, wakeUpRender, connectWebSocket]);
+  }, [token, user, wakeUpRender, connectWebSocket, fetchUnreadCountFallback]);
 
   const value: NotificationContextType = {
     notifications,

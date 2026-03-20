@@ -27,7 +27,7 @@ const Step5WearableSetup = () => {
       setIsLoading(true);
       setErrors({});
       
-      await onboardingAPI.saveStep5(user!.accessToken!, {
+      await onboardingAPI.saveStep5({
         selected_wearable: (selectedWearable || 'none') as 'apple_watch' | 'fitbit' | 'garmin' | 'oura_ring' | 'none',
       });
       

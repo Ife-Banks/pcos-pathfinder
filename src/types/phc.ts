@@ -1,9 +1,9 @@
 export type PHCRole = 'hcc_staff' | 'hcc_admin';
 export type RecordStatus = 'new' | 'under_review' | 'action_taken' | 'escalated' | 'discharged';
-export type RecordSeverity = 'mild' | 'moderate';
-export type RecordCondition = 'pcos' | 'maternal' | 'cardiovascular';
-export type EscalationUrgency = 'routine' | 'priority' | 'urgent';
-export type PHCStaffRole = 'nurse' | 'cho' | 'assistant' | 'receptionist' | 'other';
+export type RecordSeverity = 'low' | 'mild' | 'moderate' | 'high' | 'critical';
+export type RecordCondition = 'pcos' | 'hormonal' | 'metabolic';
+export type EscalationUrgency = 'urgent' | 'priority' | 'routine';
+export type PHCStaffRole = 'nurse' | 'doctor' | 'administrator' | 'chw';
 export type AdviceCondition = 'pcos' | 'hormonal' | 'metabolic';
 
 export interface PHCRecord {
@@ -18,7 +18,7 @@ export interface PHCRecord {
   status_label: string;
   opening_score: number;
   latest_score: number;
-  notes: string;
+  notes: string | null;
   last_advice_at: string | null;
   next_followup: string | null;
   escalated_to_case_id: string | null;
@@ -26,91 +26,44 @@ export interface PHCRecord {
   closed_at: string | null;
 }
 
-export interface WalkInRegistration {
-  full_name: string;
-  email?: string;
-  age?: number;
-  condition: RecordCondition;
-  severity?: RecordSeverity;
-  notes?: string;
-}
-
 export interface WalkInResponse {
   patient_id: string;
-  patient_email: string;
-  patient_name: string;
-  phc_record_id: string;
-  registered_hcc: string;
-  temp_password: string; // shown once — never re-requestable
-}
-
-export interface AdvicePayload {
-  patient_id: string;
-  condition: AdviceCondition;
-  message: string;
-  followup_date?: string; // ISO 8601 date
-}
-
-export interface PHCStaff {
-  id: string;
   full_name: string;
-  email: string;
-  staff_role: PHCStaffRole;
-  employee_id: string | null;
-  is_active: boolean;
-}
-
-export interface PHCProfile {
-  id: string;
-  name: string;
-  code: string;
-  address: string;
-  phone: string;
-  email: string;
-  state: string;
-  lga: string;
-  notify_on_severe: boolean;
-  notify_on_very_severe: boolean;
-  escalates_to: string; // FMC name — read-only
+  temp_password: string;
+  queue_record_id: string;
+  baseline_risk: {
+    pcos_score: number;
+    pcos_tier: string;
+    hormonal_score: number;
+    hormonal_tier: string;
+    metabolic_score: number;
+    metabolic_tier: string;
+  };
 }
 
 export interface PHCNotification {
   id: string;
-  type: 'new_referral' | 'score_change' | 'overdue_followup' | 'missed_checkin' | 'patient_escalated';
-  severity: 'info' | 'warning' | 'critical';
-  patient_id?: string;
-  patient_name?: string;
-  record_id?: string;
-  message: string;
-  created_at: string;
+  type: 'new_referral' | 'score_change' | 'overdue_followup' | 'missed_checkin';
+  title: string;
+  body: string;
   is_read: boolean;
-  action_url?: string;
+  created_at: string;
+  data: {
+    action: 'open_patient' | 'open_dashboard';
+    queue_record_id: string;
+  };
 }
 
 export interface PHCAnalytics {
   total_patients: number;
-  active_minor_risk_cases: number;
-  escalated_to_fmc_this_month: number;
-  avg_time_to_action: number;
-  risk_tier_distribution: {
-    low: number;
-    moderate: number;
-  };
-  top_conditions: {
-    pcos: number;
-    maternal: number;
-    cardiovascular: number;
-  };
-  referrals_sent_timeline: Array<{
-    date: string;
-    count: number;
-  }>;
-  patient_activity_heatmap: Array<{
-    date: string;
-    activity_level: number;
-  }>;
+  active_minor_risk: number;
+  escalated_this_period: number;
+  avg_time_to_action_days: number;
+  risk_distribution: { low: number; moderate: number };
+  condition_breakdown: { pcos: number; hormonal: number; metabolic: number };
+  escalations_timeline: Array<{ week: string; count: number }>;
   staff_actions: {
-    advice_messages_sent: number;
+    advice_sent: number;
     followups_scheduled: number;
     patients_discharged: number;
   };
@@ -123,55 +76,32 @@ export interface PHCLoginForm {
   two_factor_code?: string;
 }
 
-export interface WalkInForm {
-  full_name: string;
-  email?: string;
-  date_of_birth: string;
-  phone_number: string;
-  gender: string;
-  height: number;
-  weight: number;
-  waist_circumference: number;
-  acanthosis_nigricans: boolean;
-  cycle_regularity: 'regular' | 'irregular';
-  cycle_length?: number;
-  last_period_date?: string;
-  bleeding_intensity: 1 | 2 | 3 | 4 | 5;
-  night_sweats: 'none' | 'occasional' | 'frequent';
-  persistent_fatigue: boolean;
-  family_history: 'yes' | 'no' | 'unknown';
-  consent_given: boolean;
-}
-
 export interface EscalationForm {
+  fmc_id: string;
   urgency: EscalationUrgency;
+  reason: string;
   notes: string;
-  referral_letter: string;
-  attach_summary: boolean;
+  attach_pdf?: boolean;
 }
 
-export interface PHCNotificationPreferences {
-  new_referral_alert: boolean;
-  score_change_alert: boolean;
-  overdue_followup_reminder: boolean;
+export interface PHCProfile {
+  id: string;
+  name: string;
+  code: string;
+  state: string;
+  lga: string;
+  phone: string;
+  email: string;
+  status: string;
+  escalation_fmc?: { id: string; name: string };
+  escalation_fmc_detail?: { id: string; name: string };
 }
 
-export interface PHCStaffForm {
+export interface PHCStaff {
+  id: string;
   full_name: string;
   email: string;
-  staff_role: PHCStaffRole;
-  employee_id?: string;
-}
-
-export interface RecordUpdateForm {
-  status?: RecordStatus;
-  notes?: string;
-  next_followup?: string;
-}
-
-export interface AdviceTemplate {
-  id: string;
-  condition: AdviceCondition;
-  title: string;
-  content: string;
+  staff_role: string;
+  employee_id: string | null;
+  is_active: boolean;
 }

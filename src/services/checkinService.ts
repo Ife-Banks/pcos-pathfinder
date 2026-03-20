@@ -1,12 +1,11 @@
-const BASE = 'https://ai-mshm-backend-d47t.onrender.com';
+import apiClient from '@/services/apiClient';
 
-function getHeaders() {
-  const token = localStorage.getItem('access_token');
-  return {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json',
-  };
-}
+const BASE = '/checkin';
+
+const ensureSuccess = (body: any) => {
+  if (body.status !== 'success') throw body;
+  return body;
+};
 
 export interface CheckinTodayResponse {
   success: boolean;
@@ -29,7 +28,7 @@ export interface StartSessionResponse {
   status: number;
   message: string;
   data: {
-    session_id: string;
+    id: string;
     period: 'morning' | 'evening';
     started_at: string;
   };
@@ -97,24 +96,17 @@ export interface SessionSubmitResponse {
 
 export const checkinService = {
   getTodayStatus: async (): Promise<CheckinTodayResponse> => {
-    const res = await fetch(`${BASE}/api/v1/checkin/today/`, {
-      method: 'GET',
-      headers: getHeaders(),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.get(`${BASE}/today/`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   startSession: async (period: 'morning' | 'evening'): Promise<StartSessionResponse> => {
-    const res = await fetch(`${BASE}/api/v1/checkin/session/start/`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify({ period }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post(`${BASE}/session/start/`, { period });
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   submitMorningCheckin: async (sessionId: string, payload: {
@@ -124,14 +116,10 @@ export const checkinService = {
     psq_muscle_pressure_pain: number;
     psq_body_tenderness: number;
   }): Promise<MorningCheckinResponse> => {
-    const res = await fetch(`${BASE}/api/v1/checkin/morning/${sessionId}/`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post(`${BASE}/morning/${sessionId}/`, payload);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   submitEveningCheckin: async (sessionId: string, payload: {
@@ -148,14 +136,10 @@ export const checkinService = {
     bloating_delta_cm: number | null;
     unusual_bleeding: boolean;
   }): Promise<EveningCheckinResponse> => {
-    const res = await fetch(`${BASE}/api/v1/checkin/evening/${sessionId}/`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post(`${BASE}/evening/${sessionId}/`, payload);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   submitHRV: async (payload: {
@@ -164,23 +148,23 @@ export const checkinService = {
     hrv_rmssd_ms?: number;
     skipped: boolean;
   }): Promise<HRVResponse> => {
-    const res = await fetch(`${BASE}/api/v1/checkin/hrv/`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post(`${BASE}/hrv/`, payload);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   submitSession: async (sessionId: string): Promise<SessionSubmitResponse> => {
-    const res = await fetch(`${BASE}/api/v1/checkin/session/${sessionId}/submit/`, {
-      method: 'POST',
-      headers: getHeaders(),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post(`${BASE}/session/${sessionId}/submit/`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
+  },
+
+  autosave: async (sessionId: string, payload: Record<string, unknown>): Promise<void> => {
+    const res = await apiClient.post(`${BASE}/session/${sessionId}/autosave/`, payload);
+    const body = res.data;
+    ensureSuccess(body);
+    return;
   },
 };

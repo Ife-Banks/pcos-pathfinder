@@ -1,83 +1,65 @@
-const BASE = import.meta.env.VITE_API_BASE_URL ? `${import.meta.env.VITE_API_BASE_URL}/notifications` : '/api/v1/notifications';
+import apiClient from '@/services/apiClient';
 
-const authHeaders = (token: string) => ({
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${token}`,
-});
+const BASE = '/notifications';
+
+const ensureSuccess = (body: any) => {
+  if (body.status !== 'success') throw body;
+  return body;
+};
 
 export const notificationAPI = {
-
   // GET /api/v1/notifications/
   // Returns paginated list, newest first
   // unread_only=true to filter unread only
-  getNotifications: async (
-    token: string,
-    options?: { unread_only?: boolean; page?: number }
-  ) => {
-    const params = new URLSearchParams();
-    if (options?.unread_only) params.set('unread_only', 'true');
-    if (options?.page) params.set('page', String(options.page));
-    
-    const url = `${BASE}/${params.toString() ? '?' + params.toString() : ''}`;
-    const res = await fetch(url, { headers: authHeaders(token) });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+  getNotifications: async (options?: { unread_only?: boolean; page?: number }) => {
+    const params: Record<string, string> = {};
+    if (options?.unread_only) params.unread_only = 'true';
+    if (options?.page) params.page = String(options.page);
+
+    const res = await apiClient.get(`${BASE}/`, { params });
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
     // Returns: { count, next, previous, results: AppNotification[] }
   },
 
   // GET /api/v1/notifications/unread-count/
   // Fetch ONCE on app load — then use WebSocket to maintain count
   // DO NOT poll this endpoint
-  getUnreadCount: async (token: string) => {
-    const res = await fetch(`${BASE}/unread-count/`, {
-      headers: authHeaders(token),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+  getUnreadCount: async () => {
+    const res = await apiClient.get(`${BASE}/unread-count/`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
     // Returns: { success, data: { unread_count: number } }
   },
 
   // PATCH /api/v1/notifications/<id>/read/
   // Mark a single notification as read
-  markAsRead: async (token: string, notificationId: string) => {
-    const res = await fetch(`${BASE}/${notificationId}/read/`, {
-      method: 'PATCH',
-      headers: authHeaders(token),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+  markAsRead: async (notificationId: string) => {
+    const res = await apiClient.patch(`${BASE}/${notificationId}/read/`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
     // Returns: { success, message, data: AppNotification (with is_read: true) }
   },
 
   // PATCH /api/v1/notifications/mark-all-read/
   // Mark ALL unread notifications as read in one call
-  markAllAsRead: async (token: string) => {
-    const res = await fetch(`${BASE}/mark-all-read/`, {
-      method: 'PATCH',
-      headers: authHeaders(token),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+  markAllAsRead: async () => {
+    const res = await apiClient.patch(`${BASE}/mark-all-read/`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
     // Returns: { success, message, data: { marked_count: number } }
     // marked_count can be 0 — still a 200 success
   },
 
   // DELETE /api/v1/notifications/<id>/
   // Permanently delete — cannot be undone
-  deleteNotification: async (token: string, notificationId: string) => {
-    const res = await fetch(`${BASE}/${notificationId}/`, {
-      method: 'DELETE',
-      headers: authHeaders(token),
-    });
+  deleteNotification: async (notificationId: string) => {
+    await apiClient.delete(`${BASE}/${notificationId}/`);
     // 204 No Content on success — no JSON body
-    if (!res.ok) {
-      const data = await res.json();
-      throw data;
-    }
     return true;
   },
 };

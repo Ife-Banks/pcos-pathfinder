@@ -1,12 +1,11 @@
-const DJANGO_BASE = 'https://ai-mshm-backend-d47t.onrender.com';
+import apiClient from '@/services/apiClient';
 
-function getAuthHeaders() {
-  const token = localStorage.getItem('access_token');
-  return {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json',
-  };
-}
+const BASE = '/menstrual';
+
+const ensureSuccess = (body: any) => {
+  if (body.status !== 'success') throw body;
+  return body;
+};
 
 export interface CriteriaItem {
   criterion: number;
@@ -106,7 +105,7 @@ export interface Cycle {
   rppgOvulationDay: null;
   cycleLength: number | null;
   mensesLength: number;
-  totalMensesScore: number;
+  total_menses_score: number;
   lutealLength: number | null;
   fertilityDays: number | null;
   ovulationDay: number | null;
@@ -138,33 +137,23 @@ interface LogCyclePayload {
 
 export const menstrualService = {
   logCycle: async (payload: LogCyclePayload): Promise<LogCycleResponse> => {
-    const res = await fetch(`${DJANGO_BASE}/api/v1/menstrual/log-cycle`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post(`${BASE}/log-cycle`, payload);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   getMenstrualPrediction: async (): Promise<PredictResponse> => {
-    const res = await fetch(`${DJANGO_BASE}/api/v1/menstrual/predict`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post(`${BASE}/predict`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   getCycleHistory: async (): Promise<HistoryResponse> => {
-    const res = await fetch(`${DJANGO_BASE}/api/v1/menstrual/history`, {
-      method: 'GET',
-      headers: getAuthHeaders(),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.get(`${BASE}/history`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 };

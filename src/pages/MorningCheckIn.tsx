@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Sun, Info, Check } from "lucide-react";
+import { ArrowLeft, Sun, Info, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { useCheckinSession } from "@/hooks/useCheckinSession";
@@ -19,12 +19,23 @@ const getSeverityColor = (score: number, max: number): { color: string; label: s
   return { color: '#922B21', label: 'Extreme' };
 };
 
+const useDebounce = <T,>(value: T, delay: number): T => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debouncedValue;
+};
+
 const MorningCheckIn = () => {
   const navigate = useNavigate();
-  const { loading, error, todayStatus, sessionId, isAlreadyComplete, retrySession, submitMorningData, submitHRV, completeSession } = useCheckinSession('morning');
-  const [step, setStep] = useState<'form' | 'hrv' | 'done' | 'error'>('form');
+  const { loading, error, todayStatus, sessionId, isAlreadyComplete, retrySession, submitMorningData, submitHRV, completeSession, autosave } = useCheckinSession('morning');
+  const [step, setStep] = useState<'form' | 'done' | 'error'>('form');
   const [submitting, setSubmitting] = useState(false);
-  
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [predictionsTriggered, setPredictionsTriggered] = useState(false);
+
   const [fatigue, setFatigue] = useState(0);
   const [pelvicPressure, setPelvicPressure] = useState(0);
   const [psqSkin, setPsqSkin] = useState(0);
@@ -33,6 +44,18 @@ const MorningCheckIn = () => {
 
   const hyperalgesiaIndex = (psqSkin + psqMuscle + psqBody) / 3;
   const hyperalgesiaSeverity = getSeverityColor(hyperalgesiaIndex, 10);
+
+  const autosavePayload = useDebounce({ fatigue_vas: fatigue, pelvic_pressure_vas: pelvicPressure, psq_skin_sensitivity: psqSkin, psq_muscle_pressure_pain: psqMuscle, psq_body_tenderness: psqBody }, 2000);
+
+  const prevPayloadRef = useRef<string>('');
+
+  useEffect(() => {
+    const payloadStr = JSON.stringify(autosavePayload);
+    if (payloadStr !== prevPayloadRef.current && sessionId) {
+      prevPayloadRef.current = payloadStr;
+      autosave(autosavePayload as Record<string, unknown>);
+    }
+  }, [autosavePayload, sessionId, autosave]);
 
   useEffect(() => {
     if (isAlreadyComplete || todayStatus?.morning_status === 'complete') {
@@ -48,8 +71,10 @@ const MorningCheckIn = () => {
 
   const handleSubmit = async () => {
     if (!sessionId) return;
-    
+
     setSubmitting(true);
+    setSubmitError(null);
+
     try {
       await submitMorningData({
         fatigue_vas: fatigue,
@@ -58,35 +83,51 @@ const MorningCheckIn = () => {
         psq_muscle_pressure_pain: psqMuscle,
         psq_body_tenderness: psqBody,
       });
-      setStep('hrv');
     } catch (err: any) {
-      toast({
-        title: 'Error',
-        description: err.message || 'Failed to save. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
+      setSubmitError(err.message || 'Failed to save. Please try again.');
+      toast({ title: 'Error', description: err.message || 'Failed to save. Please try again.', variant: 'destructive' });
+      setSubmitting(false);
+      return;
+    }
+
+    try {
+      await submitHRV(null);
+    } catch {
+      // HRV skip failure is non-blocking
+    }
+
+    try {
+      const result = await completeSession();
+      setPredictionsTriggered(result.predictions_triggered);
+      toast({ title: 'Morning check-in complete ✓', description: 'See you this evening!' });
+      navigate('/dashboard');
+    } catch (err: any) {
+      setSubmitError(err.message || 'Submission failed. Please try again.');
+      toast({ title: 'Submission failed', description: 'Please try again.', variant: 'destructive' });
       setSubmitting(false);
     }
   };
 
-  const handleHRVSubmit = async (skipped: boolean) => {
+  const handleHRVSkip = async () => {
+    if (!sessionId) return;
+
     setSubmitting(true);
+    setSubmitError(null);
+
     try {
-      if (!skipped) {
-        await submitHRV({ hrv_sdnn_ms: 42.5, hrv_rmssd_ms: 38.2 });
-      } else {
-        await submitHRV(null);
-      }
-      await completeSession();
-      setStep('done');
+      await submitHRV(null);
+    } catch {
+      // Non-blocking
+    }
+
+    try {
+      const result = await completeSession();
+      setPredictionsTriggered(result.predictions_triggered);
+      toast({ title: 'Morning check-in complete ✓', description: 'See you this evening!' });
+      navigate('/dashboard');
     } catch (err: any) {
-      toast({
-        title: 'Error',
-        description: err.message || 'Failed to complete. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
+      setSubmitError(err.message || 'Submission failed. Please try again.');
+      toast({ title: 'Submission failed', description: 'Please try again.', variant: 'destructive' });
       setSubmitting(false);
     }
   };
@@ -178,43 +219,29 @@ const MorningCheckIn = () => {
         </div>
       </div>
 
-      <div className="mt-8">
+      {submitError && (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-sm text-red-700">{submitError}</p>
+        </div>
+      )}
+
+      <div className="mt-8 space-y-3">
         <Button
           onClick={handleSubmit}
-          disabled={submitting}
+          disabled={submitting || !sessionId}
           className="w-full h-12 rounded-xl text-white font-semibold"
           style={{ backgroundColor: TEAL_PRIMARY }}
         >
-          {submitting ? 'Saving...' : 'Complete Morning Check-In'}
+          {submitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</> : 'Complete Morning Check-In'}
         </Button>
-      </div>
-    </motion.div>
-  );
 
-  const renderHRVPrompt = () => (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-8">
-      <div className="h-20 w-20 rounded-full bg-teal-100 flex items-center justify-center mx-auto mb-4">
-        <Sun className="h-10 w-10 text-teal-600" />
-      </div>
-      <h3 className="text-lg font-bold text-gray-900 mb-2">Daily HRV Reading</h3>
-      <p className="text-sm text-gray-500 mb-6">Take your 2-minute camera HRV session for more accurate predictions.</p>
-      
-      <div className="space-y-3">
-        <Button
-          onClick={() => handleHRVSubmit(false)}
-          disabled={submitting}
-          className="w-full h-12 rounded-xl text-white font-semibold"
-          style={{ backgroundColor: TEAL_PRIMARY }}
-        >
-          Start HRV Session (2 min)
-        </Button>
         <Button
           variant="outline"
-          onClick={() => handleHRVSubmit(true)}
-          disabled={submitting}
-          className="w-full h-12 rounded-xl"
+          onClick={handleHRVSkip}
+          disabled={submitting || !sessionId}
+          className="w-full h-10 rounded-xl"
         >
-          Skip for now
+          Skip HRV & Complete
         </Button>
       </div>
     </motion.div>
@@ -227,6 +254,9 @@ const MorningCheckIn = () => {
       </div>
       <h3 className="text-lg font-bold text-gray-900 mb-2">Morning Check-In Complete!</h3>
       <p className="text-sm text-gray-500">Your data has been recorded.</p>
+      {predictionsTriggered && (
+        <p className="text-xs text-teal-600 mt-2">Risk score is being updated...</p>
+      )}
     </motion.div>
   );
 
@@ -272,7 +302,7 @@ const MorningCheckIn = () => {
             <div className="h-8 w-8 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
             <p className="text-gray-500">Loading...</p>
           </div>
-        ) : step === 'error' ? renderError() : step === 'form' ? renderForm() : step === 'hrv' ? renderHRVPrompt() : renderDone()}
+        ) : step === 'error' ? renderError() : step === 'form' ? renderForm() : renderDone()}
       </div>
     </div>
   );

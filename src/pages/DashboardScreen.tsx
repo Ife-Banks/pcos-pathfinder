@@ -1,15 +1,16 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
   Sun, Moon, Activity, TrendingUp, Calendar, AlertCircle,
-  ChevronRight, Bell, User, Heart, BarChart3, ClipboardCheck, Loader2
+  ChevronRight, Bell, User, Heart, BarChart3, ClipboardCheck, Loader2, Check
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/context/NotificationContext";
 import { NotificationPanel } from "@/components/NotificationPanel";
 import { dashboardService, UserProfile, PredictionData } from "@/services/dashboardService";
 import { checkinService } from "@/services/checkinService";
+import { menstrualService } from "@/services/menstrualService";
 import { isToolCompleteThisWeek, getCurrentWeekKey } from "@/utils/weekUtils";
 import logo from "@/assets/logo.png";
 
@@ -24,26 +25,11 @@ const getRiskTier = (score: number) => {
 
 const getGreeting = () => {
   const hour = new Date().getHours();
-  if (hour >= 5 && hour < 12) return "Good morning";
-  if (hour >= 12 && hour < 17) return "Good afternoon";
-  if (hour >= 17 && hour < 21) return "Good evening";
-  return "Good night";
-};
-
-const formatRelativeTime = (dateStr: string) => {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins} min ago`;
-  if (diffHours < 24) return diffHours === 1 ? "1 hour ago" : `${diffHours} hours ago`;
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return `${diffDays} days ago`;
-  return date.toLocaleDateString();
+  if (hour >= 0 && hour <= 4) return "Good night";
+  if (hour >= 5 && hour <= 11) return "Good morning";
+  if (hour >= 12 && hour <= 16) return "Good afternoon";
+  if (hour >= 17 && hour <= 23) return "Good evening";
+  return "Good morning";
 };
 
 const getDaysSince = (dateStr: string) => {
@@ -53,9 +39,17 @@ const getDaysSince = (dateStr: string) => {
   return Math.floor(diffMs / 86400000);
 };
 
-const RiskGauge = ({ score }: { score: number }) => {
-  const tier = getRiskTier(score);
-  const angle = score * 180;
+const getCompletenessColor = (pct: number) => {
+  if (pct < 40) return "#E74C3C";
+  if (pct < 71) return "#F39C12";
+  if (pct < 90) return TEAL_PRIMARY;
+  return "#27AE60";
+};
+
+const RiskGauge = ({ score }: { score?: number }) => {
+  const safeScore = score ?? 0;
+  const tier = getRiskTier(safeScore);
+  const angle = safeScore * 180;
 
   return (
     <div className="flex flex-col items-center">
@@ -87,10 +81,7 @@ const RiskGauge = ({ score }: { score: number }) => {
             transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
           />
           <motion.line
-            x1="100"
-            y1="100"
-            x2="100"
-            y2="30"
+            x1="100" y1="100" x2="100" y2="30"
             stroke="#1F2937"
             strokeWidth="2.5"
             strokeLinecap="round"
@@ -109,7 +100,7 @@ const RiskGauge = ({ score }: { score: number }) => {
         className="text-center -mt-2"
       >
         <span className="text-3xl font-bold font-display" style={{ color: tier.color }}>
-          {score.toFixed(2)}
+          {safeScore.toFixed(2)}
         </span>
         <p className="text-xs text-gray-500 mt-1">
           Risk Tier: <span className="font-semibold" style={{ color: tier.color }}>{tier.label}</span>
@@ -119,9 +110,10 @@ const RiskGauge = ({ score }: { score: number }) => {
   );
 };
 
-const CompletenessRing = ({ percent }: { percent: number }) => {
+const CompletenessRing = ({ percent, missing }: { percent: number; missing: number }) => {
   const circumference = 2 * Math.PI * 20;
   const offset = circumference - (percent / 100) * circumference;
+  const color = getCompletenessColor(percent);
 
   return (
     <div className="relative h-14 w-14">
@@ -130,7 +122,7 @@ const CompletenessRing = ({ percent }: { percent: number }) => {
         <motion.circle
           cx="24" cy="24" r="20"
           fill="none"
-          stroke={TEAL_PRIMARY}
+          stroke={color}
           strokeWidth="4"
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -153,30 +145,92 @@ const SkeletonCard = () => (
   </div>
 );
 
+interface TodayData {
+  morning_status: 'complete' | 'pending' | 'in_progress';
+  evening_status: 'complete' | 'pending' | 'in_progress';
+  streak_days: number;
+  completeness_pct: number;
+  missed_yesterday: string[];
+  date: string;
+}
+
+interface MenstrualSummary {
+  mean_cycle_len: number | null;
+  CLV: number | null;
+  total_cycles_stored: number;
+}
+
 const DashboardScreen = () => {
   const navigate = useNavigate();
   const { unreadCount } = useNotifications();
-  
+
   const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [todayStatus, setTodayStatus] = useState<{
-    morning_status: 'pending' | 'in_progress' | 'complete';
-    evening_status: 'pending' | 'in_progress' | 'complete';
-    streak_days: number;
-    completeness_pct: number;
-  } | null>(null);
+  const [todayData, setTodayData] = useState<TodayData | null>(null);
   const [prediction, setPrediction] = useState<PredictionData | null>(null);
+  const [predictionLoading, setPredictionLoading] = useState(false);
+  const [menstrualSummary, setMenstrualSummary] = useState<MenstrualSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingAttempts = useRef(0);
 
   const greeting = getGreeting();
   const currentHour = new Date().getHours();
-  const isMorningTime = currentHour >= 5 && currentHour < 14;
   const currentWeek = getCurrentWeekKey();
 
   const mfgComplete = isToolCompleteThisWeek('mfg');
   const phq4Complete = isToolCompleteThisWeek('phq4');
+
+  const fetchPrediction = useCallback(async (silent = false) => {
+    if (!silent) setPredictionLoading(true);
+    try {
+      const res = await dashboardService.getLatestPrediction();
+      setPrediction(res.data);
+      return res.data;
+    } catch {
+      return null;
+    } finally {
+      if (!silent) setPredictionLoading(false);
+    }
+  }, []);
+
+  const fetchMenstrualSummary = useCallback(async () => {
+    try {
+      const res = await menstrualService.getCycleHistory();
+      const cycles = res.data?.cycles || [];
+      if (cycles.length === 0) return;
+      const aggregates = res.data?.aggregates;
+      setMenstrualSummary({
+        mean_cycle_len: aggregates?.mean_cycle_len ?? null,
+        CLV: aggregates?.CLV ?? null,
+        total_cycles_stored: cycles.length,
+      });
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const startPredictionPolling = useCallback(() => {
+    if (pollingRef.current) return;
+    pollingAttempts.current = 0;
+    pollingRef.current = setInterval(async () => {
+      pollingAttempts.current++;
+      const newPred = await fetchPrediction(true);
+      if (newPred) {
+        const isNew = getDaysSince(newPred.computed_at) === 0;
+        if (isNew || pollingAttempts.current >= 6) {
+          clearInterval(pollingRef.current!);
+          pollingRef.current = null;
+        }
+      }
+      if (pollingAttempts.current >= 6) {
+        clearInterval(pollingRef.current!);
+        pollingRef.current = null;
+      }
+    }, 5000);
+  }, [fetchPrediction]);
 
   const fetchDashboardData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -188,6 +242,7 @@ const DashboardScreen = () => {
         dashboardService.getUserProfile(),
         checkinService.getTodayStatus(),
         dashboardService.getLatestPrediction(),
+        fetchMenstrualSummary(),
       ]);
 
       if (profileRes.status === 'fulfilled') {
@@ -195,14 +250,25 @@ const DashboardScreen = () => {
       }
 
       if (todayRes.status === 'fulfilled') {
-        setTodayStatus(todayRes.value.data);
+        const td = todayRes.value.data;
+        setTodayData({
+          morning_status: td.morning_status,
+          evening_status: td.evening_status,
+          streak_days: td.streak_days ?? 0,
+          completeness_pct: td.completeness_pct ?? 0,
+          missed_yesterday: td.missed_yesterday ?? [],
+          date: td.date,
+        });
+
+        if (td.morning_status === 'complete' && td.evening_status === 'complete') {
+          startPredictionPolling();
+        }
       }
 
       if (predRes.status === 'fulfilled') {
         setPrediction(predRes.value.data);
       }
     } catch (err: any) {
-      console.error('Dashboard fetch error:', err);
       if (err?.status === 401) {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
@@ -214,10 +280,13 @@ const DashboardScreen = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [navigate]);
+  }, [navigate, fetchMenstrualSummary, startPredictionPolling]);
 
   useEffect(() => {
     fetchDashboardData();
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
   }, [fetchDashboardData]);
 
   useEffect(() => {
@@ -226,13 +295,11 @@ const DashboardScreen = () => {
     return () => window.removeEventListener('focus', handleFocus);
   }, [fetchDashboardData]);
 
-  const getInitials = (name: string) => {
-    return name.charAt(0).toUpperCase();
-  };
+  const getInitials = (name: string) => name.charAt(0).toUpperCase();
 
   const getMorningSubtitle = () => {
-    if (!todayStatus) return "Log fatigue & pressure";
-    switch (todayStatus.morning_status) {
+    if (!todayData) return "Log fatigue & pressure";
+    switch (todayData.morning_status) {
       case 'complete': return "Completed today";
       case 'in_progress': return "In progress — tap to continue";
       default: return "Log fatigue & pressure";
@@ -240,8 +307,8 @@ const DashboardScreen = () => {
   };
 
   const getEveningSubtitle = () => {
-    if (!todayStatus) return "Log soreness & acne";
-    switch (todayStatus.evening_status) {
+    if (!todayData) return "Log soreness & acne";
+    switch (todayData.evening_status) {
       case 'complete': return "Completed today";
       case 'in_progress': return "In progress — tap to continue";
       default: return "Log soreness & acne";
@@ -249,135 +316,108 @@ const DashboardScreen = () => {
   };
 
   const getWeeklyToolsSubtitle = () => {
-    if (mfgComplete && phq4Complete) return "All tools completed this week";
+    if (mfgComplete && phq4Complete) return "All tools complete this week ✓";
     const pending = [];
     if (!mfgComplete) pending.push('mFG');
     if (!phq4Complete) pending.push('PHQ-4');
     return `${pending.join(' & ')} due`;
   };
 
-  const showEveningCard = todayStatus?.morning_status === 'complete' || currentHour >= 12;
+  const periodCardSubtitle = menstrualSummary && menstrualSummary.mean_cycle_len
+    ? `Cycle ${Math.round(menstrualSummary.mean_cycle_len)} days · CLV ${menstrualSummary.CLV ?? '—'}`
+    : "Log your cycle";
+
+  const morningComplete = todayData?.morning_status === 'complete';
+  const eveningComplete = todayData?.evening_status === 'complete';
+  const bothComplete = morningComplete && eveningComplete;
+  const missedYesterday = todayData?.missed_yesterday ?? [];
+  const hasMissedYesterday = missedYesterday.length > 0;
+
+  const completenessPct = todayData?.completeness_pct ?? 0;
+  const missingCount = Math.round((100 - completenessPct) / 100 * 5);
+  const streakDays = todayData?.streak_days ?? 0;
 
   const quickActions: Array<{
-    icon: React.ElementType;
-    title: string;
-    subtitle: string;
-    route: string;
-    gradient: string;
-    urgent: boolean;
-    dotColor?: string;
+    icon: React.ElementType; title: string; subtitle: string;
+    route: string; gradient: string; urgent: boolean; dotColor?: string;
+    bgTint?: string; tappable?: boolean; locked?: boolean;
   }> = [];
 
-  if (currentHour >= 5 && currentHour < 12) {
-    quickActions.push({
-      icon: Sun,
-      title: "Morning Check-In",
-      subtitle: getMorningSubtitle(),
-      route: "/checkin/morning",
-      gradient: "gradient-primary",
-      urgent: todayStatus?.morning_status !== 'complete',
-      dotColor: todayStatus?.morning_status === 'complete' ? '#27AE60' : '#F59E0B',
-    });
-    if (todayStatus?.morning_status === 'complete') {
+  // MORNING WINDOW: 5:00 AM – 11:59 AM
+  if (currentHour >= 5 && currentHour <= 11) {
+    if (morningComplete) {
       quickActions.push({
-        icon: Moon,
-        title: "Evening Check-In",
-        subtitle: getEveningSubtitle(),
-        route: "/checkin/evening",
-        gradient: "bg-teal-500",
-        urgent: todayStatus?.evening_status !== 'complete',
-        dotColor: todayStatus?.evening_status === 'complete' ? '#27AE60' : TEAL_PRIMARY,
+        icon: Sun, title: "Morning done ✓", subtitle: "See you this evening",
+        route: "/checkin/morning", gradient: "gradient-primary",
+        urgent: false, dotColor: '#27AE60', bgTint: 'bg-green-50 border-green-200', tappable: false,
+      });
+    } else {
+      quickActions.push({
+        icon: Sun, title: "Morning Check-In", subtitle: getMorningSubtitle(),
+        route: "/checkin/morning", gradient: "gradient-primary",
+        urgent: true, dotColor: todayData?.morning_status === 'in_progress' ? '#F59E0B' : '#F59E0B',
       });
     }
-  } else if (currentHour >= 12 && currentHour < 24) {
-    quickActions.push({
-      icon: Moon,
-      title: "Evening Check-In",
-      subtitle: getEveningSubtitle(),
-      route: "/checkin/evening",
-      gradient: "bg-teal-500",
-      urgent: todayStatus?.evening_status !== 'complete',
-      dotColor: todayStatus?.evening_status === 'complete' ? '#27AE60' : TEAL_PRIMARY,
-    });
-    if (todayStatus?.morning_status !== 'complete') {
+    // Evening preview (locked, greyed out) if morning is complete
+    if (morningComplete && !eveningComplete) {
       quickActions.push({
-        icon: Sun,
-        title: "Morning Check-In",
-        subtitle: getMorningSubtitle(),
-        route: "/checkin/morning",
-        gradient: "gradient-primary",
-        urgent: true,
-        dotColor: '#F59E0B',
+        icon: Moon, title: "Evening Check-In", subtitle: "Available from 12:00 PM",
+        route: "/checkin/evening", gradient: "bg-teal-500",
+        urgent: false, dotColor: TEAL_PRIMARY,
+        bgTint: 'bg-gray-50 border-gray-200 opacity-60', locked: true,
       });
     }
-  } else {
-    if (todayStatus?.evening_status !== 'complete') {
+  }
+  // AFTERNOON/EVENING WINDOW: 12:00 PM – 11:59 PM
+  else if (currentHour >= 12 && currentHour <= 23) {
+    if (eveningComplete) {
       quickActions.push({
-        icon: Moon,
-        title: "Evening Check-In",
-        subtitle: getEveningSubtitle(),
-        route: "/checkin/evening",
-        gradient: "bg-teal-500",
-        urgent: true,
-        dotColor: TEAL_PRIMARY,
+        icon: Moon, title: "Evening done ✓", subtitle: "Great job today!",
+        route: "/checkin/evening", gradient: "bg-teal-500",
+        urgent: false, dotColor: '#27AE60', bgTint: 'bg-green-50 border-green-200', tappable: false,
+      });
+    } else {
+      quickActions.push({
+        icon: Moon, title: "Evening Check-In", subtitle: getEveningSubtitle(),
+        route: "/checkin/evening", gradient: "bg-teal-500",
+        urgent: true, dotColor: TEAL_PRIMARY,
       });
     }
-    if (todayStatus?.morning_status !== 'complete') {
+    if (!morningComplete) {
       quickActions.push({
-        icon: Sun,
-        title: "Morning Check-In",
-        subtitle: getMorningSubtitle(),
-        route: "/checkin/morning",
-        gradient: "gradient-primary",
-        urgent: true,
-        dotColor: '#F59E0B',
+        icon: Sun, title: "Morning Check-In", subtitle: getMorningSubtitle(),
+        route: "/checkin/morning", gradient: "gradient-primary",
+        urgent: true, dotColor: '#F59E0B',
       });
     }
-    if (todayStatus?.morning_status === 'complete' && todayStatus?.evening_status === 'complete') {
+  }
+  // LATE NIGHT WINDOW: 12:00 AM – 4:59 AM
+  else {
+    const eveningNotDone = todayData?.evening_status !== 'complete';
+    if (eveningNotDone) {
       quickActions.push({
-        icon: Sun,
-        title: "Both Check-ins",
-        subtitle: "Completed today ✓",
-        route: "/dashboard",
-        gradient: "gradient-primary",
-        urgent: false,
-        dotColor: '#27AE60',
+        icon: Moon, title: "Evening Check-In", subtitle: getEveningSubtitle(),
+        route: "/checkin/evening", gradient: "bg-teal-500",
+        urgent: true, dotColor: TEAL_PRIMARY,
+      });
+    } else {
+      quickActions.push({
+        icon: Sun, title: "Morning Check-In", subtitle: getMorningSubtitle(),
+        route: "/checkin/morning", gradient: "gradient-primary",
+        urgent: true, dotColor: '#F59E0B',
       });
     }
   }
 
   quickActions.push(
-    {
-      icon: Calendar,
-      title: "Period Tracking",
-      subtitle: "Log your cycle",
-      route: "/period-logging",
-      gradient: "gradient-clinical",
-      urgent: false,
-    },
-    {
-      icon: ClipboardCheck,
-      title: "Weekly Tools",
-      subtitle: getWeeklyToolsSubtitle(),
-      route: "/weekly-tools",
-      gradient: "gradient-primary",
-      urgent: !mfgComplete || !phq4Complete,
-    },
-    {
-      icon: BarChart3,
-      title: "Risk Trends",
-      subtitle: "View your history",
-      route: "/risk-trend",
-      gradient: "gradient-clinical",
-      urgent: false,
-    }
+    { icon: Calendar, title: "Period Tracking", subtitle: periodCardSubtitle, route: "/period-logging", gradient: "gradient-clinical", urgent: false },
+    { icon: ClipboardCheck, title: "Weekly Tools", subtitle: getWeeklyToolsSubtitle(), route: "/weekly-tools", gradient: "gradient-primary", urgent: !mfgComplete || !phq4Complete },
+    { icon: BarChart3, title: "Risk Trends", subtitle: "View your history", route: "/risk-trend", gradient: "gradient-clinical", urgent: false },
   );
 
   const riskTier = prediction ? getRiskTier(prediction.risk_score) : null;
   const predictionAge = prediction ? getDaysSince(prediction.computed_at) : null;
   const isUpdatedToday = predictionAge === 0;
-
-  const morningComplete = todayStatus?.morning_status === 'complete';
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
@@ -437,8 +477,34 @@ const DashboardScreen = () => {
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-            {error} · Pull to refresh
+            {error} · Tap to retry
           </div>
+        )}
+
+        {hasMissedYesterday && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2"
+          >
+            <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-800">
+              You missed your {missedYesterday.join(' & ')} check-in yesterday. Your streak has been reset.
+            </p>
+          </motion.div>
+        )}
+
+        {bothComplete && predictionLoading && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-teal-50 border border-teal-200 rounded-xl p-3 flex gap-2"
+          >
+            <Activity className="h-4 w-4 text-teal-600 shrink-0 mt-0.5" />
+            <p className="text-xs text-teal-800">
+              Your risk score is being updated...
+            </p>
+          </motion.div>
         )}
 
         {loading ? (
@@ -453,9 +519,7 @@ const DashboardScreen = () => {
                 <div className="h-4 bg-gray-200 rounded w-1/2 mb-3" />
                 <div className="h-8 bg-gray-200 rounded w-1/3 mb-2" />
                 <div className="flex gap-1">
-                  {[1,2,3,4,5,6,7].map(i => (
-                    <div key={i} className="h-1.5 flex-1 bg-gray-200 rounded-full" />
-                  ))}
+                  {[1,2,3,4,5,6,7].map(i => <div key={i} className="h-1.5 flex-1 bg-gray-200 rounded-full" />)}
                 </div>
               </div>
             </div>
@@ -497,14 +561,14 @@ const DashboardScreen = () => {
               className="grid grid-cols-2 gap-3"
             >
               <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
-                <CompletenessRing percent={prediction?.data_completeness_pct || 0} />
+                <CompletenessRing percent={completenessPct} missing={missingCount} />
                 <div>
                   <p className="text-xs text-gray-500">Data</p>
                   <p className="font-display font-bold text-gray-900 text-sm">Completeness</p>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    {prediction?.missing_inputs_count === 0 
-                      ? 'All data complete' 
-                      : `${prediction?.missing_inputs_count || 0} missing inputs`}
+                    {completenessPct >= 100
+                      ? 'All data complete ✓'
+                      : `${missingCount} missing inputs`}
                   </p>
                 </div>
               </div>
@@ -514,17 +578,15 @@ const DashboardScreen = () => {
                   <p className="text-xs text-gray-500">Check-in Streak</p>
                 </div>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-bold font-display text-gray-900">
-                    {todayStatus?.streak_days || 0}
-                  </span>
+                  <span className="text-3xl font-bold font-display text-gray-900">{streakDays}</span>
                   <span className="text-sm text-gray-500">days</span>
                 </div>
                 <div className="flex gap-1 mt-2">
                   {[1, 2, 3, 4, 5, 6, 7].map((d) => (
                     <div
                       key={d}
-                      className={`h-1.5 flex-1 rounded-full ${d <= (todayStatus?.streak_days || 0) ? '' : 'bg-gray-200'}`}
-                      style={d <= (todayStatus?.streak_days || 0) ? { backgroundColor: TEAL_PRIMARY } : {}}
+                      className="h-1.5 flex-1 rounded-full"
+                      style={d <= streakDays ? { backgroundColor: TEAL_PRIMARY } : { backgroundColor: '#E5E7EB' }}
                     />
                   ))}
                 </div>
@@ -546,8 +608,14 @@ const DashboardScreen = () => {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4 + i * 0.08 }}
-                onClick={() => navigate(action.route)}
-                className="w-full flex items-center gap-4 p-4 rounded-xl bg-white border border-gray-200 hover:shadow-md transition-all group text-left"
+                onClick={() => {
+                  if (action.locked) {
+                    toast("Evening check-in opens at 12:00 PM");
+                    return;
+                  }
+                  navigate(action.route);
+                }}
+                className={`w-full flex items-center gap-4 p-4 rounded-xl border hover:shadow-md transition-all group text-left ${action.bgTint ?? 'bg-white border-gray-200'}`}
               >
                 <div className={`h-11 w-11 rounded-xl ${action.gradient} flex items-center justify-center shrink-0`}>
                   <action.icon className="h-5 w-5 text-white" />
@@ -556,10 +624,7 @@ const DashboardScreen = () => {
                   <div className="flex items-center gap-2">
                     <p className="font-display font-semibold text-gray-900 text-sm">{action.title}</p>
                     {'dotColor' in action && (
-                      <span 
-                        className="h-2 w-2 rounded-full" 
-                        style={{ backgroundColor: action.dotColor }}
-                      />
+                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: action.dotColor }} />
                     )}
                     {action.urgent && !('dotColor' in action) && (
                       <span className="h-2 w-2 rounded-full bg-amber-500" />
@@ -599,11 +664,42 @@ const DashboardScreen = () => {
               <p className="text-[10px] text-gray-500">Mood</p>
             </div>
           </div>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            {morningComplete ? (
+              <span className="flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-medium">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-500" />Morning: Done
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full font-medium">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />Morning: Pending
+              </span>
+            )}
+            {eveningComplete ? (
+              <span className="flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-medium">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-500" />Evening: Done
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full font-medium">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />Evening: Pending
+              </span>
+            )}
+          </div>
+
           {!morningComplete && (
             <div className="mt-3 flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200">
               <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
               <p className="text-xs text-amber-800">
                 Complete your morning check-in to update today's data.
+              </p>
+            </div>
+          )}
+
+          {bothComplete && currentHour >= 17 && !prediction && (
+            <div className="mt-3 flex items-center gap-2 p-2.5 rounded-lg bg-teal-50 border border-teal-200">
+              <Activity className="h-4 w-4 text-teal-600 shrink-0" />
+              <p className="text-xs text-teal-800">
+                Complete your evening check-in to unlock today's risk prediction.
               </p>
             </div>
           )}

@@ -1,12 +1,9 @@
-const BASE = 'https://ai-mshm-backend-d47t.onrender.com';
+import apiClient from '@/services/apiClient';
 
-function getHeaders() {
-  const token = localStorage.getItem('access_token');
-  return {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json',
-  };
-}
+const ensureSuccess = (body: any) => {
+  if (body.status !== 'success') throw body;
+  return body;
+};
 
 export interface SHAPDriver {
   feature: string;
@@ -95,43 +92,31 @@ export interface ReferralResponse {
 
 export const predictionService = {
   getLatest: async (): Promise<PredictionResponse> => {
-    const res = await fetch(`${BASE}/api/v1/predictions/latest/`, {
-      method: 'GET',
-      headers: getHeaders(),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.get('/predictions/latest/');
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   getHistory: async (): Promise<{ results: PredictionRecord[] }> => {
-    const res = await fetch(`${BASE}/api/v1/predictions/history/`, {
-      method: 'GET',
-      headers: getHeaders(),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    if (data.results) return { results: data.results };
-    return { results: Array.isArray(data) ? data : [] };
+    const res = await apiClient.get('/predictions/history/');
+    const body = res.data;
+    ensureSuccess(body);
+    if (body.results) return { results: body.results };
+    return { results: Array.isArray(body) ? body : [] };
   },
 
   getFeatures: async (predictionId: string): Promise<SHAPFeaturesResponse> => {
-    const res = await fetch(`${BASE}/api/v1/predictions/${predictionId}/features/`, {
-      method: 'GET',
-      headers: getHeaders(),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.get(`/predictions/${predictionId}/features/`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   getReferral: async (): Promise<ReferralResponse> => {
-    const res = await fetch(`${BASE}/api/v1/predict/pcos/referral/`, {
-      method: 'GET',
-      headers: getHeaders(),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.get('/predict/pcos/referral/');
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 };

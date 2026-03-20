@@ -63,52 +63,66 @@ export const phcAPI = {
   },
 
   escalateRecord: async (recordId: string, escalationData: {
+    fmc_id: string;
     urgency: string;
+    reason: string;
     notes: string;
+    attach_pdf?: boolean;
   }) => {
     const res = await apiClient.post(`/centers/phc/queue/${recordId}/escalate/`, escalationData);
     return res.data;
   },
 
+  getPatientData: async (recordId: string) => {
+    const res = await apiClient.get(`/centers/phc/queue/${recordId}/patient-data/`);
+    return res.data;
+  },
+
   // PHC4 - Walk-in Registration
   registerWalkIn: async (walkInData: {
-    full_name: string;
+    first_name: string;
+    last_name: string;
     email?: string;
-    age?: number;
-    condition: string;
-    severity?: string;
-    notes?: string;
+    phone: string;
+    date_of_birth: string;
+    height_cm?: number;
+    weight_kg?: number;
+    bmi?: number;
+    waist_cm?: number;
+    acanthosis_nigricans?: boolean;
+    cycle_regularity?: 'regular' | 'irregular' | 'not_sure';
+    typical_cycle_length?: number;
+    last_period_date?: string;
+    bleeding_intensity?: number;
+    night_sweats?: 'none' | 'occasional' | 'frequent';
+    persistent_fatigue?: boolean;
+    family_history?: string[];
   }) => {
     const res = await apiClient.post('/centers/phc/walk-in/', walkInData);
     return res.data;
   },
 
   sendCredentials: async (patientId: string, phoneNumber: string) => {
-    const res = await apiClient.post('/auth/send-credentials/', { 
-      patient_id: patientId, 
-      phone_number: phoneNumber 
+    const res = await apiClient.post('/auth/send-credentials/', {
+      patient_id: patientId,
+      phone_number: phoneNumber
     });
     return res.data;
   },
 
   // PHC5 - Lifestyle Advice
-  sendAdvice: async (adviceData: {
-    patient_id: string;
-    condition: string;
-    message: string;
-    followup_date?: string;
-  }) => {
-    const res = await apiClient.post('/phc/advice/', adviceData);
+  getRecentAdvice: async (limit: number = 10) => {
+    const res = await apiClient.get(`/centers/phc/advice/?limit=${limit}`);
     return res.data;
   },
 
-  sendAdviceToRecord: async (recordId: string, adviceData: {
-    patient_id: string;
+  sendAdvice: async (adviceData: {
+    queue_record_id: string;
     condition: string;
     message: string;
-    followup_date?: string;
+    followup_date?: string | null;
   }) => {
-    const res = await apiClient.post(`/phc/advice/${recordId}/`, adviceData);
+    const res = await apiClient.post('/centers/phc/advice/', adviceData);
     return res.data;
   },
 
@@ -118,21 +132,28 @@ export const phcAPI = {
     if (startDate) params.append('start_date', startDate);
     if (endDate) params.append('end_date', endDate);
     
-    const res = await apiClient.get(`/phc/analytics/?${params}`);
+    const res = await apiClient.get(`/centers/phc/analytics/?${params}`);
     return res.data;
   },
 
   // PHC8 - Notifications
   getNotifications: async () => {
-    const res = await apiClient.get('/phc/notifications/');
+    const res = await apiClient.get('/notifications/');
     return res.data;
   },
 
-  markNotificationRead: async (notificationId: string, actionTaken?: string) => {
-    const body: any = { is_read: true };
-    if (actionTaken) body.action_taken = actionTaken;
-    
-    const res = await apiClient.patch(`/phc/notifications/${notificationId}/read/`, body);
+  getUnreadCount: async () => {
+    const res = await apiClient.get('/notifications/unread-count/');
+    return res.data;
+  },
+
+  markNotificationRead: async (notificationId: string) => {
+    const res = await apiClient.patch(`/notifications/${notificationId}/read/`, { is_read: true });
+    return res.data;
+  },
+
+  markAllNotificationsRead: async () => {
+    const res = await apiClient.patch('/notifications/mark-all-read/', {});
     return res.data;
   },
 
@@ -147,24 +168,23 @@ export const phcAPI = {
     address?: string;
     phone?: string;
     email?: string;
-    notify_on_severe?: boolean;
-    notify_on_very_severe?: boolean;
   }) => {
     const res = await apiClient.patch('/centers/phc/profile/', updates);
     return res.data;
   },
 
   getNotificationPreferences: async () => {
-    const res = await apiClient.get('/phc/notification-preferences/');
+    const res = await apiClient.get('/settings/notifications/');
     return res.data;
   },
 
   updateNotificationPreferences: async (preferences: {
-    new_referral_alert: boolean;
-    score_change_alert: boolean;
-    overdue_followup_reminder: boolean;
+    new_referral?: boolean;
+    score_change?: boolean;
+    overdue_followup?: boolean;
+    missed_checkin?: boolean;
   }) => {
-    const res = await apiClient.patch('/phc/notification-preferences/', preferences);
+    const res = await apiClient.patch('/settings/notifications/', preferences);
     return res.data;
   },
 

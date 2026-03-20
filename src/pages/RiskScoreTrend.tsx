@@ -5,6 +5,7 @@ import { ArrowLeft, TrendingDown, TrendingUp, Minus, Loader2 } from "lucide-reac
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import apiClient from "@/services/apiClient";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine
@@ -70,25 +71,21 @@ const RiskScoreTrend = () => {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('access_token');
-      const res = await fetch(
-        'https://ai-mshm-backend-d47t.onrender.com/api/v1/predictions/history/',
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      if (res.status === 401) {
+      const res = await apiClient.get('/predictions/history/');
+      const body = res.data;
+      if (body.status !== 'success') {
+        throw body;
+      }
+      const payload = body.results ?? body;
+      const data = Array.isArray(payload) ? payload : [];
+      setHistory(data);
+    } catch (err: any) {
+      if (err?.response?.status === 401 || err?.status === 401) {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         navigate('/login');
         return;
       }
-      if (!res.ok) throw new Error('Failed to fetch');
-      let data = await res.json();
-      if (data.results) data = data.results;
-      if (!Array.isArray(data)) data = [];
-      setHistory(data);
-    } catch {
       setError('Unable to load risk trend data.');
     } finally {
       setLoading(false);

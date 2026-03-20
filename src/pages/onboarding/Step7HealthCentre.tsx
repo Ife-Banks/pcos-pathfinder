@@ -9,6 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useOnboarding } from '@/context/OnboardingContext';
 import { onboardingAPI } from '@/services/onboardingService';
 import { phcAPI } from '@/services/phcService';
+import apiClient from '@/services/apiClient';
 
 interface PHCCentre {
   id: string;
@@ -141,7 +142,7 @@ const Step7HealthCentre = () => {
     setSuccessMessage(null);
     
     try {
-      await onboardingAPI.saveStep7HealthCentre(accessToken!, {
+      await onboardingAPI.saveStep7HealthCentre({
         state: formData.state,
         lga: formData.lga,
         registered_hcc: hccId
@@ -178,25 +179,15 @@ const Step7HealthCentre = () => {
     setError(null);
 
     try {
-      const response = await fetch('/api/v1/centers/change-request/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          request_type: 'change_phc',
-          requested_hcc: selectedCentre.id,
-          description: changeRequestDescription,
-        }),
+      const res = await apiClient.post('/centers/change-request/', {
+        request_type: 'change_phc',
+        requested_hcc: selectedCentre.id,
+        description: changeRequestDescription,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to submit change request');
+      const body = res.data;
+      if (body.status !== 'success') {
+        throw body;
       }
-
       setSuccessMessage('Your request has been submitted. We will review it and notify you in the app when it is actioned.');
       setShowChangeRequestModal(false);
       setChangeRequestDescription('');

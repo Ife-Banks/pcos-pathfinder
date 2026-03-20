@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -27,6 +27,7 @@ const PHCMinorRiskDashboardScreen = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [records, setRecords] = useState<PHCRecord[]>([]);
+  const [allRecords, setAllRecords] = useState<PHCRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState('all');
@@ -53,38 +54,49 @@ const PHCMinorRiskDashboardScreen = () => {
     { id: 'last_checkin', label: 'by Last Check-In' },
   ];
 
-  const fetchRecords = async () => {
+  const fetchRecords = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const queueFilters: any = {};
-      if (activeFilter !== 'all') {
-        if (activeFilter === 'moderate' || activeFilter === 'low') {
-          queueFilters.severity = activeFilter === 'low' ? 'mild' : 'moderate';
-        } else if (activeFilter === 'awaiting_review') {
-          queueFilters.status = 'new';
-        } else if (['pcos', 'hormonal', 'metabolic'].includes(activeFilter)) {
-          queueFilters.condition = activeFilter;
-        }
+
+      const [allRes, filteredRes] = await Promise.all([
+        phcAPI.getQueue({}),
+        activeFilter === 'new_today'
+          ? phcAPI.getQueue({})
+          : (() => {
+              const queueFilters: Record<string, string> = {};
+              if (activeFilter === 'moderate') queueFilters.severity = 'moderate';
+              else if (activeFilter === 'low') queueFilters.severity = 'mild';
+              else if (activeFilter === 'awaiting_review') queueFilters.status = 'new';
+              else if (['pcos', 'hormonal', 'metabolic'].includes(activeFilter)) {
+                queueFilters.condition = activeFilter;
+              }
+              return phcAPI.getQueue(queueFilters);
+            })(),
+      ]);
+
+      const all = allRes.data ?? [];
+      setAllRecords(all);
+
+      if (activeFilter === 'new_today') {
+        const today = new Date().toDateString();
+        setRecords(all.filter(r => new Date(r.opened_at).toDateString() === today));
+      } else {
+        setRecords(filteredRes.data ?? []);
       }
-      
-      const response = await phcAPI.getQueue(queueFilters);
-      const queueRecords = response.data ?? [];
-      setRecords(queueRecords);
-      
-    } catch (error: any) {
-      console.error('Error fetching records:', error);
-      setError('Failed to load patient records. Please try again.');
+
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      console.error('Error fetching records:', err);
+      setError(e.message || 'Failed to load patient records. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeFilter]);
 
-  const handleRefresh = async () => {
+  const handleRefresh = () => {
     setRefreshing(true);
-    await fetchRecords();
-    setRefreshing(false);
+    fetchRecords();
   };
 
   const getStatusColor = (status: string) => {
@@ -144,9 +156,9 @@ const PHCMinorRiskDashboardScreen = () => {
       if (!searchQuery) return true;
       const query = searchQuery.toLowerCase();
       const patientName = record.patient.full_name.toLowerCase();
-      const patientId = record.patient.id.toLowerCase();
-      const condition = record.condition.toLowerCase();
-      return patientName.includes(query) || patientId.includes(query) || condition.includes(query);
+      const patientEmail = record.patient.email.toLowerCase();
+      const recordId = record.id.toLowerCase();
+      return patientName.includes(query) || patientEmail.includes(query) || recordId.slice(0, 7).includes(query);
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -164,16 +176,16 @@ const PHCMinorRiskDashboardScreen = () => {
       }
     });
 
-  const moderateCount = records.filter(r => r.severity === 'moderate').length;
-  const lowCount = records.filter(r => r.severity === 'mild').length;
-  const newTodayCount = records.filter(r => {
+  const moderateCount = allRecords.filter(r => r.severity === 'moderate').length;
+  const lowCount = allRecords.filter(r => r.severity === 'mild').length;
+  const newTodayCount = allRecords.filter(r => {
     const today = new Date().toDateString();
     return new Date(r.opened_at).toDateString() === today;
   }).length;
 
   useEffect(() => {
     fetchRecords();
-  }, [activeFilter]);
+  }, [fetchRecords]);
 
   if (loading && records.length === 0) {
     return (

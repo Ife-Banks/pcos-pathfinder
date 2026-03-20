@@ -10,13 +10,12 @@ import { phcAPI } from '@/services/phcService';
 
 const navItems = [
   { label: 'Dashboard', icon: Home, path: '/phc/dashboard' },
-  { label: 'Patients', icon: Users, path: '/phc/patients' },
   { label: 'Register', icon: UserPlus, path: '/phc/register' },
   { label: 'Advice', icon: MessageCircle, path: '/phc/advice' },
   { label: 'Escalation', icon: ArrowUpRight, path: '/phc/escalation' },
   { label: 'Analytics', icon: BarChart3, path: '/phc/analytics' },
-  { label: 'Alerts', icon: Bell, path: '/phc/notifications' },
-  { label: 'Settings', icon: Settings, path: '/phc/profile' },
+  { label: 'Alerts', icon: Bell, path: '/phc/alerts' },
+  { label: 'Settings', icon: Settings, path: '/phc/settings' },
 ];
 
 const getInitials = (name?: string) => {
@@ -143,7 +142,7 @@ export default function PHCLayout({ children }: { children: ReactNode }) {
             <nav className="py-4 px-3 space-y-1">
               {navItems.map(item => (
                 <Link
-                  key={item.path}
+                  key={item.label}
                   to={item.path}
                   onClick={() => setSidebarOpen(false)}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${

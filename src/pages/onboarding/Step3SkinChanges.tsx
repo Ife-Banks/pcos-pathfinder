@@ -32,7 +32,7 @@ const Step3SkinChanges = () => {
       setIsLoading(true);
       setErrors({});
       
-      await onboardingAPI.saveStep3(user!.accessToken!, {
+      await onboardingAPI.saveStep3({
         has_skin_changes: hasSkinChanges,
       });
       

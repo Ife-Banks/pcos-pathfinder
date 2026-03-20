@@ -1,12 +1,11 @@
-const BASE = 'https://ai-mshm-backend-d47t.onrender.com';
+import apiClient from '@/services/apiClient';
 
-function getHeaders() {
-  const token = localStorage.getItem('access_token');
-  return {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json',
-  };
-}
+const BASE = '/checkin/mfg';
+
+const ensureSuccess = (body: any) => {
+  if (body.status !== 'success') throw body;
+  return body;
+};
 
 export interface MFGZone {
   zone: string;
@@ -38,23 +37,16 @@ export interface MFGSubmission {
 
 export const mfgService = {
   getLatest: async (): Promise<MFGResponse> => {
-    const res = await fetch(`${BASE}/api/v1/checkin/mfg/`, {
-      method: 'GET',
-      headers: getHeaders(),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.get(`${BASE}/`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   submit: async (payload: MFGSubmission): Promise<MFGResponse> => {
-    const res = await fetch(`${BASE}/api/v1/checkin/mfg/`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post(`${BASE}/`, payload);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 };

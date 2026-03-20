@@ -1,12 +1,9 @@
-const BASE = 'https://ai-mshm-backend-d47t.onrender.com';
+import apiClient from '@/services/apiClient';
 
-function getHeaders() {
-  const token = localStorage.getItem('access_token');
-  return {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json',
-  };
-}
+const ensureSuccess = (body: any) => {
+  if (body.status !== 'success') throw body;
+  return body;
+};
 
 export interface UserProfile {
   id: string;
@@ -62,34 +59,25 @@ export interface DashboardData {
 
 export const dashboardService = {
   getUserProfile: async (): Promise<UserProfileResponse> => {
-    const res = await fetch(`${BASE}/api/v1/auth/me/`, {
-      method: 'GET',
-      headers: getHeaders(),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.get('/auth/me/');
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   getLatestPrediction: async (): Promise<PredictionResponse> => {
-    const res = await fetch(`${BASE}/api/v1/predictions/latest/`, {
-      method: 'GET',
-      headers: getHeaders(),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.get('/predictions/latest/');
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
-  getMoodSummary: async (): Promise<{ affect_quadrant: string; phq4_total: number } | null> => {
+  getMoodSummary: async (): Promise<MoodSummary | null> => {
     try {
-      const res = await fetch(`${BASE}/api/v1/mood/summary/today/`, {
-        method: 'GET',
-        headers: getHeaders(),
-      });
-      if (!res.ok) return null;
-      const data = await res.json();
-      return data.data || null;
+      const res = await apiClient.get('/mood/summary/today/');
+      const body = res.data;
+      ensureSuccess(body);
+      return body.data || null;
     } catch {
       return null;
     }

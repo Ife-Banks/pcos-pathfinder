@@ -43,7 +43,10 @@ const PCOSRiskScore = () => {
   const [prediction, setPrediction] = useState<PredictionRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const tierConfig = prediction ? TRIAGE_TIERS.find(t => prediction.risk_tier === t.label)! : null;
+  const safeTierConfig = prediction
+    ? (TRIAGE_TIERS.find(t => t.label.toUpperCase() === (prediction.risk_tier ?? '').toUpperCase())
+      ?? TRIAGE_TIERS[0])
+    : null;
 
   const fetchPrediction = useCallback(async () => {
     setLoading(true);
@@ -137,7 +140,7 @@ const PCOSRiskScore = () => {
     );
   }
 
-  const TierIcon = tierConfig!.icon;
+  const TierIcon = safeTierConfig!.icon;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -191,12 +194,12 @@ const PCOSRiskScore = () => {
               >
                 <p className="text-4xl font-display font-bold text-gray-900">{score.toFixed(2)}</p>
                 <div className="flex items-center justify-center gap-2 mt-1.5">
-                  <TierIcon className="w-4 h-4" style={{ color: tierConfig!.color }} />
-                  <Badge className="border-0 font-display font-semibold" style={{ backgroundColor: tierConfig!.bg, color: tierConfig!.color }}>
-                    {tierConfig!.tierLabel}
+                  <TierIcon className="w-4 h-4" style={{ color: safeTierConfig.color }} />
+                  <Badge className="border-0 font-display font-semibold" style={{ backgroundColor: safeTierConfig.bg, color: safeTierConfig.color }}>
+                    {safeTierConfig.tierLabel}
                   </Badge>
                 </div>
-                <p className="text-sm text-gray-500 mt-1">{tierConfig!.desc}</p>
+                <p className="text-sm text-gray-500 mt-1">{safeTierConfig.desc}</p>
               </motion.div>
             </CardContent>
           </Card>

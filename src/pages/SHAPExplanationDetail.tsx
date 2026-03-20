@@ -25,7 +25,7 @@ const SHAPExplanationDetail = () => {
       if (storedId) {
         setPredictionId(storedId);
         const featuresRes = await predictionService.getFeatures(storedId);
-        setFeatures(featuresRes.data.features);
+        setFeatures(featuresRes.data.features ?? []);
         return;
       }
 
@@ -34,7 +34,7 @@ const SHAPExplanationDetail = () => {
       localStorage.setItem('latest_prediction_id', id);
       setPredictionId(id);
       const featuresRes = await predictionService.getFeatures(id);
-      setFeatures(featuresRes.data.features);
+      setFeatures(featuresRes.data.features ?? []);
     } catch (err: any) {
       if (err?.status === 401) {
         localStorage.removeItem('access_token');
@@ -52,7 +52,7 @@ const SHAPExplanationDetail = () => {
     fetchFeatures();
   }, [fetchFeatures]);
 
-  const sortedFeatures = [...features].sort(
+  const sortedFeatures = [...(features ?? [])].sort(
     (a, b) => Math.abs(b.shap_value) - Math.abs(a.shap_value)
   );
 

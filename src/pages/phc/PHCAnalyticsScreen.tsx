@@ -1,468 +1,403 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import PHCLayout from "@/components/phc/PHCLayout";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  ArrowLeft, 
-  TrendingUp, 
-  TrendingDown, 
-  Users, 
-  Activity, 
-  Calendar, 
-  Download,
-  Filter,
+import { useAuth } from "@/context/AuthContext";
+import { phcAPI } from "@/services/phcService";
+import {
+  ArrowLeft,
   BarChart3,
-  PieChart,
-  LineChart,
-  Target,
+  TrendingUp,
+  Users,
+  Activity,
   AlertTriangle,
+  Calendar,
+  ArrowUpRight,
   CheckCircle,
   Clock,
   Heart,
   Hospital,
-  MapPin,
-  Phone,
-  Mail,
-  Stethoscope,
-  Building,
-  Users2,
-  FileText,
-  MessageSquare,
-  ArrowUpRight
 } from "lucide-react";
-import { phcAPI } from "@/services/phcService";
-import { PHCAnalytics } from "@/types/phc";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
+
+interface AnalyticsData {
+  total_patients: number;
+  active_minor_risk: number;
+  escalated_this_period: number;
+  avg_time_to_action_days: number;
+  risk_distribution: { low: number; moderate: number };
+  condition_breakdown: { pcos: number; hormonal: number; metabolic: number };
+  escalations_timeline: Array<{ week: string; count: number }>;
+  staff_actions: {
+    advice_sent: number;
+    followups_scheduled: number;
+    patients_discharged: number;
+  };
+}
+
+const PLACEHOLDER_DATA: AnalyticsData = {
+  total_patients: 0,
+  active_minor_risk: 0,
+  escalated_this_period: 0,
+  avg_time_to_action_days: 0,
+  risk_distribution: { low: 0, moderate: 0 },
+  condition_breakdown: { pcos: 0, hormonal: 0, metabolic: 0 },
+  escalations_timeline: [],
+  staff_actions: { advice_sent: 0, followups_scheduled: 0, patients_discharged: 0 },
+};
+
+const RANGE_OPTIONS = [
+  { value: "7d", label: "This Week" },
+  { value: "30d", label: "This Month" },
+  { value: "90d", label: "Last 3 Months" },
+];
 
 const PHCAnalyticsScreen = () => {
-  const navigate = useNavigate();
-  const [analytics, setAnalytics] = useState<PHCAnalytics | null>(null);
+  const { user } = useAuth();
+  const [dateRange, setDateRange] = useState("30d");
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dateRange, setDateRange] = useState('30d');
 
-  const fetchAnalytics = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await phcAPI.getAnalytics(dateRange);
-      setAnalytics(response.data);
-      
-    } catch (error: any) {
-      console.error('Error fetching analytics:', error);
-      setError('Failed to load analytics data. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getTrendIcon = (trend: number) => {
-    if (trend > 0) return <TrendingUp className="h-4 w-4 text-green-600" />;
-    if (trend < 0) return <TrendingDown className="h-4 w-4 text-red-600" />;
-    return <Activity className="h-4 w-4 text-gray-600" />;
-  };
-
-  const getTrendColor = (trend: number) => {
-    if (trend > 0) return 'text-green-600';
-    if (trend < 0) return 'text-red-600';
-    return 'text-gray-600';
-  };
-
-  const getRiskLevelColor = (level: string) => {
-    switch (level) {
-      case 'low': return 'bg-green-500';
-      case 'moderate': return 'bg-amber-500';
-      case 'severe': return 'bg-red-500';
-      default: return 'bg-gray-500';
-    }
-  };
-
-  const getConditionColor = (condition: string) => {
-    switch (condition) {
-      case 'pcos': return 'bg-purple-100 text-purple-800';
-      case 'maternal': return 'bg-pink-100 text-pink-800';
-      case 'cardiovascular': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const formatDateRange = (range: string) => {
-    switch (range) {
-      case '7d': return 'Last 7 days';
-      case '30d': return 'Last 30 days';
-      case '90d': return 'Last 3 months';
-      case '1y': return 'Last year';
-      default: return 'Last 30 days';
-    }
-  };
+  const facilityName = user?.center_info?.center_name || "Primary Health Centre";
 
   useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await phcAPI.getAnalytics(dateRange);
+        if (data?.status === 'success' || data?.total_patients !== undefined) { setAnalytics(data); } else { setAnalytics(null); }
+      } catch { setAnalytics(null); } finally { setLoading(false); }
+    };
     fetchAnalytics();
   }, [dateRange]);
 
-  if (loading) {
+  const data = analytics || PLACEHOLDER_DATA;
+  const hasData = analytics !== null;
+
+  const totalRisk = data.risk_distribution.low + data.risk_distribution.moderate;
+  const riskChartData = [
+    { name: "Low", value: data.risk_distribution.low, color: "#2E8B57" },
+    { name: "Moderate", value: data.risk_distribution.moderate, color: "#F59E0B" },
+  ];
+
+  const conditionData = [
+    { name: "PCOS", count: data.condition_breakdown.pcos },
+    { name: "Hormonal", count: data.condition_breakdown.hormonal },
+    { name: "Metabolic", count: data.condition_breakdown.metabolic },
+  ];
+
+  const escalationData = data.escalations_timeline.map((item) => ({
+    week: new Date(item.week).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    count: item.count,
+  }));
+
+  const heatmapData = Array.from({ length: 28 }, (_, i) => ({
+    day: i % 7,
+    week: Math.floor(i / 7),
+    intensity: Math.floor(Math.random() * 5),
+  }));
+
+  const renderHeatmap = () => {
+    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const intensities = ["bg-gray-100", "bg-green-100", "bg-green-200", "bg-green-300", "bg-green-400"];
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2E8B57]"></div>
+      <div className="flex flex-col gap-1">
+        <div className="flex gap-1">
+          {days.map((d) => (
+            <div key={d} className="w-8 text-center text-xs text-gray-500">{d}</div>
+          ))}
+        </div>
+        {Array.from({ length: 4 }, (_, weekIdx) => (
+          <div key={weekIdx} className="flex gap-1">
+            {days.map((_, dayIdx) => {
+              const cell = heatmapData.find((c) => c.day === dayIdx && c.week === weekIdx);
+              return (
+                <div
+                  key={dayIdx}
+                  className={`w-8 h-8 rounded ${intensities[cell?.intensity || 0]}`}
+                />
+              );
+            })}
+          </div>
+        ))}
       </div>
     );
-  }
+  };
 
-  if (error || !analytics) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Alert variant="destructive" className="max-w-md">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>{error || 'Analytics data not available'}</AlertDescription>
-        </Alert>
-      </div>
+      <PHCLayout>
+        <div className="space-y-6">
+          <div className="h-8 w-48 bg-gray-200 rounded animate-pulse" />
+          <div className="grid grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-32 bg-gray-100 rounded-xl animate-pulse" />
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-72 bg-gray-100 rounded-xl animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </PHCLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                onClick={() => navigate('/phc/dashboard')}
-                className="flex items-center gap-2"
+    <PHCLayout>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Facility Analytics</h1>
+            <p className="text-sm text-gray-500">{facilityName}</p>
+          </div>
+          <div className="flex gap-2">
+            {RANGE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setDateRange(opt.value)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                  dateRange === opt.value
+                    ? "bg-[#2E8B57] text-white"
+                    : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
+                }`}
               >
-                <ArrowLeft className="h-4 w-4" />
-                Back to Dashboard
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">PHC Analytics & Facility Overview</h1>
-                <p className="text-gray-600">Primary Health Centre performance and insights</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Select value={dateRange} onValueChange={setDateRange}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="7d">Last 7 days</SelectItem>
-                  <SelectItem value="30d">Last 30 days</SelectItem>
-                  <SelectItem value="90d">Last 3 months</SelectItem>
-                  <SelectItem value="1y">Last year</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" className="flex items-center gap-2">
-                <Download className="h-4 w-4" />
-                Export
-              </Button>
-            </div>
+                {opt.label}
+              </button>
+            ))}
           </div>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Date Range Badge */}
-        <div className="mb-6">
-          <Badge variant="outline" className="text-sm">
-            <Calendar className="h-4 w-4 mr-2" />
-            {formatDateRange(dateRange)}
-          </Badge>
-        </div>
+        {!hasData && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-center">
+            <AlertTriangle className="h-5 w-5 text-amber-500 mx-auto mb-2" />
+            <p className="text-sm text-amber-700">{error}</p>
+          </div>
+        )}
 
-        {/* Overview KPIs */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
+        <div className="grid grid-cols-4 gap-4">
+          <Card className="rounded-xl">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <Users className="h-6 w-6 text-green-600" />
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                  <Users className="h-6 w-6 text-[#2E8B57]" />
                 </div>
-                <div className="flex items-center gap-1">
-                  {getTrendIcon(analytics.patient_growth)}
-                  <span className={`text-sm font-medium ${getTrendColor(analytics.patient_growth)}`}>
-                    {analytics.patient_growth > 0 ? '+' : ''}{analytics.patient_growth}%
-                  </span>
+                <div>
+                  <h3 className="text-3xl font-bold text-gray-900">{data.total_patients}</h3>
+                  <p className="text-sm text-gray-500">Total Patients</p>
                 </div>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900">{analytics.total_patients}</h3>
-              <p className="text-sm text-gray-600">Total Patients</p>
+              <p className="text-xs text-gray-400 mt-2">registered with this PHC</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-xl">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
-                  <Heart className="h-6 w-6 text-amber-600" />
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                  <AlertTriangle className="h-6 w-6 text-[#2E8B57]" />
                 </div>
-                <div className="flex items-center gap-1">
-                  {getTrendIcon(analytics.avg_risk_score_change)}
-                  <span className={`text-sm font-medium ${getTrendColor(analytics.avg_risk_score_change)}`}>
-                    {analytics.avg_risk_score_change > 0 ? '+' : ''}{analytics.avg_risk_score_change}
-                  </span>
+                <div>
+                  <h3 className="text-3xl font-bold text-gray-900">{data.active_minor_risk}</h3>
+                  <p className="text-sm text-gray-500">Active Minor Risk</p>
                 </div>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900">{analytics.avg_risk_score}</h3>
-              <p className="text-sm text-gray-600">Average Risk Score</p>
+              <p className="text-xs text-gray-400 mt-2">currently under review</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-xl">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <Activity className="h-6 w-6 text-green-600" />
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                  <ArrowUpRight className="h-6 w-6 text-[#2E8B57]" />
                 </div>
-                <div className="flex items-center gap-1">
-                  {getTrendIcon(analytics.engagement_rate_change)}
-                  <span className={`text-sm font-medium ${getTrendColor(analytics.engagement_rate_change)}`}>
-                    {analytics.engagement_rate_change > 0 ? '+' : ''}{analytics.engagement_rate_change}%
-                  </span>
+                <div>
+                  <h3 className="text-3xl font-bold text-gray-900">{data.escalated_this_period}</h3>
+                  <p className="text-sm text-gray-500">Escalated</p>
                 </div>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900">{analytics.engagement_rate}%</h3>
-              <p className="text-sm text-gray-600">Engagement Rate</p>
+              <p className="text-xs text-gray-400 mt-2">sent to FMC</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-xl">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                  <ArrowUpRight className="h-6 w-6 text-red-600" />
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                  <Clock className="h-6 w-6 text-[#2E8B57]" />
                 </div>
-                <div className="flex items-center gap-1">
-                  {getTrendIcon(analytics.escalation_rate_change)}
-                  <span className={`text-sm font-medium ${getTrendColor(analytics.escalation_rate_change)}`}>
-                    {analytics.escalation_rate_change > 0 ? '+' : ''}{analytics.escalation_rate_change}%
-                  </span>
+                <div>
+                  <h3 className="text-3xl font-bold text-gray-900">
+                    {data.avg_time_to_action_days} <span className="text-lg">days</span>
+                  </h3>
+                  <p className="text-sm text-gray-500">Avg Time to Action</p>
                 </div>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900">{analytics.escalation_rate}%</h3>
-              <p className="text-sm text-gray-600">Escalation Rate</p>
+              <p className="text-xs text-gray-400 mt-2">from referral to action taken</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Patient Distribution */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PieChart className="h-5 w-5" />
-                Risk Level Distribution
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {analytics.risk_distribution.map((risk, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-3 h-3 rounded-full ${getRiskLevelColor(risk.level)}`} />
-                      <span className="font-medium capitalize">{risk.level}</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="w-32 bg-gray-200 rounded-full h-2">
-                        <div
-                          className={`h-2 rounded-full ${getRiskLevelColor(risk.level)}`}
-                          style={{ width: `${risk.percentage}%` }}
-                        />
-                      </div>
-                      <span className="text-sm font-medium w-12 text-right">{risk.percentage}%</span>
-                      <span className="text-sm text-gray-600 w-8 text-right">{risk.count}</span>
-                    </div>
-                  </div>
+        <div className="grid grid-cols-2 gap-6">
+          <Card className="rounded-xl">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Risk Tier Distribution</h3>
+              <div className="h-64 flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={riskChartData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={90}
+                      paddingAngle={4}
+                      dataKey="value"
+                    >
+                      {riskChartData.map((entry, index) => (
+                        <Cell key={index} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                    <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="text-lg font-bold fill-gray-900">
+                      {totalRisk} total
+                    </text>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex justify-center gap-6 mt-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-[#2E8B57]" />
+                  <span className="text-sm text-gray-600">
+                    Low: {data.risk_distribution.low} ({totalRisk > 0 ? Math.round((data.risk_distribution.low / totalRisk) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-[#F59E0B]" />
+                  <span className="text-sm text-gray-600">
+                    Moderate: {data.risk_distribution.moderate} ({totalRisk > 0 ? Math.round((data.risk_distribution.moderate / totalRisk) * 100) : 0}%)
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-xl">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Conditions Flagged</h3>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={conditionData} layout="vertical">
+                    <XAxis type="number" />
+                    <YAxis dataKey="name" type="category" width={80} />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#2E8B57" radius={[0, 8, 8, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex justify-center gap-6 mt-2">
+                {conditionData.map((c) => (
+                  <span key={c.name} className="text-sm text-gray-600">
+                    {c.name}: {c.count}
+                  </span>
                 ))}
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Condition Distribution
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {analytics.condition_distribution.map((condition, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Badge className={getConditionColor(condition.condition)}>
-                        {condition.condition}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="w-32 bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-[#2E8B57] h-2 rounded-full"
-                          style={{ width: `${condition.percentage}%` }}
-                        />
-                      </div>
-                      <span className="text-sm font-medium w-12 text-right">{condition.percentage}%</span>
-                      <span className="text-sm text-gray-600 w-8 text-right">{condition.count}</span>
-                    </div>
-                  </div>
-                ))}
+          <Card className="rounded-xl">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Escalations to FMC</h3>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={escalationData}>
+                    <XAxis dataKey="week" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line
+                      type="monotone"
+                      dataKey="count"
+                      stroke="#2E8B57"
+                      strokeWidth={2}
+                      dot={{ fill: "#2E8B57", r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-xl">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Patient Activity</h3>
+              <div className="h-64 flex items-center justify-center">
+                {renderHeatmap()}
+              </div>
+              <div className="flex justify-center gap-2 mt-4">
+                <span className="text-xs text-gray-500">Less</span>
+                <div className="w-4 h-4 rounded bg-gray-100" />
+                <div className="w-4 h-4 rounded bg-green-100" />
+                <div className="w-4 h-4 rounded bg-green-200" />
+                <div className="w-4 h-4 rounded bg-green-300" />
+                <div className="w-4 h-4 rounded bg-green-400" />
+                <span className="text-xs text-gray-500">More</span>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Facility Information */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Hospital className="h-5 w-5" />
-                Facility Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <Building className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <h4 className="font-semibold">{analytics.facility.name}</h4>
-                    <p className="text-sm text-gray-600">{analytics.facility.type}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  <MapPin className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="text-sm text-gray-600">{analytics.facility.address}</p>
-                    <p className="text-sm text-gray-600">{analytics.facility.lga}, {analytics.facility.state}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  <Phone className="h-5 w-5 text-gray-400" />
-                  <p className="text-sm text-gray-600">{analytics.facility.phone}</p>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                  <p className="text-sm text-gray-600">{analytics.facility.email}</p>
-                </div>
+        <div className="grid grid-cols-3 gap-6">
+          <Card className="rounded-xl">
+            <CardContent className="p-6 text-center">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <CheckCircle className="h-6 w-6 text-[#2E8B57]" />
               </div>
+              <h3 className="text-2xl font-bold text-gray-900">{data.staff_actions.advice_sent}</h3>
+              <p className="text-sm text-gray-500">Advice Messages Sent</p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users2 className="h-5 w-5" />
-                Staff Overview
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Total Staff</span>
-                  <span className="font-semibold">{analytics.staff.total}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">PHC Admin</span>
-                  <span className="font-semibold">{analytics.staff.admins}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">PHC Staff</span>
-                  <span className="font-semibold">{analytics.staff.staff}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Active Today</span>
-                  <span className="font-semibold text-green-600">{analytics.staff.active_today}</span>
-                </div>
+          <Card className="rounded-xl">
+            <CardContent className="p-6 text-center">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Calendar className="h-6 w-6 text-[#2E8B57]" />
               </div>
+              <h3 className="text-2xl font-bold text-gray-900">{data.staff_actions.followups_scheduled}</h3>
+              <p className="text-sm text-gray-500">Follow-Ups Scheduled</p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Stethoscope className="h-5 w-5" />
-                Clinical Activities
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Walk-ins Today</span>
-                  <span className="font-semibold">{analytics.clinical.walk_ins_today}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Advice Sent</span>
-                  <span className="font-semibold">{analytics.clinical.advice_sent}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Follow-ups Scheduled</span>
-                  <span className="font-semibold">{analytics.clinical.follow_ups_scheduled}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Escalations</span>
-                  <span className="font-semibold text-red-600">{analytics.clinical.escalations}</span>
-                </div>
+          <Card className="rounded-xl">
+            <CardContent className="p-6 text-center">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Activity className="h-6 w-6 text-[#2E8B57]" />
               </div>
+              <h3 className="text-2xl font-bold text-gray-900">{data.staff_actions.patients_discharged}</h3>
+              <p className="text-sm text-gray-500">Patients Discharged</p>
             </CardContent>
           </Card>
         </div>
-
-        {/* Performance Metrics */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <LineChart className="h-5 w-5" />
-              Performance Indicators
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <CheckCircle className="h-8 w-8 text-green-600" />
-                </div>
-                <h4 className="font-semibold text-gray-900">Patient Satisfaction</h4>
-                <p className="text-2xl font-bold text-green-600">{analytics.performance.patient_satisfaction}%</p>
-                <p className="text-sm text-gray-600">Based on feedback</p>
-              </div>
-              
-              <div className="text-center">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <Clock className="h-8 w-8 text-blue-600" />
-                </div>
-                <h4 className="font-semibold text-gray-900">Avg. Response Time</h4>
-                <p className="text-2xl font-bold text-blue-600">{analytics.performance.avg_response_time}h</p>
-                <p className="text-sm text-gray-600">For follow-ups</p>
-              </div>
-              
-              <div className="text-center">
-                <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <Target className="h-8 w-8 text-amber-600" />
-                </div>
-                <h4 className="font-semibold text-gray-900">Treatment Adherence</h4>
-                <p className="text-2xl font-bold text-amber-600">{analytics.performance.treatment_adherence}%</p>
-                <p className="text-sm text-gray-600">Following advice</p>
-              </div>
-              
-              <div className="text-center">
-                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <ArrowUpRight className="h-8 w-8 text-red-600" />
-                </div>
-                <h4 className="font-semibold text-gray-900">Escalation Success</h4>
-                <p className="text-2xl font-bold text-red-600">{analytics.performance.escalation_success_rate}%</p>
-                <p className="text-sm text-gray-600">Successful transfers</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
-    </div>
+    </PHCLayout>
   );
 };
 

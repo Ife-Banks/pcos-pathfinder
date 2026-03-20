@@ -112,17 +112,11 @@ const SleepQuality = () => {
 
   const renderResults = () => {
     if (!result) return null;
-    
-    const resultStatus = useMemo(() => {
-      if (quality >= 7 && hours >= 7) return { label: 'Good', color: '#27AE60', bg: 'bg-green-100' };
-      if (quality >= 5 && hours >= 6) return { label: 'Fair', color: '#F59E0B', bg: 'bg-amber-100' };
-      return { label: 'Poor', color: '#E74C3C', bg: 'bg-red-100' };
-    }, [quality, hours]);
 
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        <div className={cn('rounded-xl p-5 mb-6 text-center', resultStatus.bg)}>
-          <p className="text-2xl font-bold" style={{ color: resultStatus.color }}>{resultStatus.label}</p>
+        <div className={cn('rounded-xl p-5 mb-6 text-center', sleepStatus.bg)}>
+          <p className="text-2xl font-bold" style={{ color: sleepStatus.color }}>{sleepStatus.label}</p>
           <p className="text-sm text-gray-600 mt-1">{hours} hours slept • Quality {quality}/10</p>
         </div>
 

@@ -1,410 +1,518 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import PHCMobileNav from '@/components/phc/PHCMobileNav';
-import { 
-  ArrowLeft, 
-  MessageCircle, 
-  Search, 
-  Send, 
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import PHCLayout from "@/components/phc/PHCLayout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Send,
+  Search,
+  User,
   Calendar,
   CheckCircle,
-  RotateCcw,
-  Filter
-} from 'lucide-react';
+  Clock,
+  ChevronDown,
+  MessageCircle,
+  Filter,
+  Eye,
+} from "lucide-react";
+import { phcAPI } from "@/services/phcService";
 
-const PHCAdviceScreen = () => {
+const TEMPLATES = {
+  PCOS: [
+    {
+      title: "Reduce refined carbohydrates",
+      description: "Cut out white bread, pasta, sugary drinks. Choose whole grains and vegetables.",
+    },
+    {
+      title: "Regular aerobic exercise",
+      description: "150 minutes per week of moderate intensity activity like brisk walking or cycling.",
+    },
+    {
+      title: "Consistent sleep schedule",
+      description: "Sleep and wake at the same time every day, even on weekends.",
+    },
+    {
+      title: "Monthly cycle monitoring",
+      description: "Track your period start date each month using the AI-MSHM app.",
+    },
+  ],
+  Hormonal: [
+    {
+      title: "Track night sweats",
+      description: "Note when they occur and how long they last. Share with your care team.",
+    },
+    {
+      title: "Reduce caffeine after 2pm",
+      description: "Caffeine can disrupt hormonal sleep patterns. Switch to herbal tea.",
+    },
+    {
+      title: "Magnesium-rich foods",
+      description: "Include spinach, nuts, and seeds to help reduce muscle weakness.",
+    },
+    {
+      title: "Relaxation techniques",
+      description: "Daily 10-minute breathing exercises can reduce hormonal stress spikes.",
+    },
+  ],
+  Metabolic: [
+    {
+      title: "Reduce sodium intake",
+      description: "Target less than 2,300mg per day. Check food labels carefully.",
+    },
+    {
+      title: "Walk 30 minutes daily",
+      description: "Consistent low-intensity activity helps metabolic regulation.",
+    },
+    {
+      title: "Log meals for 2 weeks",
+      description: "Keep a food diary to identify blood sugar trigger foods.",
+    },
+    {
+      title: "Monitor waist circumference",
+      description: "Log it monthly in your AI-MSHM app. Target < 80cm.",
+    },
+  ],
+};
+
+const CONDITION_COLORS = {
+  PCOS: "bg-purple-100 text-purple-700 border-purple-200",
+  Hormonal: "bg-blue-100 text-blue-700 border-blue-200",
+  Metabolic: "bg-green-100 text-green-700 border-green-200",
+};
+
+const CONDITION_BADGE_COLORS = {
+  PCOS: "bg-purple-500",
+  Hormonal: "bg-blue-500",
+  Metabolic: "bg-green-500",
+};
+
+export default function PHCAdviceScreen() {
   const navigate = useNavigate();
-  
-  const [selectedPatient, setSelectedPatient] = useState('');
-  const [selectedCondition, setSelectedCondition] = useState('PCOS');
-  const [messageText, setMessageText] = useState('');
-  const [followUpDate, setFollowUpDate] = useState('1_week');
-  const [dateFilter, setDateFilter] = useState('last_7_days');
-  
-  // Mock patients data
-  const patients = [
-    { id: 'P-00123', name: 'Sarah Johnson', age: 28, tiers: { pcos: 'moderate', hormonal: 'low', metabolic: 'moderate' } },
-    { id: 'P-00124', name: 'Maria Garcia', age: 32, tiers: { pcos: 'low', hormonal: 'low', metabolic: 'moderate' } },
-    { id: 'P-00125', name: 'Amina Yusuf', age: 25, tiers: { pcos: 'moderate', hormonal: 'moderate', metabolic: 'low' } },
-  ];
+  const [activeTab, setActiveTab] = useState<"PCOS" | "Hormonal" | "Metabolic">("PCOS");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Array<{ id: string; patient: { id: string; full_name: string } }>>([]);
+  const [selectedPatient, setSelectedPatient] = useState<{ id: string; patient: { id: string; full_name: string }; name?: string; conditions?: string[]; condition_label?: string } | null>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [message, setMessage] = useState("");
+  const [followupDate, setFollowupDate] = useState("");
+  const [sentMessages, setSentMessages] = useState<Array<{ id: string; patient_name: string; condition: string; message: string; sent_at: string; followup_date?: string }>>([]);
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState("");
+  const [toast, setToast] = useState("");
+  const searchRef = useRef<HTMLDivElement>(null);
 
-  const adviceTemplates = {
-    PCOS: [
-      "Reduce refined carbohydrates and sugars — this helps manage insulin resistance common in PCOS",
-      "Aim for 150 minutes of moderate aerobic exercise per week (e.g. brisk walking, cycling)",
-      "Maintain a consistent sleep schedule — sleep disruption worsens hormonal balance",
-      "Track your menstrual cycle monthly using the AI-MSHM app",
-      "Manage stress with daily relaxation techniques — chronic stress elevates androgens"
-    ],
-    'Hormonal Health': [
-      "Track your night sweats — note the time they occur and how long they last",
-      "Avoid caffeine after 2pm — caffeine disrupts hormonal sleep patterns",
-      "Include magnesium-rich foods in your diet (spinach, nuts, seeds) to reduce muscle weakness",
-      "Practice pelvic floor exercises to help manage pelvic pressure and breast soreness",
-      "Discuss your symptoms with a gynaecologist if night sweats persist more than 3 weeks"
-    ],
-    'Metabolic Health': [
-      "Reduce your daily sodium intake to help manage blood pressure",
-      "Walk for 30 minutes daily — consistent low-intensity activity helps metabolic regulation",
-      "Keep a food diary for 2 weeks to identify blood sugar trigger foods",
-      "Monitor your waist circumference monthly — log it in your AI-MSHM app",
-      "Avoid long periods of sitting — take a 5-minute walk every hour if possible"
-    ]
-  };
+  useEffect(() => {
+    fetchSentMessages();
+  }, []);
 
-  const sentMessages = [
-    {
-      id: 1,
-      date: '2024-03-14',
-      patientId: 'P-00123',
-      patientName: 'Sarah Johnson',
-      condition: 'PCOS',
-      message: 'Reduce refined carbohydrates and sugars — this helps manage insulin resistance common in PCOS',
-      readStatus: 'Read',
-      followUpDate: '2024-03-21'
-    },
-    {
-      id: 2,
-      date: '2024-03-13',
-      patientId: 'P-00124',
-      patientName: 'Maria Garcia',
-      condition: 'Metabolic Health',
-      message: 'Walk for 30 minutes daily — consistent low-intensity activity helps metabolic regulation',
-      readStatus: 'Unread',
-      followUpDate: '2024-03-20'
-    },
-    {
-      id: 3,
-      date: '2024-03-12',
-      patientId: 'P-00125',
-      patientName: 'Amina Yusuf',
-      condition: 'Hormonal Health',
-      message: 'Track your night sweats — note the time they occur and how long they last',
-      readStatus: 'Read',
-      followUpDate: '2024-03-19'
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (searchQuery.length >= 2) {
+      const timer = setTimeout(() => searchPatients(searchQuery), 300);
+      return () => clearTimeout(timer);
+    } else {
+      setSearchResults([]);
+      setShowDropdown(false);
     }
-  ];
+  }, [searchQuery]);
 
-  const getTierBadgeColor = (tier: string) => {
-    switch(tier) {
-      case 'low': return 'bg-green-100 text-green-800';
-      case 'moderate': return 'bg-amber-100 text-amber-800';
-      case 'high': return 'bg-red-100 text-red-700';
-      case 'critical': return 'bg-red-600 text-white';
-      default: return 'bg-gray-100 text-gray-800';
+  const searchPatients = async (query: string) => {
+    try {
+      const data = await phcAPI.getQueue({});
+      const allRecords = Array.isArray(data) ? data : (data?.data?.results || data?.data || []);
+      const q = query.toLowerCase();
+      const filtered = allRecords.filter((r: any) =>
+        r.patient?.full_name?.toLowerCase().includes(q) ||
+        r.patient?.id?.toLowerCase().includes(q) ||
+        r.patient_id?.toLowerCase().includes(q)
+      );
+      setSearchResults(filtered);
+      setShowDropdown(true);
+    } catch (err) {
+      console.error("Search failed", err);
     }
   };
 
-  const handleSendAdvice = () => {
-    if (!selectedPatient || !messageText) {
-      alert('Please select a patient and enter a message');
+  const fetchSentMessages = async () => {
+    try {
+      const data = await phcAPI.getRecentAdvice(10);
+      const messages = Array.isArray(data) ? data : (data?.data || []);
+      setSentMessages(messages);
+    } catch (err) {
+      console.error("Fetch messages failed", err);
+    }
+  };
+
+  const selectTemplate = (template: { title: string; description: string }) => {
+    setMessage(`${template.title}. ${template.description}`);
+    if (selectedPatient?.conditions?.length > 0) {
+      setActiveTab(
+        selectedPatient.conditions[0].toLowerCase() === "pcos"
+          ? "PCOS"
+          : selectedPatient.conditions[0].toLowerCase() === "hormonal"
+          ? "Hormonal"
+          : "Metabolic"
+      );
+    }
+  };
+
+  const selectPatient = (patient: { id: string; patient: { id: string; full_name: string }; name?: string; conditions?: string[]; condition_label?: string }) => {
+    setSelectedPatient(patient);
+    setSearchQuery("");
+    setShowDropdown(false);
+    if (patient.conditions?.length > 0) {
+      const cond = patient.conditions[0].toLowerCase();
+      if (cond === "pcos") setActiveTab("PCOS");
+      else if (cond === "hormonal") setActiveTab("Hormonal");
+      else setActiveTab("Metabolic");
+    }
+  };
+
+  const setFollowupWeeks = (weeks: number) => {
+    const date = new Date();
+    date.setDate(date.getDate() + weeks * 7);
+    setFollowupDate(date.toISOString().split("T")[0]);
+  };
+
+  const sendAdvice = async () => {
+    if (!selectedPatient) {
+      setError("Please select a patient first.");
       return;
     }
-    
-    // Simulate sending advice
-    const patient = patients.find(p => p.id === selectedPatient);
-    alert(`Advice sent to ${patient?.name}: ${messageText}`);
-    setMessageText('');
+    if (!message.trim()) {
+      setError("Please enter a message.");
+      return;
+    }
+    setError("");
+    setIsSending(true);
+    try {
+      const body = await phcAPI.sendAdvice({
+        queue_record_id: selectedPatient.id,
+        condition: activeTab,
+        message: message.trim(),
+        followup_date: followupDate || null,
+      });
+      if (body?.status === "success" || body?.id) {
+        const msg = body;
+        setSentMessages((prev) => [
+          { ...msg, patient_name: selectedPatient.name },
+          ...prev,
+        ]);
+        setMessage("");
+        setFollowupDate("");
+        setSelectedPatient(null);
+        setToast("Advice sent ✓");
+        setTimeout(() => setToast(""), 3000);
+      } else {
+        setError(body?.message || "Failed to send advice.");
+      }
+    } catch (err) {
+      setError("Network error. Please try again.");
+    } finally {
+      setIsSending(false);
+    }
   };
 
-  const handleResend = (messageId: number) => {
-    alert(`Resending message ${messageId}`);
-  };
-
-  const handleMarkFollowUpDone = (messageId: number) => {
-    alert(`Marking follow-up done for message ${messageId}`);
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
   };
 
   return (
-    <div className="flex min-h-screen bg-[#F9FAFB]">
-      {/* Sidebar for desktop */}
-      <div className="hidden md:flex md:w-64 md:flex-col bg-white border-r border-gray-200">
-        <div className="p-6">
-          <div className="flex items-center gap-3 mb-8">
-            <img src="/api/placeholder/32/32" alt="AI-MSHM" className="w-8 h-8" />
-            <div>
-              <h2 className="text-lg font-bold text-[#1E1E2E]">AI-MSHM</h2>
-              <p className="text-xs text-gray-600">PHC Portal</p>
+    <PHCLayout>
+      <div className="p-6 max-w-7xl mx-auto">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <h1 className="text-2xl font-bold text-gray-900">Send Health Advice</h1>
+          <p className="text-gray-500 mt-1">Send personalised health guidance to patients</p>
+        </motion.div>
+
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="fixed top-4 right-4 z-50"
+          >
+            <Alert className="bg-green-50 border-green-200">
+              <AlertDescription className="text-green-700 flex items-center gap-2">
+                <CheckCircle className="w-4 h-4" /> {toast}
+              </AlertDescription>
+            </Alert>
+          </motion.div>
+        )}
+
+        <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-5">
+            <div className="bg-white rounded-xl border border-gray-100 p-4">
+              <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-[#2E8B57]" />
+                Advice Templates
+              </h2>
+              <div className="flex gap-2 mb-4">
+                {(["PCOS", "Hormonal", "Metabolic"] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                      activeTab === tab
+                        ? "bg-[#2E8B57] text-white"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+              <div className="space-y-2">
+                {TEMPLATES[activeTab].map((template, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => selectTemplate(template)}
+                    className="bg-white rounded-xl border border-gray-100 p-3 mb-2 cursor-pointer hover:shadow-sm hover:border-[#2E8B57]/30 transition-all"
+                  >
+                    <p className="font-medium text-gray-900 text-sm">{template.title}</p>
+                    <p className="text-gray-500 text-sm mt-1">{template.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-7">
+            <div className="bg-white rounded-xl border border-gray-100 p-4">
+              <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Send className="w-5 h-5 text-[#2E8B57]" />
+                Message Composer
+              </h2>
+
+              <div className="mb-4" ref={searchRef}>
+                <Label className="text-sm font-medium text-gray-700">Select Patient</Label>
+                <div className="relative mt-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    placeholder="Search patient by name or ID..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                  {showDropdown && searchResults.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white rounded-lg border border-gray-200 shadow-lg max-h-48 overflow-y-auto">
+                      {searchResults.map((patient) => (
+                        <div
+                          key={patient.id}
+                          onClick={() => selectPatient(patient)}
+                          className="p-3 hover:bg-gray-50 cursor-pointer flex items-center gap-3 border-b border-gray-100 last:border-0"
+                        >
+                          <User className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm font-medium">{patient.name}</span>
+                          {patient.conditions?.map((c: string) => (
+                            <Badge
+                              key={c}
+                              className={`${
+                                CONDITION_BADGE_COLORS[c] || "bg-gray-500"
+                              } text-white text-xs`}
+                            >
+                              {c}
+                            </Badge>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {selectedPatient && (
+                <Card className="mb-4 border-[#2E8B57]/20 bg-[#2E8B57]/5">
+                  <CardContent className="p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[#2E8B57]/10 flex items-center justify-center">
+                        <User className="w-5 h-5 text-[#2E8B57]" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{selectedPatient.name}</p>
+                        <div className="flex gap-1 mt-1">
+                          {(selectedPatient.conditions || []).map((c: string) => (
+                            <Badge
+                              key={c}
+                              className={`${
+                                CONDITION_BADGE_COLORS[c] || "bg-gray-500"
+                              } text-white text-xs`}
+                            >
+                              {c}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="mb-4">
+                <Label className="text-sm font-medium text-gray-700">Condition Track</Label>
+                <div className="flex gap-2 mt-1">
+                  {(["PCOS", "Hormonal", "Metabolic"] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                        activeTab === tab
+                          ? CONDITION_COLORS[tab]
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <Label className="text-sm font-medium text-gray-700">Message</Label>
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value.slice(0, 500))}
+                  placeholder="Type your health advice message..."
+                  className="mt-1 w-full rounded-lg border border-gray-200 p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2E8B57]/20 focus:border-[#2E8B57]"
+                  rows={4}
+                  style={{ minHeight: "100px", maxHeight: "200px" }}
+                />
+                <p className="text-xs text-gray-400 mt-1 text-right">
+                  {message.length} / 500
+                </p>
+              </div>
+
+              <div className="mb-4">
+                <Label className="text-sm font-medium text-gray-700">
+                  Schedule a follow-up check-in?
+                </Label>
+                <div className="mt-2 flex flex-wrap gap-3">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-gray-400" />
+                    <Input
+                      type="date"
+                      value={followupDate}
+                      onChange={(e) => setFollowupDate(e.target.value)}
+                      className="w-40 text-sm"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    {[1, 2, 4].map((weeks) => (
+                      <Button
+                        key={weeks}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setFollowupWeeks(weeks)}
+                        className={`text-xs ${
+                          followupDate ? "border-[#2E8B57] text-[#2E8B57]" : ""
+                        }`}
+                      >
+                        {weeks} week{weeks > 1 ? "s" : ""}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {error && (
+                <Alert className="mb-4 bg-red-50 border-red-200">
+                  <AlertDescription className="text-red-700 text-sm">
+                    {error}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <Button
+                onClick={sendAdvice}
+                disabled={isSending || !selectedPatient || !message.trim()}
+                className="w-full bg-[#2E8B57] hover:bg-[#236F47] text-white"
+              >
+                <Send className="w-4 h-4 mr-2" />
+                {isSending ? "Sending..." : "Send to Patient App"}
+              </Button>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              onClick={() => navigate('/phc/dashboard')}
-              className="text-gray-600 hover:text-[#2E8B57]"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
-            </Button>
-            
-            <div className="flex-1">
-              <h1 className="text-xl font-semibold text-[#1E1E2E]">Send Health Advice</h1>
-            </div>
-          </div>
-        </header>
-
-        <main className="flex-1 p-6">
-          {/* Patient Search */}
-          <div className="mb-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search for patient..."
-                className="pl-10 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#2E8B57]"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Left Panel - Template Library */}
-            <div className="space-y-6">
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h2 className="text-lg font-semibold text-[#1E1E2E] mb-4">Template Library</h2>
-                
-                {/* Condition Selector Tabs */}
-                <div className="flex gap-2 mb-4">
-                  {['PCOS', 'Hormonal Health', 'Metabolic Health'].map((condition) => (
-                    <button
-                      key={condition}
-                      onClick={() => setSelectedCondition(condition)}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        selectedCondition === condition
-                          ? 'bg-[#2E8B57] text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      {condition}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Template List */}
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {adviceTemplates[selectedCondition as keyof typeof adviceTemplates].map((template, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setMessageText(prev => prev ? `${prev} ${template}` : template)}
-                      className="w-full text-left p-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm transition-colors"
-                    >
-                      {template}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Right Panel - Composer */}
-            <div className="space-y-6">
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h2 className="text-lg font-semibold text-[#1E1E2E] mb-4">Compose Message</h2>
-                
-                {/* Patient Selector */}
-                <div className="mb-4">
-                  <Label className="text-sm font-medium text-[#1E1E2E]">Select Patient</Label>
-                  <select
-                    value={selectedPatient}
-                    onChange={(e) => setSelectedPatient(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#2E8B57]"
-                  >
-                    <option value="">Choose a patient...</option>
-                    {patients.map((patient) => (
-                      <option key={patient.id} value={patient.id}>
-                        {patient.id} - {patient.name} (Age {patient.age})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Patient Info Display */}
-                {selectedPatient && (
-                  <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                    {(() => {
-                      const patient = patients.find(p => p.id === selectedPatient);
-                      return (
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium text-[#1E1E2E]">{patient?.name}</p>
-                            <p className="text-sm text-gray-600">{patient?.id} • Age {patient?.age}</p>
-                          </div>
-                          <div className="flex gap-1">
-                            {Object.entries(patient?.tiers || {}).map(([condition, tier]) => (
-                              <span key={condition} className={`text-xs px-2 py-1 rounded-full ${getTierBadgeColor(tier)}`}>
-                                {condition}: {tier}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                )}
-
-                {/* Condition Track */}
-                <div className="mb-4">
-                  <Label className="text-sm font-medium text-[#1E1E2E]">Condition Track</Label>
-                  <div className="flex gap-2 mt-2">
-                    {['PCOS', 'Hormonal Health', 'Metabolic Health'].map((condition) => (
-                      <button
-                        key={condition}
-                        onClick={() => setSelectedCondition(condition)}
-                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          selectedCondition === condition
-                            ? 'bg-[#2E8B57] text-white'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                      >
-                        {condition}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Message Textarea */}
-                <div className="mb-4">
-                  <Label className="text-sm font-medium text-[#1E1E2E]">Message</Label>
-                  <textarea
-                    value={messageText}
-                    onChange={(e) => setMessageText(e.target.value.slice(0, 500))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#2E8B57]"
-                    rows={6}
-                    placeholder="Type your health advice message..."
-                  />
-                  <p className="text-xs text-gray-500 mt-1">{messageText.length}/500 characters</p>
-                </div>
-
-                {/* Follow-up Reminder */}
-                <div className="mb-4">
-                  <Label className="text-sm font-medium text-[#1E1E2E]">Follow-up Reminder</Label>
-                  <select
-                    value={followUpDate}
-                    onChange={(e) => setFollowUpDate(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#2E8B57]"
-                  >
-                    <option value="1_week">1 week</option>
-                    <option value="2_weeks">2 weeks</option>
-                    <option value="1_month">1 month</option>
-                    <option value="custom">Custom date</option>
-                  </select>
-                </div>
-
-                {/* Send Button */}
-                <Button
-                  onClick={handleSendAdvice}
-                  className="w-full bg-[#2E8B57] text-white rounded-lg px-4 py-2 hover:bg-[#256D46]"
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  Send to Patient App
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Sent Messages Log */}
-          <div className="mt-8">
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-[#1E1E2E]">Sent Messages Log</h2>
-                
-                {/* Date Filter */}
-                <div className="flex gap-2">
-                  <select
-                    value={dateFilter}
-                    onChange={(e) => setDateFilter(e.target.value)}
-                    className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-[#2E8B57]"
-                  >
-                    <option value="last_7_days">Last 7 days</option>
-                    <option value="last_30_days">Last 30 days</option>
-                    <option value="all">All</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Messages Table */}
+        <div className="mt-6">
+          <div className="bg-white rounded-xl border border-gray-100 p-4">
+            <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Eye className="w-5 h-5 text-[#2E8B57]" />
+              Recent Messages
+              <Badge className="bg-[#2E8B57] text-white">{sentMessages.length}</Badge>
+            </h2>
+            {sentMessages.length === 0 ? (
+              <p className="text-gray-400 text-sm text-center py-8">No messages sent yet</p>
+            ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-gray-50">
-                      <th className="px-4 py-2 text-left">Date Sent</th>
-                      <th className="px-4 py-2 text-left">Patient ID</th>
-                      <th className="px-4 py-2 text-left">Condition</th>
-                      <th className="px-4 py-2 text-left">Message Preview</th>
-                      <th className="px-4 py-2 text-left">Read by Patient</th>
-                      <th className="px-4 py-2 text-left">Follow-up Date</th>
-                      <th className="px-4 py-2 text-left">Actions</th>
+                    <tr className="border-b border-gray-100">
+                      <th className="text-left py-3 px-2 font-medium text-gray-500">Patient</th>
+                      <th className="text-left py-3 px-2 font-medium text-gray-500">Condition</th>
+                      <th className="text-left py-3 px-2 font-medium text-gray-500">Date</th>
+                      <th className="text-left py-3 px-2 font-medium text-gray-500">Message</th>
+                      <th className="text-left py-3 px-2 font-medium text-gray-500">Status</th>
+                      <th className="text-left py-3 px-2 font-medium text-gray-500">Follow-up</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {sentMessages.map((message) => (
-                      <tr key={message.id} className="border-t">
-                        <td className="px-4 py-2">{message.date}</td>
-                        <td className="px-4 py-2">
-                          <div>
-                            <p className="font-medium">{message.patientId}</p>
-                            <p className="text-xs text-gray-600">{message.patientName}</p>
-                          </div>
+                    {sentMessages.map((msg, idx) => (
+                      <tr key={idx} className="border-b border-gray-50 hover:bg-gray-50">
+                        <td className="py-3 px-2 font-medium text-gray-900">
+                          {msg.patient_name || msg.patient?.name || "—"}
                         </td>
-                        <td className="px-4 py-2">
-                          <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs">
-                            {message.condition}
-                          </span>
+                        <td className="py-3 px-2">
+                          <Badge
+                            className={`${
+                              CONDITION_COLORS[msg.condition as keyof typeof CONDITION_COLORS] ||
+                              "bg-gray-100"
+                            } text-xs`}
+                          >
+                            {msg.condition}
+                          </Badge>
                         </td>
-                        <td className="px-4 py-2">
-                          <p className="truncate max-w-xs" title={message.message}>
-                            {message.message.substring(0, 80)}...
-                          </p>
+                        <td className="py-3 px-2 text-gray-500">
+                          {msg.created_at ? formatDate(msg.created_at) : "—"}
                         </td>
-                        <td className="px-4 py-2">
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            message.readStatus === 'Read' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-amber-100 text-amber-800'
-                          }`}>
-                            {message.readStatus}
-                          </span>
+                        <td className="py-3 px-2 text-gray-600 max-w-xs truncate">
+                          {msg.message?.slice(0, 60)}
+                          {msg.message?.length > 60 ? "..." : ""}
                         </td>
-                        <td className="px-4 py-2">{message.followUpDate}</td>
-                        <td className="px-4 py-2">
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleResend(message.id)}
-                              className="text-blue-600 hover:text-blue-800 text-sm"
-                              title="Resend"
-                            >
-                              <RotateCcw className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleMarkFollowUpDone(message.id)}
-                              className="text-green-600 hover:text-green-800 text-sm"
-                              title="Mark Follow-up Done"
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                            </button>
-                          </div>
+                        <td className="py-3 px-2">
+                          <Badge className="bg-green-100 text-green-700 border border-green-200 text-xs">
+                            <CheckCircle className="w-3 h-3 mr-1" /> Delivered
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-2 text-gray-500">
+                          {msg.followup_date ? formatDate(msg.followup_date) : "—"}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            </div>
+            )}
           </div>
-        </main>
+        </div>
       </div>
-      
-      <PHCMobileNav />
-    </div>
+    </PHCLayout>
   );
-};
-
-export default PHCAdviceScreen;
+}

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import logo from "@/assets/logo.png";
+import apiClient from "@/services/apiClient";
 
 const PHCLoginScreen = () => {
   const navigate = useNavigate();
@@ -70,31 +71,20 @@ const PHCLoginScreen = () => {
     setErrors({});
     
     try {
-      // Simulate API call to validate credentials
-      const response = await fetch('/api/v1/auth/token/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          facility_name: form.facilityName,
-          staff_id: form.staffId,
-          email: form.email,
-          password: form.password,
-          role: "phc_staff"
-        }),
+      const res = await apiClient.post('/auth/token/', {
+        facility_name: form.facilityName,
+        staff_id: form.staffId,
+        email: form.email,
+        password: form.password,
+        role: "phc_staff"
       });
-      
-      const data = await response.json();
-      
-      if (response.ok) {
-        // Show 2FA step
-        setShow2FA(true);
-      } else {
-        setErrors({ general: data.message || "Invalid credentials" });
+      const body = res.data;
+      if (body.status && body.status !== 'success') {
+        throw body;
       }
-    } catch (error) {
-      setErrors({ general: "Login failed. Please try again." });
+      setShow2FA(true);
+    } catch (error: any) {
+      setErrors({ general: error?.message || "Login failed. Please try again." });
     } finally {
       setIsLoading(false);
     }
@@ -111,29 +101,22 @@ const PHCLoginScreen = () => {
     setErrors({});
     
     try {
-      // Simulate 2FA verification
-      const response = await fetch('/api/v1/auth/2fa/verify/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: form.email,
-          two_factor_code: form.twoFactorCode,
-        }),
+      const res = await apiClient.post('/auth/2fa/verify/', {
+        email: form.email,
+        two_factor_code: form.twoFactorCode,
       });
-      
-      const data = await response.json();
-      
-      if (response.ok) {
-        // Store JWT and redirect
-        localStorage.setItem('phc_token', data.access_token);
-        navigate('/phc/dashboard');
-      } else {
-        setErrors({ twoFactorCode: "Invalid 2FA code" });
+      const body = res.data;
+      if (body.status && body.status !== 'success') {
+        throw body;
       }
-    } catch (error) {
-      setErrors({ twoFactorCode: "Verification failed. Please try again." });
+      const payload = body.data ?? body;
+      const token = payload?.access_token || payload?.data?.access_token;
+      if (token) {
+        localStorage.setItem('phc_token', token);
+      }
+      navigate('/phc/dashboard');
+    } catch (error: any) {
+      setErrors({ twoFactorCode: error?.message || "Verification failed. Please try again." });
     } finally {
       setIsLoading(false);
     }

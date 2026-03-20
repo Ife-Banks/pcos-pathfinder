@@ -1,12 +1,9 @@
-const BASE = 'https://ai-mshm-backend-d47t.onrender.com';
+import apiClient from '@/services/apiClient';
 
-function getHeaders() {
-  const token = localStorage.getItem('access_token');
-  return {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json',
-  };
-}
+const ensureSuccess = (body: any) => {
+  if (body.status !== 'success') throw body;
+  return body;
+};
 
 export interface Device {
   id: string;
@@ -51,113 +48,73 @@ export interface ProfileData {
 
 export const settingsService = {
   getProfile: async (): Promise<{ success: boolean; data: ProfileData }> => {
-    const res = await fetch(`${BASE}/api/v1/onboarding/profile/`, {
-      headers: getHeaders(),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.get('/onboarding/profile/');
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   getDevices: async (): Promise<{ success: boolean; data: Device[] }> => {
-    const res = await fetch(`${BASE}/api/v1/settings/devices/`, {
-      headers: getHeaders(),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.get('/settings/devices/');
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   connectDevice: async (deviceType: string): Promise<{ success: boolean; data: Device }> => {
-    const res = await fetch(`${BASE}/api/v1/settings/devices/`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify({ device_type: deviceType }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post('/settings/devices/', { device_type: deviceType });
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   syncDevice: async (deviceId: string): Promise<{ success: boolean }> => {
-    const res = await fetch(`${BASE}/api/v1/settings/devices/${deviceId}/sync/`, {
-      method: 'POST',
-      headers: getHeaders(),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post(`/settings/devices/${deviceId}/sync/`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   disconnectDevice: async (deviceId: string): Promise<void> => {
-    const res = await fetch(`${BASE}/api/v1/settings/devices/${deviceId}/`, {
-      method: 'DELETE',
-      headers: getHeaders(),
-    });
-    if (!res.ok) {
-      const data = await res.json();
-      throw data;
-    }
+    await apiClient.delete(`/settings/devices/${deviceId}/`);
   },
 
   getNotificationSettings: async (): Promise<{ success: boolean; data: NotificationPreferences }> => {
-    const res = await fetch(`${BASE}/api/v1/settings/notifications/`, {
-      headers: getHeaders(),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.get('/settings/notifications/');
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   saveNotificationSettings: async (settings: Partial<NotificationPreferences>): Promise<{ success: boolean }> => {
-    const res = await fetch(`${BASE}/api/v1/settings/notifications/`, {
-      method: 'PATCH',
-      headers: getHeaders(),
-      body: JSON.stringify(settings),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.patch('/settings/notifications/', settings);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   getPrivacySettings: async (): Promise<{ success: boolean; data: PrivacySettings }> => {
-    const res = await fetch(`${BASE}/api/v1/settings/privacy/`, {
-      headers: getHeaders(),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.get('/settings/privacy/');
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   savePrivacySettings: async (settings: PrivacySettings): Promise<{ success: boolean }> => {
-    const res = await fetch(`${BASE}/api/v1/settings/privacy/`, {
-      method: 'PATCH',
-      headers: getHeaders(),
-      body: JSON.stringify(settings),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.patch('/settings/privacy/', settings);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   exportData: async (): Promise<{ success: boolean; message: string }> => {
-    const res = await fetch(`${BASE}/api/v1/settings/privacy/export/`, {
-      method: 'POST',
-      headers: getHeaders(),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post('/settings/privacy/export/');
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   deleteAccount: async (): Promise<void> => {
-    const res = await fetch(`${BASE}/api/v1/settings/privacy/delete-account/`, {
-      method: 'DELETE',
-      headers: getHeaders(),
-    });
-    if (!res.ok) {
-      const data = await res.json();
-      throw data;
-    }
+    await apiClient.delete('/settings/privacy/delete-account/');
   },
 };

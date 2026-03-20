@@ -61,7 +61,7 @@ const Step4MenstrualHistory = () => {
       setIsLoading(true);
       setErrors({});
       
-      await onboardingAPI.saveStep4(user!.accessToken!, {
+      await onboardingAPI.saveStep4({
         cycle_length_days: parseInt(form.cycle_length_days),
         periods_per_year: parseInt(form.periods_per_year),
         cycle_regularity: form.cycle_regularity as 'regular' | 'irregular',

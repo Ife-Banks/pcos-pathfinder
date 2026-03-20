@@ -1,159 +1,106 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ai-mshm-backend.onrender.com/api/v1';
+import apiClient from '@/services/apiClient';
+
+const ensureSuccess = (body: any) => {
+  if (body.status !== 'success') throw body;
+  return body;
+};
 
 export const fmcAPI = {
   // FMC1 - Authentication
   login: async (credentials: { email: string; password: string }) => {
-    const res = await fetch(`${BASE_URL}/auth/login/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(credentials),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post('/auth/login/', credentials);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
-  verify2FA: async (code: string, accessToken: string) => {
-    const res = await fetch(`${BASE_URL}/auth/2fa/verify/`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
-      },
-      body: JSON.stringify({ code }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+  verify2FA: async (code: string, accessToken?: string) => {
+    const config = accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : undefined;
+    const res = await apiClient.post('/auth/2fa/verify/', { code }, config);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   refreshToken: async (refreshToken: string) => {
-    const res = await fetch(`${BASE_URL}/auth/token/refresh/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh: refreshToken }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post('/auth/token/refresh/', { refresh: refreshToken });
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
-  getMe: async (accessToken: string) => {
-    const res = await fetch(`${BASE_URL}/auth/me/`, {
-      headers: { 'Authorization': `Bearer ${accessToken}` },
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+  getMe: async () => {
+    const res = await apiClient.get('/auth/me/');
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   changePassword: async (passwords: { old_password: string; new_password: string }) => {
-    const res = await fetch(`${BASE_URL}/auth/me/change-password/`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-      },
-      body: JSON.stringify(passwords),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post('/auth/me/change-password/', passwords);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
-  logout: async (refreshToken: string, accessToken: string) => {
-    const res = await fetch(`${BASE_URL}/auth/logout/`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
-      },
-      body: JSON.stringify({ refresh: refreshToken }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+  logout: async (refreshToken: string, accessToken?: string) => {
+    const config = accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : undefined;
+    const res = await apiClient.post('/auth/logout/', { refresh: refreshToken }, config);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   // FMC2 - Case Queue
-  getCases: async (filters?: {
-    status?: string;
-    condition?: string;
-    severity?: string;
-  }) => {
-    const params = new URLSearchParams();
-    if (filters?.status) params.append('status', filters.status);
-    if (filters?.condition) params.append('condition', filters.condition);
-    if (filters?.severity) params.append('severity', filters.severity);
-    
-    const res = await fetch(`${BASE_URL}/centers/fmc/cases/?${params}`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+  getCases: async (filters?: { status?: string; condition?: string; severity?: string }) => {
+    const params: Record<string, string> = {};
+    if (filters?.status) params.status = filters.status;
+    if (filters?.condition) params.condition = filters.condition;
+    if (filters?.severity) params.severity = filters.severity;
+
+    const res = await apiClient.get('/centers/fmc/cases/', { params });
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   // FMC3 - Patient Detail
   getCase: async (caseId: string) => {
-    const res = await fetch(`${BASE_URL}/centers/fmc/cases/${caseId}/`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.get(`/centers/fmc/cases/${caseId}/`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   updateCase: async (caseId: string, updates: { status?: string; fmc_notes?: string }) => {
-    const res = await fetch(`${BASE_URL}/centers/fmc/cases/${caseId}/`, {
-      method: 'PATCH',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-      },
-      body: JSON.stringify(updates),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.patch(`/centers/fmc/cases/${caseId}/`, updates);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   assignClinician: async (caseId: string, clinicianId: string) => {
-    const res = await fetch(`${BASE_URL}/centers/fmc/cases/${caseId}/assign/`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-      },
-      body: JSON.stringify({ clinician_id: clinicianId }),
+    const res = await apiClient.post(`/centers/fmc/cases/${caseId}/assign/`, {
+      clinician_id: clinicianId,
     });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   dischargeCase: async (caseId: string, dischargeData: { closing_score: number; notes: string }) => {
-    const res = await fetch(`${BASE_URL}/centers/fmc/cases/${caseId}/discharge/`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-      },
-      body: JSON.stringify(dischargeData),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post(`/centers/fmc/cases/${caseId}/discharge/`, dischargeData);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   // FMC4 - Clinician Management
   getClinicians: async () => {
-    const res = await fetch(`${BASE_URL}/centers/fmc/clinicians/`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.get('/centers/fmc/clinicians/');
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   createClinician: async (clinicianData: {
@@ -164,44 +111,27 @@ export const fmcAPI = {
     years_of_experience: number;
     bio?: string;
   }) => {
-    const res = await fetch(`${BASE_URL}/centers/fmc/clinicians/`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-      },
-      body: JSON.stringify(clinicianData),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post('/centers/fmc/clinicians/', clinicianData);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   updateClinician: async (clinicianId: string, updates: {
     specialization?: string;
     years_of_experience?: number;
   }) => {
-    const res = await fetch(`${BASE_URL}/centers/fmc/clinicians/${clinicianId}/`, {
-      method: 'PATCH',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-      },
-      body: JSON.stringify(updates),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.patch(`/centers/fmc/clinicians/${clinicianId}/`, updates);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   verifyClinician: async (clinicianId: string) => {
-    const res = await fetch(`${BASE_URL}/centers/fmc/clinicians/${clinicianId}/verify/`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post(`/centers/fmc/clinicians/${clinicianId}/verify/`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   // FMC5 - Diagnostics
@@ -211,64 +141,44 @@ export const fmcAPI = {
     urgency: 'routine' | 'urgent';
     custom_note?: string;
   }) => {
-    const res = await fetch(`${BASE_URL}/fmc/request-diagnostics/`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-      },
-      body: JSON.stringify(request),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post('/fmc/request-diagnostics/', request);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   getDiagnosticsStatus: async (patientId: string) => {
-    const res = await fetch(`${BASE_URL}/fmc/diagnostics-status/${patientId}/`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.get(`/fmc/diagnostics-status/${patientId}/`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   // FMC6 - Analytics
   getAnalytics: async (range: string = '30d', startDate?: string, endDate?: string) => {
-    const params = new URLSearchParams({ range });
-    if (startDate) params.append('start_date', startDate);
-    if (endDate) params.append('end_date', endDate);
-    
-    const res = await fetch(`${BASE_URL}/fmc/analytics/?${params}`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const params: Record<string, string> = { range };
+    if (startDate) params.start_date = startDate;
+    if (endDate) params.end_date = endDate;
+
+    const res = await apiClient.get('/fmc/analytics/', { params });
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   // FMC7 - Alerts
   getAlerts: async () => {
-    const res = await fetch(`${BASE_URL}/fmc/alerts/`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.get('/fmc/alerts/');
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   markAlertRead: async (alertId: string) => {
-    const res = await fetch(`${BASE_URL}/fmc/alerts/${alertId}/`, {
-      method: 'PATCH',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-      },
-      body: JSON.stringify({ is_read: true }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.patch(`/fmc/alerts/${alertId}/`, { is_read: true });
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   // FMC8 - Discharge
@@ -280,27 +190,18 @@ export const fmcAPI = {
     closing_score: number;
     discharge_letter: string;
   }) => {
-    const res = await fetch(`${BASE_URL}/fmc/discharge/${patientId}/`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-      },
-      body: JSON.stringify(dischargeData),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post(`/fmc/discharge/${patientId}/`, dischargeData);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   // FMC9 - Settings & Management
   getFMCProfile: async () => {
-    const res = await fetch(`${BASE_URL}/centers/fmc/profile/`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.get('/centers/fmc/profile/');
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   updateFMCProfile: async (updates: {
@@ -311,27 +212,18 @@ export const fmcAPI = {
     notify_on_severe?: boolean;
     notify_on_very_severe?: boolean;
   }) => {
-    const res = await fetch(`${BASE_URL}/centers/fmc/profile/`, {
-      method: 'PATCH',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-      },
-      body: JSON.stringify(updates),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.patch('/centers/fmc/profile/', updates);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   // Staff Management (FMC Admin only)
   getStaff: async () => {
-    const res = await fetch(`${BASE_URL}/centers/fmc/staff/`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.get('/centers/fmc/staff/');
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   createStaff: async (staffData: {
@@ -340,85 +232,61 @@ export const fmcAPI = {
     staff_role: string;
     employee_id?: string;
   }) => {
-    const res = await fetch(`${BASE_URL}/centers/fmc/staff/`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-      },
-      body: JSON.stringify(staffData),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post('/centers/fmc/staff/', staffData);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   updateStaff: async (staffId: string, updates: {
     staff_role?: string;
     employee_id?: string;
   }) => {
-    const res = await fetch(`${BASE_URL}/centers/fmc/staff/${staffId}/`, {
-      method: 'PATCH',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-      },
-      body: JSON.stringify(updates),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.patch(`/centers/fmc/staff/${staffId}/`, updates);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   deactivateStaff: async (staffId: string) => {
-    const res = await fetch(`${BASE_URL}/centers/fmc/staff/${staffId}/`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.delete(`/centers/fmc/staff/${staffId}/`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   // Assignment
   autoAssign: async () => {
-    const res = await fetch(`${BASE_URL}/fmc/auto-assign/`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post('/fmc/auto-assign/');
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   // Network
   getPHCs: async () => {
-    const res = await fetch(`${BASE_URL}/centers/phc/`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.get('/centers/phc/');
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   // Reports
   generateReport: async (patientId: string, view: string = 'clinician') => {
-    const res = await fetch(`${BASE_URL}/reports/generate/?patient_id=${patientId}&view=${view}`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post(
+      '/reports/generate/',
+      undefined,
+      { params: { patient_id: patientId, view } }
+    );
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   exportFHIR: async (patientId: string) => {
-    const res = await fetch(`${BASE_URL}/fhir/export/${patientId}/`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post(`/fhir/export/${patientId}/`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 };

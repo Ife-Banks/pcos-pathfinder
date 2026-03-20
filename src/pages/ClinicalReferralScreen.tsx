@@ -22,6 +22,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { predictionService, ReferralRecommendation } from "@/services/predictionService";
+import apiClient from "@/services/apiClient";
 import { toast } from "@/hooks/use-toast";
 
 const TEAL = '#00897B';
@@ -99,21 +100,15 @@ const ClinicalReferralScreen = () => {
   const handleDownloadPdf = async () => {
     setGeneratingPdf(true);
     try {
-      const token = localStorage.getItem('access_token');
-      const res = await fetch(
-        'https://ai-mshm-backend-d47t.onrender.com/api/v1/reports/generate/',
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ type: 'referral' }),
-        }
-      );
-      const data = await res.json();
-      if (data.pdf_url || data.url) {
-        window.open(data.pdf_url || data.url, '_blank');
+      const res = await apiClient.post('/reports/generate/', { type: 'referral' });
+      const body = res.data;
+      if (body.status !== 'success') {
+        throw body;
+      }
+      const payload = body.data ?? body;
+      const pdfUrl = payload.pdf_url || payload.url;
+      if (pdfUrl) {
+        window.open(pdfUrl, '_blank');
       } else {
         throw new Error('No PDF URL returned');
       }

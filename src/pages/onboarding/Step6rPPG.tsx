@@ -31,7 +31,7 @@ const Step6rPPG = () => {
       setIsLoading(true);
       setErrors({});
       
-      await onboardingAPI.saveStep6rPPG(user!.accessToken!);
+      await onboardingAPI.saveStep6rPPG();
       
       // Refresh profile data
       await refreshProfile();

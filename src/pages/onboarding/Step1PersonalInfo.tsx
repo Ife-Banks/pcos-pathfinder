@@ -66,7 +66,7 @@ const Step1PersonalInfo = () => {
       setIsLoading(true);
       setErrors({});
       
-      await onboardingAPI.saveStep1(accessToken!, {
+      await onboardingAPI.saveStep1({
         full_name: form.full_name,
         age: parseInt(form.age),
         ethnicity: form.ethnicity,

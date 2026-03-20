@@ -149,7 +149,7 @@ const PHCDashboardScreen = () => {
           <nav className="space-y-1">
             {[
               { icon: Home, label: "Dashboard", href: "/phc/dashboard", active: true },
-              { icon: Users, label: "Patients", href: "/phc/patients" },
+              { icon: Users, label: "Patients", href: "/phc/dashboard" },
               { icon: UserPlus, label: "Register Patient", href: "/phc/register" },
               { icon: MessageCircle, label: "Send Advice", href: "/phc/advice" },
               { icon: ArrowUpRight, label: "Refer to FMC", href: "/phc/refer" },

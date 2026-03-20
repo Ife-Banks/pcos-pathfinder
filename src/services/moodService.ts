@@ -1,12 +1,12 @@
-const BASE = 'https://ai-mshm-backend-d47t.onrender.com';
+import apiClient from '@/services/apiClient';
 
-function getHeaders() {
-  const token = localStorage.getItem('access_token');
-  return {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json',
-  };
-}
+const BASE = '/mood';
+
+const ensureSuccess = (body: any) => {
+  const isSuccess = body?.status === 'success' || body?.success === true;
+  if (!isSuccess) throw body;
+  return body;
+};
 
 export interface PHQ4Response {
   success: boolean;
@@ -79,14 +79,10 @@ export const moodService = {
     phq4_item4: number;
     log_date: string;
   }): Promise<PHQ4Response> => {
-    const res = await fetch(`${BASE}/api/v1/mood/log/phq4`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post(`${BASE}/log/phq4`, payload);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   logAffect: async (payload: {
@@ -94,14 +90,10 @@ export const moodService = {
     affect_arousal: number;
     log_date: string;
   }): Promise<AffectResponse> => {
-    const res = await fetch(`${BASE}/api/v1/mood/log/affect`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post(`${BASE}/log/affect`, payload);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   logFocus: async (payload: {
@@ -110,14 +102,10 @@ export const moodService = {
     mental_fatigue: number;
     log_date: string;
   }): Promise<FocusResponse> => {
-    const res = await fetch(`${BASE}/api/v1/mood/log/focus`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post(`${BASE}/log/focus`, payload);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   logSleep: async (payload: {
@@ -125,53 +113,37 @@ export const moodService = {
     hours_slept: number;
     log_date: string;
   }): Promise<SleepResponse> => {
-    const res = await fetch(`${BASE}/api/v1/mood/log/sleep`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post(`${BASE}/log/sleep`, payload);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   predictMentalHealth: async (): Promise<PredictionResponse> => {
-    const res = await fetch(`${BASE}/api/v1/mood/predict/mental-health`, {
-      method: 'POST',
-      headers: getHeaders(),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post(`${BASE}/predict/mental-health`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   predictMetabolic: async (): Promise<PredictionResponse> => {
-    const res = await fetch(`${BASE}/api/v1/mood/predict/metabolic`, {
-      method: 'POST',
-      headers: getHeaders(),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post(`${BASE}/predict/metabolic`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   predictCardioNeuro: async (): Promise<PredictionResponse> => {
-    const res = await fetch(`${BASE}/api/v1/mood/predict/cardio-neuro`, {
-      method: 'POST',
-      headers: getHeaders(),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post(`${BASE}/predict/cardio-neuro`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 
   predictReproductive: async (): Promise<PredictionResponse> => {
-    const res = await fetch(`${BASE}/api/v1/mood/predict/reproductive`, {
-      method: 'POST',
-      headers: getHeaders(),
-    });
-    const data = await res.json();
-    if (!res.ok) throw data;
-    return data;
+    const res = await apiClient.post(`${BASE}/predict/reproductive`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
   },
 };
