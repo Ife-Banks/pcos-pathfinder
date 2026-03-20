@@ -15,8 +15,7 @@ const optionLabels = ['Not at all', 'Several days', 'More than half the days', '
 const MentalWellness = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [answers, setAnswers] = useState<number[]>([0, 0, 0, 0]);
-  const [answered, setAnswered] = useState([false, false, false, false]);
+  const [answers, setAnswers] = useState<(number | null)[]>([null, null, null, null]);
 
   const handleAnswer = (questionIndex: number, value: number) => {
     setAnswers((prev) => {
@@ -24,14 +23,9 @@ const MentalWellness = () => {
       next[questionIndex] = value;
       return next;
     });
-    setAnswered((prev) => {
-      const next = [...prev];
-      next[questionIndex] = true;
-      return next;
-    });
   };
 
-  const allAnswered = answered.every(Boolean);
+  const allAnswered = answers.every((a) => a !== null);
 
   const handleSubmit = async () => {
     if (loading) return;
