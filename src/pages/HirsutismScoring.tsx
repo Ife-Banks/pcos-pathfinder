@@ -62,15 +62,16 @@ const HirsutismScoring = () => {
 
   const buildPayload = (): MFGSubmission => {
     return {
-      upper_lip: scores.upper_lip,
-      chin: scores.chin,
-      chest: scores.chest,
-      upper_abdomen: scores.upper_abdomen,
-      lower_abdomen: scores.lower_abdomen,
-      upper_arm: scores.upper_arm,
-      thigh: scores.thigh,
-      upper_back: scores.upper_back,
-      log_date: getTodayDateString(),
+      assessed_date: getTodayDateString(),
+      mfg_upper_lip: scores.upper_lip ?? 0,
+      mfg_chin: scores.chin ?? 0,
+      mfg_chest: scores.chest ?? 0,
+      mfg_upper_back: scores.upper_back ?? 0,
+      mfg_lower_back: scores.lower_back ?? 0,
+      mfg_upper_abdomen: scores.upper_abdomen ?? 0,
+      mfg_lower_abdomen: scores.lower_abdomen ?? 0,
+      mfg_upper_arm: scores.upper_arm ?? 0,
+      mfg_thigh: scores.thigh ?? 0,
     };
   };
 

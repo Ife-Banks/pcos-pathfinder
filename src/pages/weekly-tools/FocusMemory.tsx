@@ -4,8 +4,18 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import apiClient from "@/services/apiClient";
 import { moodService } from "@/services/moodService";
 import { markToolComplete, getTodayDateString } from "@/utils/weekUtils";
+
+const triggerMoodPredictions = async () => {
+  await Promise.allSettled([
+    apiClient.post('/mood/predict/mental-health'),
+    apiClient.post('/mood/predict/metabolic'),
+    apiClient.post('/mood/predict/cardio-neuro'),
+    apiClient.post('/mood/predict/reproductive'),
+  ]);
+};
 
 const ORANGE = '#F59E0B';
 
@@ -30,6 +40,7 @@ const FocusMemory = () => {
       
       setResult({ cognitive_load: response.data.cognitive_load_score });
       setStep('results');
+      triggerMoodPredictions();
     } catch (err: any) {
       toast({
         title: 'Error',

@@ -8,6 +8,15 @@ import { toast } from "@/hooks/use-toast";
 import apiClient from "@/services/apiClient";
 import { getTodayDateString } from "@/utils/weekUtils";
 
+const triggerMoodPredictions = async () => {
+  await Promise.allSettled([
+    apiClient.post('/mood/predict/mental-health'),
+    apiClient.post('/mood/predict/metabolic'),
+    apiClient.post('/mood/predict/cardio-neuro'),
+    apiClient.post('/mood/predict/reproductive'),
+  ]);
+};
+
 const TEAL_PRIMARY = '#00897B';
 
 const optionLabels = ['Not at all', 'Several days', 'More than half the days', 'Nearly every day'];
@@ -41,6 +50,7 @@ const MentalWellness = () => {
       });
 
       toast({ title: 'PHQ-4 logged successfully', variant: 'default' });
+      triggerMoodPredictions();
       setTimeout(() => navigate('/risk-score'), 1000);
 
     } catch (err: unknown) {

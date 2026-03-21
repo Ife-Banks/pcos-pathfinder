@@ -3,7 +3,8 @@ import apiClient from '@/services/apiClient';
 const BASE = '/menstrual';
 
 const ensureSuccess = (body: any) => {
-  if (body.status !== 'success') throw body;
+  const isSuccess = body?.success === true || body?.status === 'success' || body?.status === 200 || body?.status === 201;
+  if (!isSuccess) throw body;
   return body;
 };
 

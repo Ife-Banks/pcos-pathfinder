@@ -3,7 +3,8 @@ import apiClient from '@/services/apiClient';
 const BASE = '/checkin/mfg';
 
 const ensureSuccess = (body: any) => {
-  if (body.status !== 'success') throw body;
+  const isSuccess = body?.success === true || body?.status === 'success' || body?.status === 200 || body?.status === 201;
+  if (!isSuccess) throw body;
   return body;
 };
 
@@ -24,15 +25,16 @@ export interface MFGResponse {
 }
 
 export interface MFGSubmission {
-  upper_lip: number;
-  chin: number;
-  chest: number;
-  upper_abdomen: number;
-  lower_abdomen: number;
-  upper_arm: number;
-  thigh: number;
-  upper_back: number;
-  log_date: string;
+  assessed_date: string;
+  mfg_upper_lip: number;
+  mfg_chin: number;
+  mfg_chest: number;
+  mfg_upper_back: number;
+  mfg_lower_back: number;
+  mfg_upper_abdomen: number;
+  mfg_lower_abdomen: number;
+  mfg_upper_arm: number;
+  mfg_thigh: number;
 }
 
 export const mfgService = {

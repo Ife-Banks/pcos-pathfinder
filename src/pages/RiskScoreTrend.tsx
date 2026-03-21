@@ -13,6 +13,15 @@ import {
 
 const TEAL_PRIMARY = '#00897B';
 
+const triggerMoodPredictions = async () => {
+  await Promise.allSettled([
+    apiClient.post('/mood/predict/mental-health'),
+    apiClient.post('/mood/predict/metabolic'),
+    apiClient.post('/mood/predict/cardio-neuro'),
+    apiClient.post('/mood/predict/reproductive'),
+  ]);
+};
+
 interface PredictionRecord {
   id: string;
   risk_score: number;
@@ -93,7 +102,7 @@ const RiskScoreTrend = () => {
   }, [navigate]);
 
   useEffect(() => {
-    fetchHistory();
+    triggerMoodPredictions().then(() => fetchHistory());
   }, [fetchHistory]);
 
   const sorted = [...history].sort(

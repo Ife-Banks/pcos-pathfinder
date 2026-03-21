@@ -22,8 +22,8 @@ interface UseCheckinSessionReturn {
   submitEveningData: (data: {
     breast_left_vas: number;
     breast_right_vas: number;
-    mastalgia_side: string;
-    mastalgia_quality: string;
+    mastalgia_side: string | null;
+    mastalgia_quality: string | null;
     acne_forehead: number;
     acne_right_cheek: number;
     acne_left_cheek: number;
@@ -155,8 +155,8 @@ export function useCheckinSession(period: CheckinPeriod): UseCheckinSessionRetur
   const submitEveningData = async (data: {
     breast_left_vas: number;
     breast_right_vas: number;
-    mastalgia_side: string;
-    mastalgia_quality: string;
+    mastalgia_side: string | null;
+    mastalgia_quality: string | null;
     acne_forehead: number;
     acne_right_cheek: number;
     acne_left_cheek: number;

@@ -14,25 +14,26 @@ interface NotificationPanelProps {
 
 export const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
-  const { 
-    notifications, 
-    unreadCount, 
-    isLoading, 
-    wsConnected, 
-    loadNotifications, 
-    markAsRead, 
-    markAllAsRead, 
-    deleteNotification 
+  const {
+    notifications,
+    unreadCount,
+    isLoading,
+    wsConnected,
+    loadNotifications,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification
   } = useNotifications();
+
+  const safeNotifications = notifications ?? [];
 
   const [isClosing, setIsClosing] = useState(false);
 
-  // Load notifications when panel opens
   useEffect(() => {
-    if (isOpen && notifications.length === 0) {
+    if (isOpen && safeNotifications.length === 0) {
       loadNotifications();
     }
-  }, [isOpen, notifications.length, loadNotifications]);
+  }, [isOpen, safeNotifications.length, loadNotifications]);
 
   const handleNotificationTap = async (notification: AppNotification) => {
     if (!notification.is_read) {
@@ -177,7 +178,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, on
                     </div>
                   ))}
                 </div>
-              ) : notifications.length === 0 ? (
+              ) : safeNotifications.length === 0 ? (
                 // Empty state
                 <div className="flex flex-col items-center justify-center h-full p-8 text-center">
                   <Bell className="h-12 w-12 text-muted-foreground mb-4" />
@@ -191,7 +192,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, on
               ) : (
                 // Notifications list
                 <div className="p-4 space-y-3">
-                  {notifications.map((notification) => (
+                  {safeNotifications.map((notification) => (
                     <motion.div
                       key={notification.id}
                       initial={{ opacity: 0, y: 10 }}

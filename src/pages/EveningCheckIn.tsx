@@ -71,8 +71,8 @@ const EveningCheckIn = () => {
   const autosavePayload = useDebounce({
     breast_left_vas: breastLeft,
     breast_right_vas: breastRight,
-    mastalgia_side: mastalgiaSide,
-    mastalgia_quality: mastalgiaQuality,
+    mastalgia_side: mastalgiaSide || null,
+    mastalgia_quality: mastalgiaQuality || null,
     acne_forehead: acneForehead,
     acne_right_cheek: acneRightCheek,
     acne_left_cheek: acneLeftCheek,
@@ -115,8 +115,8 @@ const EveningCheckIn = () => {
       await submitEveningData({
         breast_left_vas: breastLeft,
         breast_right_vas: breastRight,
-        mastalgia_side: mastalgiaSide,
-        mastalgia_quality: mastalgiaQuality,
+        mastalgia_side: mastalgiaSide || null,
+        mastalgia_quality: mastalgiaQuality || null,
         acne_forehead: acneForehead,
         acne_right_cheek: acneRightCheek,
         acne_left_cheek: acneLeftCheek,

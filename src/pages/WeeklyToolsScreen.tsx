@@ -1,7 +1,16 @@
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Scissors, Brain, ChevronRight, Check, Clock, Moon, Activity } from "lucide-react";
-import { isToolCompleteThisWeek, areAllToolsComplete, getToolCompletionInfo } from "@/utils/weekUtils";
+import apiClient from "@/services/apiClient";
+
+interface TodayStatus {
+  phq4_completed?: boolean;
+  affect_completed?: boolean;
+  focus_completed?: boolean;
+  sleep_completed?: boolean;
+  mfg_completed?: boolean;
+}
 
 interface WeeklyTool {
   id: string;
@@ -12,7 +21,6 @@ interface WeeklyTool {
   route: string;
   gradient: string;
   completed: boolean;
-  lastCompleted?: string;
   frequency: string;
 }
 
@@ -20,81 +28,112 @@ const TEAL_PRIMARY = '#00897B';
 
 const WeeklyToolsScreen = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [todayStatus, setTodayStatus] = useState<TodayStatus>({});
 
-  const getTools = (): WeeklyTool[] => {
-    const phq4Info = getToolCompletionInfo('phq4');
-    const affectInfo = getToolCompletionInfo('affect');
-    const focusInfo = getToolCompletionInfo('focus');
-    const sleepInfo = getToolCompletionInfo('sleep');
-    const mfgInfo = getToolCompletionInfo('mfg');
-    
-    return [
-      {
-        id: "mfg",
-        title: "Hirsutism Score",
-        subtitle: "Modified Ferriman-Gallwey (mFG)",
-        description: "Quantify hair growth patterns across 8 body zones to assess hyperandrogenism.",
-        icon: Scissors,
-        route: "/weekly-tools/hirsutism",
-        gradient: "gradient-clinical",
-        completed: mfgInfo.completed,
-        lastCompleted: mfgInfo.lastCompleted,
-        frequency: "Weekly",
-      },
-      {
-        id: "phq4",
-        title: "Mental Wellness",
-        subtitle: "PHQ-4 Assessment",
-        description: "Ultra-brief validated screening for anxiety (GAD-2) and depression (PHQ-2).",
-        icon: Brain,
-        route: "/weekly-tools/mental-wellness",
-        gradient: "bg-emerald-500",
-        completed: phq4Info.completed,
-        lastCompleted: phq4Info.lastCompleted,
-        frequency: "Weekly",
-      },
-      {
-        id: "affect",
-        title: "Mood Check",
-        subtitle: "Affect Grid",
-        description: "Track your mood state using the valence-arousal affect grid model.",
-        icon: Activity,
-        route: "/weekly-tools/mood-check",
-        gradient: "bg-purple-500",
-        completed: affectInfo.completed,
-        lastCompleted: affectInfo.lastCompleted,
-        frequency: "Weekly",
-      },
-      {
-        id: "focus",
-        title: "Focus & Memory",
-        subtitle: "Cognitive Assessment",
-        description: "Measure your focus, memory, and mental fatigue levels.",
-        icon: Brain,
-        route: "/weekly-tools/focus-memory",
-        gradient: "bg-orange-500",
-        completed: focusInfo.completed,
-        lastCompleted: focusInfo.lastCompleted,
-        frequency: "Weekly",
-      },
-      {
-        id: "sleep",
-        title: "Sleep Quality",
-        subtitle: "Sleep Tracker",
-        description: "Log your sleep quality and hours for hormonal health tracking.",
-        icon: Moon,
-        route: "/weekly-tools/sleep-quality",
-        gradient: "bg-blue-500",
-        completed: sleepInfo.completed,
-        lastCompleted: sleepInfo.lastCompleted,
-        frequency: "Weekly",
-      },
-    ];
-  };
+  const loadWeeklyStatus = useCallback(async () => {
+    const today = new Date().toISOString().split('T')[0];
+
+    try {
+      const res = await apiClient.get('/mood/history');
+      const logs: any[] = res?.data?.data?.logs ?? [];
+      const todayLog = logs.find((l: any) =>
+        typeof l.logDate === 'string' && l.logDate.startsWith(today)
+      ) ?? null;
+
+      console.log('Today log found:', todayLog);
+
+      setTodayStatus({
+        phq4_completed: todayLog?.phq4Item1 != null,
+        affect_completed: todayLog?.affectValence != null,
+        focus_completed: todayLog?.cognitiveLoadScore != null,
+        sleep_completed: todayLog?.sleepSatisfaction != null,
+      });
+    } catch (err) {
+      console.warn('Mood history failed:', err);
+      setTodayStatus({ phq4_completed: false, affect_completed: false, focus_completed: false, sleep_completed: false });
+    }
+
+    try {
+      const mfgRes = await apiClient.get('/checkin/mfg/');
+      const mfgData = mfgRes?.data?.data ?? mfgRes?.data ?? {};
+      setTodayStatus((prev) => ({ ...prev, mfg_completed: (mfgData?.assessed_date ?? '').startsWith(today) }));
+    } catch {
+      setTodayStatus((prev) => ({ ...prev, mfg_completed: false }));
+    }
+  }, []);
+
+  useEffect(() => {
+    loadWeeklyStatus();
+  }, [loadWeeklyStatus]);
+
+  useEffect(() => {
+    const handleFocus = () => loadWeeklyStatus();
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [loadWeeklyStatus]);
+
+  const getTools = (): WeeklyTool[] => [
+    {
+      id: "mfg",
+      title: "Hirsutism Score",
+      subtitle: "Modified Ferriman-Gallwey (mFG)",
+      description: "Quantify hair growth patterns across 8 body zones to assess hyperandrogenism.",
+      icon: Scissors,
+      route: "/weekly-tools/hirsutism",
+      gradient: "gradient-clinical",
+      completed: todayStatus.mfg_completed === true,
+      frequency: "Weekly",
+    },
+    {
+      id: "phq4",
+      title: "Mental Wellness",
+      subtitle: "PHQ-4 Assessment",
+      description: "Ultra-brief validated screening for anxiety (GAD-2) and depression (PHQ-2).",
+      icon: Brain,
+      route: "/weekly-tools/mental-wellness",
+      gradient: "bg-emerald-500",
+      completed: todayStatus.phq4_completed === true,
+      frequency: "Weekly",
+    },
+    {
+      id: "affect",
+      title: "Mood Check",
+      subtitle: "Affect Grid",
+      description: "Track your mood state using the valence-arousal affect grid model.",
+      icon: Activity,
+      route: "/weekly-tools/mood-check",
+      gradient: "bg-purple-500",
+      completed: todayStatus.affect_completed === true,
+      frequency: "Weekly",
+    },
+    {
+      id: "focus",
+      title: "Focus & Memory",
+      subtitle: "Cognitive Assessment",
+      description: "Measure your focus, memory, and mental fatigue levels.",
+      icon: Brain,
+      route: "/weekly-tools/focus-memory",
+      gradient: "bg-orange-500",
+      completed: todayStatus.focus_completed === true,
+      frequency: "Weekly",
+    },
+    {
+      id: "sleep",
+      title: "Sleep Quality",
+      subtitle: "Sleep Tracker",
+      description: "Log your sleep quality and hours for hormonal health tracking.",
+      icon: Moon,
+      route: "/weekly-tools/sleep-quality",
+      gradient: "bg-blue-500",
+      completed: todayStatus.sleep_completed === true,
+      frequency: "Weekly",
+    },
+  ];
 
   const weeklyTools = getTools();
   const completedCount = weeklyTools.filter((t) => t.completed).length;
-  const allComplete = areAllToolsComplete();
+  const allComplete = weeklyTools.every((t) => t.completed);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -180,12 +219,6 @@ const WeeklyToolsScreen = () => {
                       <Clock className="w-3 h-3" />
                       {tool.frequency}
                     </span>
-                    {tool.completed && tool.lastCompleted && (
-                      <span>Completed today</span>
-                    )}
-                    {!tool.completed && tool.lastCompleted && (
-                      <span>Not done this week</span>
-                    )}
                   </div>
                 </div>
 

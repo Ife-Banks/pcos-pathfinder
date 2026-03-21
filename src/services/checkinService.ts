@@ -3,7 +3,8 @@ import apiClient from '@/services/apiClient';
 const BASE = '/checkin';
 
 const ensureSuccess = (body: any) => {
-  if (body.status !== 'success') throw body;
+  const isSuccess = body?.success === true || body?.status === 'success' || body?.status === 200 || body?.status === 201;
+  if (!isSuccess) throw body;
   return body;
 };
 
@@ -56,8 +57,8 @@ export interface EveningCheckinResponse {
   data: {
     breast_left_vas: number;
     breast_right_vas: number;
-    mastalgia_side: string;
-    mastalgia_quality: string;
+    mastalgia_side: string | null;
+    mastalgia_quality: string | null;
     acne_forehead: number;
     acne_right_cheek: number;
     acne_left_cheek: number;
@@ -125,8 +126,8 @@ export const checkinService = {
   submitEveningCheckin: async (sessionId: string, payload: {
     breast_left_vas: number;
     breast_right_vas: number;
-    mastalgia_side: string;
-    mastalgia_quality: string;
+    mastalgia_side: string | null;
+    mastalgia_quality: string | null;
     acne_forehead: number;
     acne_right_cheek: number;
     acne_left_cheek: number;
