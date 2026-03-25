@@ -74,6 +74,7 @@ export interface PHCLoginForm {
   password: string;
   staff_id?: string;
   two_factor_code?: string;
+  requires_2fa?: boolean;
 }
 
 export interface EscalationForm {

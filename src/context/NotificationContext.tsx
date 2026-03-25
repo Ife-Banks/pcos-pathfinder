@@ -6,10 +6,11 @@ import { notificationAPI } from '@/services/notificationService';
 import { AppNotification, WSMessage } from '@/types/notifications';
 
 const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL || 'wss://ai-mshm-backend-d47t.onrender.com/ws/notifications';
+const WS_ENABLED = import.meta.env.VITE_WS_ENABLED !== 'false'; // WebSockets enabled by default
 
 // Render wake-up and retry management
 const RECONNECT_DELAYS = [3000, 6000, 12000, 24000, 48000]; // 3s, 6s, 12s, 24s, 48s
-const MAX_RETRIES = 5;
+const MAX_RETRIES = 3; // Reduced from 5 to stop retries faster
 
 interface NotificationContextType {
   notifications:    AppNotification[];
@@ -256,8 +257,13 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
     // Only connect WebSocket for patient users — PHC/FMC portals use their own notification systems
     if (user.role !== 'patient') return;
 
-    // Small delay to ensure backend is ready
-    setTimeout(connectWebSocket, 1000);
+    // Only connect WebSocket if enabled (disable on platforms without WS support)
+    if (WS_ENABLED) {
+      // Small delay to ensure backend is ready
+      setTimeout(connectWebSocket, 1000);
+    } else {
+      console.log('WebSocket disabled via VITE_WS_ENABLED');
+    }
 
     // 1. Fetch unread count ONCE via REST on load
     notificationAPI.getUnreadCount()

@@ -81,11 +81,33 @@ try {
   const response = await phcAPI.login({
     email: formData.email,
     password: formData.password,
+    staff_id: formData.staff_id || undefined,
   });
 
   console.log('RAW LOGIN RESPONSE:', JSON.stringify(response));
-  console.log('response.access:', response?.access);
-  console.log('response.data?.access:', response?.data?.access);
+
+  // Check if 2FA is required
+  if (response.data?.requires_2fa) {
+    // User has 2FA enabled, need to verify OTP
+    const user = response.data.user;
+    
+    if (!['hcc_admin', 'hcc_staff'].includes(user.role)) {
+      setErrors({ general: "Your account does not have PHC staff access." });
+      return;
+    }
+
+    // Store tokens temporarily and show 2FA screen
+    localStorage.setItem('phc_pending_token', JSON.stringify({
+      access: response.data.access,
+      refresh: response.data.refresh,
+      user: user,
+    }));
+    
+    setFacilityInfo(user.center_info);
+    setShow2FA(true);
+    setIsLoading(false);
+    return;
+  }
 
   const { access, refresh, user } = response.data;
 
@@ -130,14 +152,32 @@ navigate('/phc/dashboard');
     setErrors({});
     
     try {
-      await phcAPI.verify2FA(formData.two_factor_code!, localStorage.getItem('access_token')!);
-      
-      // 2FA verified, navigate to dashboard
+      // Get pending token data
+      const pendingDataStr = localStorage.getItem('phc_pending_token');
+      if (!pendingDataStr) {
+        setErrors({ general: "Session expired. Please login again." });
+        setShow2FA(false);
+        setIsLoading(false);
+        return;
+      }
+
+      // Verify OTP and get final tokens
+      const response = await phcAPI.verify2FA(formData.two_factor_code!, formData.email);
+      const { access, refresh, user } = response.data;
+
+      // Clear pending token
+      localStorage.removeItem('phc_pending_token');
+
+      // Store final tokens
+      localStorage.setItem('access_token', access);
+      localStorage.setItem('refresh_token', refresh);
+
+      loginWithTokens(user, access);
       navigate('/phc/dashboard');
       
     } catch (error: any) {
       console.error('2FA error:', error);
-      setErrors({ two_factor_code: "Invalid 2FA code" });
+      setErrors({ two_factor_code: "Invalid 2FA code. Please try again." });
     } finally {
       setIsLoading(false);
     }

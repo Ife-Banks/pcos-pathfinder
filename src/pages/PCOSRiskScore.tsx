@@ -15,7 +15,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { predictionService, PredictionRecord, SHAPDriver } from "@/services/predictionService";
+import { predictionService, PredictionRecord, SHAPDriver, ModelPredictions, DiseasePrediction } from "@/services/predictionService";
 import { toast } from "@/hooks/use-toast";
 
 const TEAL = '#00897B';
@@ -52,7 +52,7 @@ const PCOSRiskScore = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await predictionService.getLatest();
+      const res = await predictionService.getPCOSRiskScore();
       setPrediction(res.data);
 
       localStorage.setItem('latest_prediction_id', res.data.id);
@@ -142,6 +142,56 @@ const PCOSRiskScore = () => {
 
   const TierIcon = safeTierConfig!.icon;
 
+  const modelLabels: Record<string, { name: string; color: string; bg: string; icon: string }> = {
+    symptom_intensity: { name: "Symptom Intensity", color: "#00897B", bg: "bg-teal-50", icon: "📝" },
+    menstrual: { name: "Menstrual Health", color: "#7C3AED", bg: "bg-purple-50", icon: "🩺" },
+    rppg: { name: "rPPG Camera", color: "#2563EB", bg: "bg-blue-50", icon: "📷" },
+    mood: { name: "Mood Analysis", color: "#F59E0B", bg: "bg-amber-50", icon: "🧠" },
+  };
+
+  const formatDiseaseName = (name: string) => name.replace(/_Mood/g, "").replace(/_/g, " ");
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity.toLowerCase()) {
+      case "minimal": return "#27AE60";
+      case "mild": return "#F1C40F";
+      case "moderate": return "#F39C12";
+      case "severe": return "#E74C3C";
+      case "extreme": return "#C0392B";
+      default: return "#6B7280";
+    }
+  };
+
+  const renderModelPredictions = (modelKey: string, predictions: Record<string, DiseasePrediction> | undefined) => {
+    if (!predictions || Object.keys(predictions).length === 0) return null;
+    const config = modelLabels[modelKey];
+    if (!config) return null;
+
+    return (
+      <div key={modelKey} className={`${config.bg} rounded-xl p-4`}>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-lg">{config.icon}</span>
+          <h3 className="font-display font-semibold text-sm" style={{ color: config.color }}>
+            {config.name}
+          </h3>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {Object.entries(predictions).slice(0, 6).map(([disease, pred]) => (
+            <div key={disease} className="bg-white/80 rounded-lg p-2">
+              <p className="text-xs text-gray-600 font-medium truncate">{formatDiseaseName(disease)}</p>
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-sm font-bold" style={{ color: getSeverityColor(pred.severity) }}>
+                  {(pred.risk_score * 100).toFixed(0)}%
+                </span>
+                <span className="text-[10px] text-gray-400">{pred.severity}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-3 flex items-center gap-3">
@@ -204,6 +254,37 @@ const PCOSRiskScore = () => {
             </CardContent>
           </Card>
         </motion.div>
+
+        {/* All 4 Models Section */}
+        {prediction.all_predictions && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+            <h2 className="font-display font-semibold text-xs text-gray-400 uppercase tracking-wider mb-3">
+              Prediction Models
+            </h2>
+            <div className="space-y-3">
+              {renderModelPredictions("symptom_intensity", prediction.all_predictions.symptom_intensity)}
+              {renderModelPredictions("menstrual", prediction.all_predictions.menstrual)}
+              {renderModelPredictions("rppg", prediction.all_predictions.rppg)}
+              {renderModelPredictions("mood", prediction.all_predictions.mood)}
+            </div>
+            {prediction.data_layers_used && prediction.data_layers_used.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {prediction.data_layers_used.map((layer) => (
+                  <span
+                    key={layer}
+                    className="text-[10px] px-2 py-1 rounded-full font-medium"
+                    style={{
+                      backgroundColor: modelLabels[layer]?.bg || "#F3F4F6",
+                      color: modelLabels[layer]?.color || "#6B7280"
+                    }}
+                  >
+                    {modelLabels[layer]?.icon} {modelLabels[layer]?.name || layer}
+                  </span>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
 
         {sortedDrivers.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>

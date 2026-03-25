@@ -15,6 +15,20 @@ export interface SHAPDriver {
   explanation: string;
 }
 
+export interface DiseasePrediction {
+  risk_score: number;
+  risk_probability: number;
+  severity: string;
+  risk_flag?: number;
+}
+
+export interface ModelPredictions {
+  symptom_intensity?: Record<string, DiseasePrediction>;
+  menstrual?: Record<string, DiseasePrediction>;
+  rppg?: Record<string, DiseasePrediction>;
+  mood?: Record<string, DiseasePrediction>;
+}
+
 export interface PredictionRecord {
   id: string;
   risk_score: number;
@@ -25,6 +39,7 @@ export interface PredictionRecord {
   missing_inputs_count?: number;
   shap_drivers?: SHAPDriver[];
   data_layers_used?: string[];
+  all_predictions?: ModelPredictions;
 }
 
 export interface PredictionResponse {
@@ -94,6 +109,13 @@ export interface ReferralResponse {
 export const predictionService = {
   getLatest: async (): Promise<PredictionResponse> => {
     const res = await apiClient.get('/predictions/latest/');
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
+  },
+
+  getPCOSRiskScore: async (): Promise<PredictionResponse> => {
+    const res = await apiClient.get('/predictions/pcos/');
     const body = res.data;
     ensureSuccess(body);
     return body;

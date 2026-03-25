@@ -6,6 +6,8 @@ import { ArrowLeft, Camera } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { onboardingAPI } from '@/services/onboardingService';
 import { useOnboarding } from '@/context/OnboardingContext';
+import RppgCamera from '@/components/RppgCamera';
+import { rppgService, RppgSessionPayload } from '@/services/rppgService';
 
 const Step6rPPG = () => {
   const navigate = useNavigate();
@@ -17,25 +19,29 @@ const Step6rPPG = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleStartCapture = async () => {
+  const handleStartCapture = () => {
     setIsCapturing(true);
-    // Simulate 2-minute capture
-    setTimeout(() => {
-      setIsCapturing(false);
-      setCaptureComplete(true);
-    }, 2000); // Using 2 seconds instead of 2 minutes for demo
+    setCaptureComplete(false);
   };
 
-  const handleComplete = async () => {
+  const handleCaptureComplete = async (metrics: RppgSessionPayload) => {
     try {
       setIsLoading(true);
       setErrors({});
       
+      // Log rPPG session to backend
+      await rppgService.logSession(metrics);
+      
+      // Save onboarding step 6
       await onboardingAPI.saveStep6rPPG();
       
       // Refresh profile data
       await refreshProfile();
       
+      setCaptureComplete(true);
+      setIsCapturing(false);
+      
+      // Navigate to step 7 after successful capture
       navigate('/onboarding/step/7');
     } catch (err: any) {
       const backendErrors: Record<string, string> = {};
@@ -53,6 +59,11 @@ const Step6rPPG = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCaptureError = (error: string) => {
+    setErrors({ general: error });
+    setIsCapturing(false);
   };
 
   const handleSkipAndFinish = async () => {
@@ -123,31 +134,12 @@ const Step6rPPG = () => {
           )}
 
           <div className="space-y-4">
-            <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
-              {isCapturing ? (
-                <div className="text-center">
-                  <div className="animate-pulse">
-                    <Camera className="h-16 w-16 mx-auto mb-4 text-primary" />
-                  </div>
-                  <p className="text-lg font-medium">Capturing...</p>
-                  <p className="text-sm text-muted-foreground">Please hold still</p>
-                </div>
-              ) : captureComplete ? (
-                <div className="text-center">
-                  <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
-                    <span className="text-2xl">✓</span>
-                  </div>
-                  <p className="text-lg font-medium text-green-600">Capture Complete!</p>
-                  <p className="text-sm text-muted-foreground">Session quality: 85%</p>
-                </div>
-              ) : (
-                <div className="text-center">
-                  <Camera className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-lg font-medium">Ready to Capture</p>
-                  <p className="text-sm text-muted-foreground">2-minute baseline measurement</p>
-                </div>
-              )}
-            </div>
+            <RppgCamera
+              onCaptureComplete={handleCaptureComplete}
+              onCaptureError={handleCaptureError}
+              isCapturing={isCapturing}
+              setIsCapturing={setIsCapturing}
+            />
           </div>
 
           <div className="pt-4 space-y-3">
@@ -166,7 +158,7 @@ const Step6rPPG = () => {
                 variant="clinical"
                 size="xl"
                 className="w-full"
-                onClick={handleComplete}
+                onClick={() => navigate('/onboarding/step/7')}
                 disabled={isLoading}
               >
                 {isLoading ? "Saving..." : "Continue"}

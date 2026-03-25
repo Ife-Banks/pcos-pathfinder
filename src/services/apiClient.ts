@@ -1,9 +1,16 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ai-mshm-backend-d47t.onrender.com/api/v1';
 
+const isCancelError = (error: any): boolean => {
+  return axios.isCancel(error) || 
+         error?.message === 'canceled' || 
+         error?.name === 'CanceledError' || 
+         error?.code === 'ERR_CANCELED';
+};
+
 // Note: NO trailing slash on baseURL. All endpoint paths start after /api/v1 (e.g. /auth/me/, /centers/phc/profile/)
-const apiClient = axios.create({
+export const apiClient = axios.create({
   baseURL: API_BASE_URL,
 });
 
@@ -31,6 +38,11 @@ const processQueue = (error: any, token: string | null = null) => {
 apiClient.interceptors.response.use(
   (res) => res,
   async (error) => {
+    if (isCancelError(error)) {
+      console.log('[apiClient] Request was cancelled, ignoring');
+      return Promise.reject(error);
+    }
+
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {

@@ -12,6 +12,7 @@ import { NotificationPanel } from "@/components/NotificationPanel";
 import { dashboardService, UserProfile, PredictionData } from "@/services/dashboardService";
 import { checkinService } from "@/services/checkinService";
 import { menstrualService } from "@/services/menstrualService";
+import { apiClient } from "@/services/apiClient";
 import { isToolCompleteThisWeek, getCurrentWeekKey } from "@/utils/weekUtils";
 import logo from "@/assets/logo.png";
 
@@ -33,8 +34,10 @@ const getGreeting = () => {
   return "Good morning";
 };
 
-const getDaysSince = (dateStr: string) => {
+  const getDaysSince = (dateStr: string) => {
+  if (!dateStr || dateStr === "") return null;
   const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return null;
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   return Math.floor(diffMs / 86400000);
@@ -155,6 +158,12 @@ interface TodayData {
   date: string;
 }
 
+interface TodaySummary {
+  hrv_rmssd: number | null;
+  fatigue_vas: number | null;
+  mood_score: number | null;
+}
+
 interface MenstrualSummary {
   mean_cycle_len: number | null;
   CLV: number | null;
@@ -173,6 +182,7 @@ const DashboardScreen = () => {
   const [prediction, setPrediction] = useState<PredictionData | null>(null);
   const [predictionLoading, setPredictionLoading] = useState(false);
   const [menstrualSummary, setMenstrualSummary] = useState<MenstrualSummary | null>(null);
+  const [todaySummary, setTodaySummary] = useState<TodaySummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const pollingAttempts = useRef(0);
@@ -187,10 +197,16 @@ const DashboardScreen = () => {
   const fetchPrediction = useCallback(async (silent = false) => {
     if (!silent) setPredictionLoading(true);
     try {
-      const res = await dashboardService.getLatestPrediction();
-      setPrediction(res.data);
-      return res.data;
+      // Use new ML predictions service
+      const res = await dashboardService.getMLPredictions();
+      if (res.data) {
+        setPrediction(res.data);
+        return res.data;
+      }
+      setPrediction(null);
+      return null;
     } catch {
+      setPrediction(null);
       return null;
     } finally {
       if (!silent) setPredictionLoading(false);
@@ -213,20 +229,67 @@ const DashboardScreen = () => {
     }
   }, []);
 
+  const fetchTodaySummary = useCallback(async () => {
+    try {
+      // Fetch HRV from rPPG sessions (via Django proxy to Node.js)
+      let hrv: number | null = null;
+      try {
+        const hrvRes = await apiClient.get('/rppg/sessions');
+        if (hrvRes.data?.data?.sessions?.length > 0) {
+          const latestSession = hrvRes.data.data.sessions[0];
+          hrv = latestSession.rmssd ?? latestSession.hrv_rmssd ?? null;
+        }
+      } catch { /* ignore */ }
+
+      // Fetch fatigue from morning check-in
+      let fatigue: number | null = null;
+      try {
+        const todayRes = await checkinService.getTodayStatus();
+        if (todayRes.data?.morning_session_id) {
+          const morningRes = await apiClient.get(`/checkin/morning/${todayRes.data.morning_session_id}/`);
+          if (morningRes.data?.data) {
+            fatigue = morningRes.data.data.fatigue_vas ?? null;
+          }
+        }
+      } catch { /* ignore */ }
+
+      // Fetch mood from mood history
+      let mood: number | null = null;
+      try {
+        const moodRes = await apiClient.get('/mood/history');
+        const logs = moodRes.data?.data?.logs;
+        if (Array.isArray(logs) && logs.length > 0) {
+          const latestMood = logs[0];
+          // Handle both snake_case and camelCase
+          mood = latestMood.phq4Total ?? latestMood.phq4_total ?? null;
+        }
+      } catch { /* ignore */ }
+
+      setTodaySummary({ hrv_rmssd: hrv, fatigue_vas: fatigue, mood_score: mood });
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const startPredictionPolling = useCallback(() => {
     if (pollingRef.current) return;
     pollingAttempts.current = 0;
     pollingRef.current = setInterval(async () => {
       pollingAttempts.current++;
-      const newPred = await fetchPrediction(true);
-      if (newPred) {
-        const isNew = getDaysSince(newPred.computed_at) === 0;
-        if (isNew || pollingAttempts.current >= 6) {
-          clearInterval(pollingRef.current!);
-          pollingRef.current = null;
+      try {
+        const newPred = await fetchPrediction(true);
+        if (newPred && newPred.id) {
+          const days = getDaysSince(newPred.computed_at);
+          const isNew = days === 0;
+          if (isNew || pollingAttempts.current >= 3) {
+            clearInterval(pollingRef.current!);
+            pollingRef.current = null;
+          }
         }
+      } catch {
+        // Silently ignore polling errors
       }
-      if (pollingAttempts.current >= 6) {
+      if (pollingAttempts.current >= 3) {
         clearInterval(pollingRef.current!);
         pollingRef.current = null;
       }
@@ -242,8 +305,9 @@ const DashboardScreen = () => {
       const [profileRes, todayRes, predRes] = await Promise.allSettled([
         dashboardService.getUserProfile(),
         checkinService.getTodayStatus(),
-        dashboardService.getLatestPrediction(),
+        dashboardService.getMLPredictions(),
         fetchMenstrualSummary(),
+        fetchTodaySummary(),
       ]);
 
       if (profileRes.status === 'fulfilled') {
@@ -281,20 +345,40 @@ const DashboardScreen = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [navigate, fetchMenstrualSummary, startPredictionPolling]);
+  }, [navigate, fetchMenstrualSummary, fetchTodaySummary, startPredictionPolling]);
+
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const fetchDashboardDataSafe = useCallback(async (isRefresh = false) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
+    try {
+      await fetchDashboardData(isRefresh);
+    } catch (err: any) {
+      if (err.name === 'CanceledError' || err?.message?.includes('canceled')) {
+        console.log('[Dashboard] Request was cancelled, ignoring');
+        return;
+      }
+      throw err;
+    }
+  }, [fetchDashboardData]);
 
   useEffect(() => {
     fetchDashboardData();
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
+      if (abortControllerRef.current) abortControllerRef.current.abort();
     };
   }, [fetchDashboardData]);
 
   useEffect(() => {
-    const handleFocus = () => fetchDashboardData(true);
+    const handleFocus = () => fetchDashboardDataSafe(true);
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, [fetchDashboardData]);
+  }, [fetchDashboardDataSafe]);
 
   const getInitials = (name: string) => name.charAt(0).toUpperCase();
 
@@ -419,6 +503,7 @@ const DashboardScreen = () => {
   const riskTier = prediction ? getRiskTier(prediction.risk_score) : null;
   const predictionAge = prediction ? getDaysSince(prediction.computed_at) : null;
   const isUpdatedToday = predictionAge === 0;
+  const hasValidDate = predictionAge !== null;
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
@@ -535,7 +620,7 @@ const DashboardScreen = () => {
             >
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-display font-bold text-gray-900">PCOS Risk Score</h2>
-                {prediction && (
+                {prediction && hasValidDate && (
                   <span className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">
                     {isUpdatedToday ? 'Updated today' : `Updated ${predictionAge} day${predictionAge !== 1 ? 's' : ''} ago`}
                   </span>
@@ -554,6 +639,108 @@ const DashboardScreen = () => {
                 </div>
               )}
             </motion.div>
+
+            {/* New ML Predictions Section - All 4 Models */}
+            {prediction && (prediction.symptom_intensity_risks || prediction.menstrual_risks || prediction.rppg_risks) && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="bg-white rounded-2xl border border-gray-200 p-4"
+              >
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">ML Risk Predictions</h3>
+                
+                <div className="space-y-3">
+                  {/* 1. Symptom Intensity */}
+                  {prediction.symptom_intensity_risks && (
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <span className="text-xs">📝</span>
+                        <p className="text-xs text-gray-500 font-medium">Symptom Intensity</p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        {Object.entries(prediction.symptom_intensity_risks).map(([key, value]) => (
+                          <div key={key} className="text-center p-2 bg-teal-50 rounded">
+                            <div className="font-semibold text-gray-900 text-[10px]">{key.replace('_', ' ')}</div>
+                            <div className="text-teal-700">{(value * 100).toFixed(0)}%</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* 2. Menstrual Health */}
+                  {prediction.menstrual_risks && (
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <span className="text-xs">🩺</span>
+                        <p className="text-xs text-gray-500 font-medium">Menstrual Health</p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        {Object.entries(prediction.menstrual_risks).map(([key, value]) => (
+                          <div key={key} className="text-center p-2 bg-purple-50 rounded">
+                            <div className="font-semibold text-gray-900 text-[10px]">{key.replace('_', ' ')}</div>
+                            <div className="text-purple-700">{(value * 100).toFixed(0)}%</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 3. rPPG Camera */}
+                  {prediction.rppg_risks && (
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <span className="text-xs">📷</span>
+                        <p className="text-xs text-gray-500 font-medium">rPPG Camera</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="p-2 bg-blue-50 rounded">
+                          <p className="text-xs font-semibold text-blue-900">Metabolic</p>
+                          <div className="flex justify-between text-xs text-blue-700">
+                            <span>CVD:</span>
+                            <span>{((prediction.rppg_risks.metabolic?.CVD || 0) * 100).toFixed(0)}%</span>
+                          </div>
+                          <div className="flex justify-between text-xs text-blue-700">
+                            <span>T2D:</span>
+                            <span>{((prediction.rppg_risks.metabolic?.T2D || 0) * 100).toFixed(0)}%</span>
+                          </div>
+                        </div>
+                        <div className="p-2 bg-indigo-50 rounded">
+                          <p className="text-xs font-semibold text-indigo-900">Stress</p>
+                          <div className="flex justify-between text-xs text-indigo-700">
+                            <span>Stress:</span>
+                            <span>{((prediction.rppg_risks.reproductive?.Stress || 0) * 100).toFixed(0)}%</span>
+                          </div>
+                          <div className="flex justify-between text-xs text-indigo-700">
+                            <span>Infert:</span>
+                            <span>{((prediction.rppg_risks.reproductive?.Infertility || 0) * 100).toFixed(0)}%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 4. Mood Analysis */}
+                  {prediction.rppg_risks?.mood && (
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <span className="text-xs">🧠</span>
+                        <p className="text-xs text-gray-500 font-medium">Mood Analysis</p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {Object.entries(prediction.rppg_risks.mood).slice(0, 3).map(([key, value]) => (
+                          <div key={key} className="text-center p-2 bg-amber-50 rounded">
+                            <div className="font-semibold text-gray-900 text-[10px]">{key}</div>
+                            <div className="text-amber-700">{(value * 100).toFixed(0)}%</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -648,20 +835,24 @@ const DashboardScreen = () => {
           <h3 className="font-display font-bold text-gray-900 mb-3">Today's Summary</h3>
           <div className="grid grid-cols-3 gap-3 text-center">
             <div className="p-3 rounded-lg bg-gray-50">
-              <Heart className="h-4 w-4 mx-auto mb-1 text-gray-400" />
-              <p className="text-lg font-bold font-display text-gray-900">—</p>
+              <Heart className="h-4 w-4 mx-auto mb-1 text-teal-500" />
+              <p className="text-lg font-bold font-display text-gray-900">
+                {todaySummary?.hrv_rmssd ? `${todaySummary.hrv_rmssd.toFixed(0)}` : '—'}
+              </p>
               <p className="text-[10px] text-gray-500">HRV</p>
             </div>
             <div className="p-3 rounded-lg bg-gray-50">
-              <TrendingUp className="h-4 w-4 mx-auto mb-1 text-gray-400" />
+              <TrendingUp className="h-4 w-4 mx-auto mb-1 text-amber-500" />
               <p className="text-lg font-bold font-display text-gray-900">
-                {morningComplete ? '—' : '—'}
+                {todaySummary?.fatigue_vas ? `${todaySummary.fatigue_vas.toFixed(1)}` : morningComplete ? '✓' : '—'}
               </p>
               <p className="text-[10px] text-gray-500">Fatigue</p>
             </div>
             <div className="p-3 rounded-lg bg-gray-50">
-              <Sun className="h-4 w-4 mx-auto mb-1 text-gray-400" />
-              <p className="text-lg font-bold font-display text-gray-900">—</p>
+              <Sun className="h-4 w-4 mx-auto mb-1 text-purple-500" />
+              <p className="text-lg font-bold font-display text-gray-900">
+                {todaySummary?.mood_score ? `${todaySummary.mood_score.toFixed(0)}` : '—'}
+              </p>
               <p className="text-[10px] text-gray-500">Mood</p>
             </div>
           </div>

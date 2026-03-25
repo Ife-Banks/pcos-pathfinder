@@ -2,13 +2,13 @@ import apiClient from './apiClient';
 
 export const phcAPI = {
   // PHC1 - Authentication
-  login: async (credentials: { email: string; password: string }) => {
+  login: async (credentials: { email: string; password: string; staff_id?: string }) => {
     const res = await apiClient.post('/auth/login/', credentials);
     return res.data;
   },
 
-  verify2FA: async (code: string, accessToken: string) => {
-    const res = await apiClient.post('/auth/2fa/verify/', { code });
+  verify2FA: async (code: string, email: string) => {
+    const res = await apiClient.post('/auth/2fa/verify/', { email, otp_code: code });
     return res.data;
   },
 
