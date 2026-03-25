@@ -52,6 +52,11 @@ const { loginWithTokens, routeAfterLogin } = useAuth();
       newErrors.password = "Password is required";
     }
     
+    // Staff ID is REQUIRED for all PHC staff logins
+    if (!formData.staff_id?.trim()) {
+      newErrors.staff_id = "Staff ID / Employee Number is required";
+    }
+    
     if (show2FA && !formData.two_factor_code.trim()) {
       newErrors.two_factor_code = "2FA code is required";
     } else if (show2FA && !/^\d{6}$/.test(formData.two_factor_code)) {
@@ -289,9 +294,11 @@ navigate('/phc/dashboard');
                   {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
                 </div>
 
-                {/* Staff ID */}
+                {/* Staff ID - REQUIRED */}
                 <div className="space-y-2">
-                  <Label htmlFor="staff_id">Staff ID / Employee Number</Label>
+                  <Label htmlFor="staff_id">
+                    Staff ID / Employee Number <span className="text-red-500">*</span>
+                  </Label>
                   <div className="relative">
                     <Shield className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
@@ -302,6 +309,7 @@ navigate('/phc/dashboard');
                       onChange={handleInputChange('staff_id')}
                       className="pl-10"
                       disabled={isLoading}
+                      required
                     />
                   </div>
                   {errors.staff_id && <p className="text-sm text-red-600">{errors.staff_id}</p>}
