@@ -57,23 +57,37 @@ const LoginScreen = () => {
       } else {
         navigate('/dashboard');
       }
-    } catch (error: any) {
+    } catch (err: any) {
+      // Axios error structure: err.response.data contains the API response body
+      const errorData = err?.response?.data;
+      const statusCode = err?.response?.status;
+      
       const newErrors: Record<string, string> = {};
       
-      if (error.errors?.code === 'email_not_verified') {
-        // Show resend verification prompt, NOT "wrong password"
+      // Check for email_not_verified code in errors object
+      if (errorData?.errors?.code === 'email_not_verified') {
         newErrors.general = 'Please verify your email first.';
-      } else if (error.email) {
-        newErrors.email = error.email[0];
-      } else if (error.password) {
-        newErrors.password = error.password[0];
-      } else if (error.detail) {
-        if (error.detail.includes("401") || error.detail.includes("credentials")) {
+      } else if (errorData?.errors?.email) {
+        newErrors.email = Array.isArray(errorData.errors.email) 
+          ? errorData.errors.email[0] 
+          : errorData.errors.email;
+      } else if (errorData?.errors?.password) {
+        newErrors.password = Array.isArray(errorData.errors.password)
+          ? errorData.errors.password[0]
+          : errorData.errors.password;
+      } else if (errorData?.message) {
+        if (statusCode === 401 || errorData?.message?.toLowerCase().includes("credentials")) {
           newErrors.general = "Incorrect email or password";
-        } else if (error.detail.includes("429") || error.detail.includes("too many")) {
+        } else if (statusCode === 429 || errorData?.message?.toLowerCase().includes("throttled")) {
           newErrors.general = "Too many attempts. Try again later";
         } else {
-          newErrors.general = error.detail;
+          newErrors.general = errorData.message;
+        }
+      } else if (errorData?.detail) {
+        if (errorData.detail.includes("401") || errorData.detail.includes("credentials")) {
+          newErrors.general = "Incorrect email or password";
+        } else {
+          newErrors.general = errorData.detail;
         }
       } else {
         newErrors.general = "Login failed. Please try again.";

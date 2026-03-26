@@ -38,6 +38,8 @@ const SignUpScreen = () => {
       newErrors.password = "Password is required";
     } else if (form.password.length < 8) {
       newErrors.password = "Password must be at least 8 characters";
+    } else if (/^\d+$/.test(form.password)) {
+      newErrors.password = "Password cannot be entirely numbers";
     }
 
     if (form.password !== form.confirmPassword) {
@@ -83,44 +85,28 @@ const SignUpScreen = () => {
 
     } catch (err: any) {
       console.error("❌ Registration error:", err);
-      console.error("Error details:", {
-        status: err?.status,
-        statusText: err?.statusText,
-        message: err?.message,
-        errors: err?.errors
-      });
 
-      // Map backend field errors to form error state
+      // Extract backend errors from axios error response
+      const errorData = err?.response?.data;
       const backendErrors: Record<string, string> = {};
 
-      if (err?.errors?.full_name) {
-        backendErrors.name = Array.isArray(err.errors.full_name)
-          ? err.errors.full_name[0]
-          : err.errors.full_name;
-      }
-
-      if (err?.errors?.email) {
-        backendErrors.email = Array.isArray(err.errors.email)
-          ? err.errors.email[0]
-          : err.errors.email;
-      }
-
-      if (err?.errors?.password) {
-        backendErrors.password = Array.isArray(err.errors.password)
-          ? err.errors.password[0]
-          : err.errors.password;
-      }
-
-      if (err?.errors?.confirm_password) {
-        backendErrors.confirmPassword = Array.isArray(err.errors.confirm_password)
-          ? err.errors.confirm_password[0]
-          : err.errors.confirm_password;
+      if (errorData?.errors) {
+        // Handle DRF error format with nested errors object
+        const errors = errorData.errors;
+        if (errors.full_name) backendErrors.name = Array.isArray(errors.full_name) ? errors.full_name[0] : errors.full_name;
+        if (errors.email) backendErrors.email = Array.isArray(errors.email) ? errors.email[0] : errors.email;
+        if (errors.password) backendErrors.password = Array.isArray(errors.password) ? errors.password[0] : errors.password;
+        if (errors.confirm_password) backendErrors.confirmPassword = Array.isArray(errors.confirm_password) ? errors.confirm_password[0] : errors.confirm_password;
+      } else if (errorData?.message) {
+        // Handle simple message format
+        backendErrors.general = errorData.message;
+      } else if (typeof errorData === 'string') {
+        backendErrors.general = errorData;
       }
 
       // If no specific field errors, show a general message
       if (Object.keys(backendErrors).length === 0) {
-        backendErrors.general =
-          err?.message || "Registration failed. Please try again.";
+        backendErrors.general = "Registration failed. Please check your details and try again.";
       }
 
       setErrors(backendErrors);

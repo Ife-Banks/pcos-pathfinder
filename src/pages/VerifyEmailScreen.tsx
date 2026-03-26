@@ -53,17 +53,23 @@ const VerifyEmailScreen = () => {
       const result = await authAPI.verifyEmail(token);
       console.log('✅ Verify success:', result);
       
-      const { tokens, ...user } = result.data;
+      // Backend returns: { status: "success", data: { ...user_fields, tokens: {...} } }
+      // result.data is the response body: { status, data, message }
+      // result.data.data is the actual user data with tokens
+      const responseData = result.data.data;
+      const { tokens, ...user } = responseData;
 
       // Store tokens using the token storage utility
       await saveTokens(tokens.access, tokens.refresh);
       
+      // Set isVerified to true BEFORE navigating
+      setIsVerified(true);
+      
       // Set user data in AuthContext
-      loginWithTokens(user, tokens.access);
+      loginWithTokens(user, tokens.access, tokens.refresh);
       
       // Route based on onboarding status
       if (!user.onboarding_completed) {
-        // Route to specific onboarding step based on user.onboarding_step
         const step = user.onboarding_step || 0;
         const stepRoutes: Record<number, string> = {
           0: '/onboarding/step/1',
@@ -80,16 +86,37 @@ const VerifyEmailScreen = () => {
       }
       
     } catch (err: any) {
-      // Log the FULL error to see the real reason
-      console.error('❌ Verify failed - full error:', JSON.stringify(err));
-      console.error('Status:', err?.status);
-      console.error('Status Text:', err?.statusText);
-      console.error('Message:', err?.message);
-      console.error('Errors:', err?.errors);
+      // Axios error structure: err.response.data contains the API response
+      const errorData = err?.response?.data;
+      const statusCode = err?.response?.status;
       
-      setVerifyError(
-        err?.message || 'Verification failed. The link may have expired.'
-      );
+      let errorMessage = 'Verification failed. The link may have expired.';
+      
+      // First priority: message from backend
+      if (errorData?.message) {
+        errorMessage = errorData.message;
+      }
+      
+      // For validation errors, extract useful info from errors field
+      if (errorData?.errors) {
+        const errors = errorData.errors;
+        // Handle { token: ["Error message"] } format
+        if (errors.token && Array.isArray(errors.token)) {
+          errorMessage = errors.token[0];
+        }
+        // Handle { non_field_errors: [...] } format  
+        else if (errors.non_field_errors && Array.isArray(errors.non_field_errors)) {
+          errorMessage = errors.non_field_errors[0];
+        }
+      }
+      
+      console.error('❌ Verify failed:', {
+        status: statusCode,
+        data: errorData,
+        message: errorMessage
+      });
+      
+      setVerifyError(errorMessage);
     } finally {
       setIsVerifying(false);
     }
