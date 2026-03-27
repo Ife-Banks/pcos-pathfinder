@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Plus, X, Copy, Check, Loader2, RefreshCw } from 'lucide-react';
+import { LogOut, Plus, X, Copy, Check, Loader2, RefreshCw, ChevronDown, ChevronUp, Scale } from 'lucide-react';
 import PHCLayout from '@/components/phc/PHCLayout';
 import { phcAPI } from '@/services/phcService';
 import { useAuth } from '@/context/AuthContext';
@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import apiClient from '@/services/apiClient';
 
 interface StaffMember {
   id: string;
@@ -33,6 +34,21 @@ interface PHCProfile {
   email: string;
   status: string;
   staff_count: number;
+}
+
+interface EnsembleWeightConfig {
+  id: string;
+  disease_name: string;
+  symptom_weight: number;
+  menstrual_weight: number;
+  rppg_weight: number;
+  mood_weight: number;
+  rotterdam_2_criteria_boost: number;
+  rotterdam_3_criteria_boost: number;
+  metabolic_reproductive_boost: number;
+  mood_rppg_stress_boost: number;
+  is_active: boolean;
+  updated_at: string;
 }
 
 const STAFF_ROLES = [
@@ -69,6 +85,12 @@ export default function PHCSettings() {
   const [tempPassword, setTempPassword] = useState('');
   const [tempEmail, setTempEmail] = useState('');
   const [copied, setCopied] = useState(false);
+  
+  // Ensemble Weight Config state
+  const [showEnsembleWeights, setShowEnsembleWeights] = useState(false);
+  const [weightConfigs, setWeightConfigs] = useState<Record<string, EnsembleWeightConfig>>({});
+  const [editingDisease, setEditingDisease] = useState<string | null>(null);
+  const [editedWeights, setEditedWeights] = useState<Record<string, number>>({});
   
   // Password form
   const [passwordForm, setPasswordForm] = useState({
@@ -183,6 +205,87 @@ export default function PHCSettings() {
       setSaving(false);
     }
   };
+  
+  // Fetch ensemble weight configs
+  const fetchEnsembleWeights = async () => {
+    try {
+      const res = await apiClient.get('/predictions/ensemble-config/');
+      const configs = res.data?.data?.configurations || [];
+      const configMap: Record<string, EnsembleWeightConfig> = {};
+      configs.forEach((c: EnsembleWeightConfig) => {
+        configMap[c.disease_name] = c;
+      });
+      setWeightConfigs(configMap);
+    } catch (err) {
+      console.error('Error fetching ensemble weights:', err);
+    }
+  };
+  
+  // Update ensemble weight
+  const handleUpdateWeight = async (diseaseName: string) => {
+    const config = weightConfigs[diseaseName];
+    if (!config) return;
+    
+    const weights = [editedWeights.symptom, editedWeights.menstrual, editedWeights.rppg, editedWeights.mood];
+    const total = weights.reduce((a, b) => a + b, 0);
+    
+    if (Math.abs(total - 1.0) > 0.01) {
+      toast({ title: 'Error', description: `Weights must sum to 1.0 (current sum: ${total.toFixed(3)})`, variant: 'destructive' });
+      return;
+    }
+    
+    try {
+      setSaving(true);
+      await apiClient.put(`/predictions/ensemble-config/${diseaseName}/`, {
+        symptom_weight: editedWeights.symptom,
+        menstrual_weight: editedWeights.menstrual,
+        rppg_weight: editedWeights.rppg,
+        mood_weight: editedWeights.mood,
+      });
+      
+      toast({ title: 'Success', description: `Weights updated for ${diseaseName}` });
+      setEditingDisease(null);
+      await fetchEnsembleWeights();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err?.response?.data?.message || 'Failed to update weights', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+  
+  // Reset to defaults
+  const handleResetWeights = async () => {
+    try {
+      setSaving(true);
+      await apiClient.post('/predictions/ensemble-config/reset/');
+      toast({ title: 'Success', description: 'Weights reset to defaults' });
+      await fetchEnsembleWeights();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err?.response?.data?.message || 'Failed to reset weights', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+  
+  // Start editing a disease
+  const startEditing = (diseaseName: string) => {
+    const config = weightConfigs[diseaseName];
+    if (!config) return;
+    setEditedWeights({
+      symptom: config.symptom_weight,
+      menstrual: config.menstrual_weight,
+      rppg: config.rppg_weight,
+      mood: config.mood_weight,
+    });
+    setEditingDisease(diseaseName);
+  };
+  
+  // Fetch ensemble weights when section is shown
+  useEffect(() => {
+    if (showEnsembleWeights && isAdmin) {
+      fetchEnsembleWeights();
+    }
+  }, [showEnsembleWeights, isAdmin]);
   
   // Format date
   const formatDate = (dateStr: string | null) => {
@@ -318,6 +421,140 @@ export default function PHCSettings() {
         <h3 className="text-sm font-semibold text-[#1E1B2E] mb-3 border-l-4 border-[#2E8B57] pl-3">Notification Preferences</h3>
         <p className="text-xs text-gray-500 mb-3">Notification settings coming soon.</p>
       </div>
+
+      {/* Ensemble Weight Configuration - Admin Only */}
+      {isAdmin && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6 mb-4">
+          <button 
+            onClick={() => setShowEnsembleWeights(!showEnsembleWeights)}
+            className="w-full flex items-center justify-between text-left"
+          >
+            <div className="flex items-center gap-2">
+              <Scale className="h-5 w-5 text-[#2E8B57]" />
+              <h3 className="text-sm font-semibold text-[#1E1B2E]">Risk Score Weights</h3>
+            </div>
+            {showEnsembleWeights ? <ChevronUp className="h-5 w-5 text-gray-400" /> : <ChevronDown className="h-5 w-5 text-gray-400" />}
+          </button>
+          
+          {showEnsembleWeights && (
+            <div className="mt-4">
+              <p className="text-xs text-gray-500 mb-4">
+                Configure how each data source contributes to disease risk scores. Weights must sum to 1.0 (100%).
+              </p>
+              
+              <div className="space-y-4">
+                {Object.entries(weightConfigs).map(([disease, config]) => (
+                  <div key={disease} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-medium text-sm text-[#1E1B2E]">{disease}</h4>
+                      {editingDisease === disease ? (
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => setEditingDisease(null)}
+                            className="text-xs text-gray-500 hover:text-gray-700"
+                          >
+                            Cancel
+                          </button>
+                          <button 
+                            onClick={() => handleUpdateWeight(disease)}
+                            disabled={saving}
+                            className="text-xs bg-[#2E8B57] text-white px-3 py-1 rounded font-medium"
+                          >
+                            {saving ? 'Saving...' : 'Save'}
+                          </button>
+                        </div>
+                      ) : (
+                        <button 
+                          onClick={() => startEditing(disease)}
+                          className="text-xs text-[#2E8B57] hover:underline"
+                        >
+                          Edit
+                        </button>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-4 gap-2 text-xs">
+                      <div className="text-center">
+                        <div className="font-medium text-[#1E1B2E]">Symptom</div>
+                        {editingDisease === disease ? (
+                          <input 
+                            type="number" 
+                            step="0.05"
+                            min="0"
+                            max="1"
+                            value={editedWeights.symptom}
+                            onChange={e => setEditedWeights(w => ({ ...w, symptom: parseFloat(e.target.value) || 0 }))}
+                            className="w-full border border-gray-300 rounded px-2 py-1 text-center mt-1"
+                          />
+                        ) : (
+                          <div className="text-[#2E8B57]">{(config.symptom_weight * 100).toFixed(0)}%</div>
+                        )}
+                      </div>
+                      <div className="text-center">
+                        <div className="font-medium text-[#1E1B2E]">Menstrual</div>
+                        {editingDisease === disease ? (
+                          <input 
+                            type="number" 
+                            step="0.05"
+                            min="0"
+                            max="1"
+                            value={editedWeights.menstrual}
+                            onChange={e => setEditedWeights(w => ({ ...w, menstrual: parseFloat(e.target.value) || 0 }))}
+                            className="w-full border border-gray-300 rounded px-2 py-1 text-center mt-1"
+                          />
+                        ) : (
+                          <div className="text-[#2E8B57]">{(config.menstrual_weight * 100).toFixed(0)}%</div>
+                        )}
+                      </div>
+                      <div className="text-center">
+                        <div className="font-medium text-[#1E1B2E]">rPPG</div>
+                        {editingDisease === disease ? (
+                          <input 
+                            type="number" 
+                            step="0.05"
+                            min="0"
+                            max="1"
+                            value={editedWeights.rppg}
+                            onChange={e => setEditedWeights(w => ({ ...w, rppg: parseFloat(e.target.value) || 0 }))}
+                            className="w-full border border-gray-300 rounded px-2 py-1 text-center mt-1"
+                          />
+                        ) : (
+                          <div className="text-[#2E8B57]">{(config.rppg_weight * 100).toFixed(0)}%</div>
+                        )}
+                      </div>
+                      <div className="text-center">
+                        <div className="font-medium text-[#1E1B2E]">Mood</div>
+                        {editingDisease === disease ? (
+                          <input 
+                            type="number" 
+                            step="0.05"
+                            min="0"
+                            max="1"
+                            value={editedWeights.mood}
+                            onChange={e => setEditedWeights(w => ({ ...w, mood: parseFloat(e.target.value) || 0 }))}
+                            className="w-full border border-gray-300 rounded px-2 py-1 text-center mt-1"
+                          />
+                        ) : (
+                          <div className="text-[#2E8B57]">{(config.mood_weight * 100).toFixed(0)}%</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <button 
+                onClick={handleResetWeights}
+                disabled={saving}
+                className="mt-4 text-xs text-gray-500 hover:text-[#2E8B57] flex items-center gap-1"
+              >
+                <RefreshCw className="h-3 w-3" />
+                Reset to defaults
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Logout */}
       <button onClick={() => setShowLogout(true)}

@@ -46,6 +46,8 @@ export interface ComprehensivePrediction {
   id: string;
   final_risk_score: number;
   risk_tier: string;
+  pcos_specific_score?: number;
+  per_disease_scores?: Record<string, number>;
   all_predictions: {
     symptom: Record<string, DiseasePrediction>;
     menstrual: Record<string, DiseasePrediction>;
@@ -73,6 +75,20 @@ export interface ComprehensivePrediction {
     description: string;
     severity: string;
   }>;
+  clinical_rules_triggered?: string[];
+  clinical_rules_applied?: Array<{
+    rule: string;
+    label: string;
+  }>;
+  weights_used?: Record<string, Record<string, number>>;
+  calculation_breakdown?: {
+    base_scores: Record<string, number>;
+    boost_applied: number;
+    clinical_rules_details: Record<string, any>;
+    data_quality: Record<string, number>;
+    weight_adjustments: Record<string, Record<string, number>>;
+  };
+  calculation_explanation?: string;
   highest_risk_disease: string;
   highest_risk_model: string;
   patient_notified: boolean;

@@ -9,11 +9,15 @@ import {
   ShieldAlert,
   ShieldCheck,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Info,
   Loader2,
   RefreshCw,
   CheckCircle,
   AlertCircle,
+  Scale,
+  Activity,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +26,13 @@ import { predictionService, PredictionRecord, SHAPDriver, DiseasePrediction, Com
 import { toast } from "@/hooks/use-toast";
 
 const TEAL = '#00897B';
+
+const getColorForScore = (score: number) => {
+  if (score < 0.25) return '#27AE60';
+  if (score < 0.50) return '#F39C12';
+  if (score < 0.75) return '#E67E22';
+  return '#E74C3C';
+};
 
 interface TierConfig {
   max: number;
@@ -47,6 +58,8 @@ const PCOSRiskScore = () => {
   const [prediction, setPrediction] = useState<PredictionRecord | null>(null);
   const [comprehensive, setComprehensive] = useState<ComprehensivePrediction | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showCalculation, setShowCalculation] = useState(false);
+  const [showDiseaseScores, setShowDiseaseScores] = useState(false);
 
   const safeTierConfig = prediction
     ? (TRIAGE_TIERS.find(t => t.label.toUpperCase() === (prediction.risk_tier ?? '').toUpperCase())
@@ -361,6 +374,137 @@ const PCOSRiskScore = () => {
             </CardContent>
           </Card>
         </motion.div>
+
+        {/* PCOS-Specific Score */}
+        {comprehensive?.pcos_specific_score !== undefined && comprehensive?.pcos_specific_score !== null && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
+            <Card className="border-teal-200 bg-teal-50">
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold text-teal-800">PCOS-Specific Score</h3>
+                    <p className="text-xs text-teal-600">Weighted ensemble with clinical adjustments</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-teal-700">{(comprehensive.pcos_specific_score * 100).toFixed(0)}%</p>
+                    <p className="text-xs text-teal-500">{TRIAGE_TIERS.find(t => comprehensive.pcos_specific_score < t.max)?.tierLabel || 'Critical'}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Per-Disease Scores */}
+        {comprehensive?.per_disease_scores && Object.keys(comprehensive.per_disease_scores).length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+            <button 
+              onClick={() => setShowDiseaseScores(!showDiseaseScores)}
+              className="w-full flex items-center justify-between mb-3"
+            >
+              <h2 className="font-display font-semibold text-xs text-gray-400 uppercase tracking-wider">
+                All Disease Scores
+              </h2>
+              {showDiseaseScores ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+            </button>
+            
+            {showDiseaseScores && (
+              <Card className="border border-gray-200 mb-4">
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    {Object.entries(comprehensive.per_disease_scores).map(([disease, diseaseScore]) => {
+                      const color = getColorForScore(diseaseScore);
+                      return (
+                        <div key={disease} className="flex items-center gap-3">
+                          <span className="text-sm font-medium text-gray-700 w-32">{disease}</span>
+                          <div className="flex-1 bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="h-2 rounded-full transition-all"
+                              style={{ width: `${diseaseScore * 100}%`, backgroundColor: color }}
+                            />
+                          </div>
+                          <span className="text-sm font-semibold w-12 text-right" style={{ color }}>
+                            {(diseaseScore * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </motion.div>
+        )}
+
+        {/* Clinical Rules Triggered */}
+        {comprehensive?.clinical_rules_applied && comprehensive.clinical_rules_applied.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}>
+            <Card className="border-teal-200 bg-teal-50">
+              <CardContent className="pt-4">
+                <h3 className="text-sm font-semibold text-teal-800 mb-2 flex items-center gap-2">
+                  <Activity className="w-4 h-4" />
+                  Clinical Rules Applied
+                </h3>
+                <ul className="space-y-1.5">
+                  {comprehensive.clinical_rules_applied.map((rule, i) => (
+                    <li key={i} className="flex items-center gap-2 text-xs text-teal-700">
+                      <CheckCircle className="w-3.5 h-3.5 text-teal-600" />
+                      {rule.label}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* How Was This Calculated? */}
+        {(comprehensive?.calculation_explanation || comprehensive?.weights_used) && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+            <button 
+              onClick={() => setShowCalculation(!showCalculation)}
+              className="w-full flex items-center justify-between mb-3 bg-teal-50 border border-teal-200 rounded-xl p-3"
+            >
+              <div className="flex items-center gap-2">
+                <Scale className="w-4 h-4 text-teal-600" />
+                <span className="text-sm font-medium text-teal-800">How was this score calculated?</span>
+              </div>
+              {showCalculation ? <ChevronUp className="w-4 h-4 text-teal-600" /> : <ChevronDown className="w-4 h-4 text-teal-600" />}
+            </button>
+            
+            {showCalculation && (
+              <Card className="border border-gray-200 mb-4">
+                <CardContent className="p-4 space-y-4">
+                  {comprehensive.calculation_explanation && (
+                    <p className="text-xs text-gray-600">{comprehensive.calculation_explanation}</p>
+                  )}
+                  
+                  {comprehensive.weights_used && Object.keys(comprehensive.weights_used).length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-semibold text-gray-700 mb-2">Model Weights Used (for PCOS)</h4>
+                      <div className="grid grid-cols-4 gap-2 text-center">
+                        {Object.entries(comprehensive.weights_used.PCOS || {}).map(([model, weight]) => (
+                          <div key={model} className="bg-gray-50 rounded-lg p-2">
+                            <div className="text-lg font-bold text-gray-900">{(weight * 100).toFixed(0)}%</div>
+                            <div className="text-[10px] text-gray-500 capitalize">{model}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {comprehensive.calculation_breakdown?.boost_applied > 0 && (
+                    <div className="bg-teal-50 rounded-lg p-3">
+                      <p className="text-xs text-teal-700">
+                        <span className="font-semibold">Clinical boost applied:</span> +{(comprehensive.calculation_breakdown.boost_applied * 100).toFixed(0)}%
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </motion.div>
+        )}
 
         {/* All 4 Models Section */}
         {prediction.all_predictions && (
