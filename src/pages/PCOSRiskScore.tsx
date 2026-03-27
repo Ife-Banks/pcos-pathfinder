@@ -11,11 +11,14 @@ import {
   ChevronRight,
   Info,
   Loader2,
+  RefreshCw,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { predictionService, PredictionRecord, SHAPDriver, ModelPredictions, DiseasePrediction } from "@/services/predictionService";
+import { predictionService, PredictionRecord, SHAPDriver, DiseasePrediction, ComprehensivePrediction } from "@/services/predictionService";
 import { toast } from "@/hooks/use-toast";
 
 const TEAL = '#00897B';
@@ -40,7 +43,9 @@ const TRIAGE_TIERS: TierConfig[] = [
 const PCOSRiskScore = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [prediction, setPrediction] = useState<PredictionRecord | null>(null);
+  const [comprehensive, setComprehensive] = useState<ComprehensivePrediction | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const safeTierConfig = prediction
@@ -48,32 +53,66 @@ const PCOSRiskScore = () => {
       ?? TRIAGE_TIERS[0])
     : null;
 
-  const fetchPrediction = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const fetchComprehensive = useCallback(async () => {
     try {
-      const res = await predictionService.getPCOSRiskScore();
-      setPrediction(res.data);
+      const res = await predictionService.getComprehensive();
+      const data = res.data;
+      setComprehensive(data);
+      
+      // Also set legacy prediction format for gauge
+      setPrediction({
+        id: data.id,
+        risk_score: data.final_risk_score,
+        risk_tier: data.risk_tier,
+        computed_at: data.computed_at,
+        data_layers_used: data.data_layers_used,
+        all_predictions: data.all_predictions,
+      });
 
-      localStorage.setItem('latest_prediction_id', res.data.id);
-      localStorage.setItem('latest_risk_tier', res.data.risk_tier);
-      localStorage.setItem('latest_risk_score', String(res.data.risk_score));
+      localStorage.setItem('latest_prediction_id', data.id);
+      localStorage.setItem('latest_risk_tier', data.risk_tier);
+      localStorage.setItem('latest_risk_score', String(data.final_risk_score));
     } catch (err: any) {
-      if (err?.status === 401) {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        navigate('/login');
-        return;
-      }
-      if (err?.status === 404) {
-        setPrediction(null);
-      } else {
-        setError('Unable to load data. Please try again.');
+      console.error('Error fetching comprehensive prediction:', err);
+      // Fallback to legacy endpoint
+      try {
+        const res = await predictionService.getPCOSRiskScore();
+        setPrediction(res.data);
+      } catch (legacyErr) {
+        if (err?.status === 401) {
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          navigate('/login');
+          return;
+        }
+        if (err?.status === 404) {
+          setPrediction(null);
+          setComprehensive(null);
+        } else {
+          setError('Unable to load data. Please try again.');
+        }
       }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [navigate]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await predictionService.triggerComprehensive();
+      await fetchComprehensive();
+      toast({ title: 'Success', description: 'Risk assessment updated.' });
+    } catch (err) {
+      toast({ title: 'Error', description: 'Failed to refresh. Please try again.', variant: 'destructive' });
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchComprehensive();
+  }, [fetchComprehensive]);
 
   useEffect(() => {
     fetchPrediction();
@@ -202,12 +241,84 @@ const PCOSRiskScore = () => {
           <h1 className="font-display text-lg font-bold text-gray-900">PCOS Risk Score</h1>
           <p className="text-xs text-gray-500">AI-powered assessment</p>
         </div>
+        <button onClick={handleRefresh} disabled={refreshing} className="p-1.5 rounded-lg hover:bg-gray-100">
+          <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} style={{ color: TEAL }} />
+        </button>
         <button onClick={() => navigate("/risk-trend")} className="p-1.5 rounded-lg hover:bg-gray-100">
           <TrendingUp className="w-5 h-5" style={{ color: TEAL }} />
         </button>
       </header>
 
       <div className="p-4 space-y-4">
+        {/* Data Sources Section */}
+        {comprehensive?.data_sources && comprehensive.data_sources.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <Card className="border border-gray-200">
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-700">Data Sources</h3>
+                  <span className="text-xs text-gray-500">{comprehensive.data_completeness_pct}% complete</span>
+                </div>
+                <div className="space-y-2">
+                  {comprehensive.data_sources.map((source) => (
+                    <div key={source.layer} className="flex items-center gap-2">
+                      <span className="text-base">{source.icon}</span>
+                      <div className="flex-1">
+                        <p className="text-xs font-medium text-gray-800">{source.name}</p>
+                        <p className="text-[10px] text-gray-500">{source.description}</p>
+                      </div>
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    </div>
+                  ))}
+                  {/* Show missing layers */}
+                  {['symptom', 'menstrual', 'rppg', 'mood'].filter(
+                    layer => !comprehensive.data_layers_used?.includes(layer)
+                  ).map((layer) => {
+                    const labels: Record<string, {name: string, icon: string, desc: string}> = {
+                      symptom: { name: 'Symptom Check-ins', icon: '📋', desc: 'Complete daily check-ins' },
+                      menstrual: { name: 'Menstrual Tracking', icon: '🩺', desc: 'Log period data' },
+                      rppg: { name: 'rPPG / HRV', icon: '❤️', desc: 'Measure heart rate variability' },
+                      mood: { name: 'Mood Tracking', icon: '🧠', desc: 'Complete mood assessments' },
+                    };
+                    const info = labels[layer];
+                    return (
+                      <div key={layer} className="flex items-center gap-2 opacity-50">
+                        <span className="text-base">{info?.icon}</span>
+                        <div className="flex-1">
+                          <p className="text-xs font-medium text-gray-600">{info?.name}</p>
+                          <p className="text-[10px] text-gray-400">{info?.desc}</p>
+                        </div>
+                        <AlertCircle className="w-4 h-4 text-amber-500" />
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Clinical Flags Section */}
+        {comprehensive?.clinical_flags && comprehensive.clinical_flags.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+            <Card className="border-amber-200 bg-amber-50">
+              <CardContent className="pt-4">
+                <h3 className="text-sm font-semibold text-amber-800 mb-2">Clinical Indicators</h3>
+                <div className="space-y-2">
+                  {comprehensive.clinical_flags.map((flag) => (
+                    <div key={flag.flag} className="flex items-start gap-2">
+                      <AlertCircle className={`w-4 h-4 mt-0.5 ${flag.severity === 'high' ? 'text-red-500' : 'text-amber-500'}`} />
+                      <div>
+                        <p className="text-xs font-medium text-amber-900">{flag.label}</p>
+                        <p className="text-[10px] text-amber-700">{flag.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center justify-between">
             <span className="text-sm text-red-700">{error}</span>

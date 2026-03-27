@@ -42,6 +42,45 @@ export interface PredictionRecord {
   all_predictions?: ModelPredictions;
 }
 
+export interface ComprehensivePrediction {
+  id: string;
+  final_risk_score: number;
+  risk_tier: string;
+  all_predictions: {
+    symptom: Record<string, DiseasePrediction>;
+    menstrual: Record<string, DiseasePrediction>;
+    rppg: Record<string, DiseasePrediction>;
+    mood: Record<string, DiseasePrediction>;
+  };
+  data_layers_used: string[];
+  data_completeness_pct: number;
+  data_sources: Array<{
+    layer: string;
+    name: string;
+    description: string;
+    icon: string;
+    active: boolean;
+  }>;
+  severity_flags: {
+    ovulatory_dysfunction?: boolean;
+    hyperandrogenism?: boolean;
+    metabolic_stress?: boolean;
+    pcom_suspected?: boolean;
+  };
+  clinical_flags: Array<{
+    flag: string;
+    label: string;
+    description: string;
+    severity: string;
+  }>;
+  highest_risk_disease: string;
+  highest_risk_model: string;
+  patient_notified: boolean;
+  escalated_to_phc: boolean;
+  escalated_to_fmc: boolean;
+  computed_at: string;
+}
+
 export interface PredictionResponse {
   success: boolean;
   status: number;
@@ -141,5 +180,35 @@ export const predictionService = {
     const body = res.data;
     ensureSuccess(body);
     return body;
+  },
+
+  // Comprehensive prediction methods
+  getComprehensive: async (): Promise<{ data: ComprehensivePrediction }> => {
+    const res = await apiClient.get('/predictions/comprehensive/');
+    return res.data;
+  },
+
+  triggerComprehensive: async (): Promise<{ data: ComprehensivePrediction }> => {
+    const res = await apiClient.post('/predictions/comprehensive/');
+    return res.data;
+  },
+
+  // Per-model escalation triggers
+  escalateMood: async (predictions: Record<string, DiseasePrediction>) => {
+    const res = await apiClient.post('/predictions/escalate/mood/', { predictions });
+    return res.data;
+  },
+
+  escalateMenstrual: async (predictions: Record<string, DiseasePrediction>, criterionFlags?: any) => {
+    const res = await apiClient.post('/predictions/escalate/menstrual/', { 
+      predictions,
+      criterion_flags: criterionFlags || {}
+    });
+    return res.data;
+  },
+
+  escalateRppg: async (predictions: Record<string, DiseasePrediction>) => {
+    const res = await apiClient.post('/predictions/escalate/rppg/', { predictions });
+    return res.data;
   },
 };

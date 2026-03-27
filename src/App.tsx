@@ -95,6 +95,7 @@ import FMCDashboardScreen from "./pages/fmc/FMCDashboardScreen";
 import FMCPatientDetailScreen from "./pages/fmc/FMCPatientDetailScreen";
 import FMCAssignmentScreen from "./pages/fmc/FMCAssignmentScreen";
 import FMCDiagnosticsScreen from "./pages/fmc/FMCDiagnosticsScreen";
+import RppgCaptureScreen from "./pages/RppgCaptureScreen";
 
 const queryClient = new QueryClient();
 
@@ -209,6 +210,7 @@ const App = () => {
                     <Route path="/fmc/patients/:id" element={<FMCPatientDetailScreen />} />
                     <Route path="/fmc/assignment" element={<FMCAssignmentScreen />} />
                     <Route path="/fmc/diagnostics" element={<FMCDiagnosticsScreen />} />
+                    <Route path="/rppg-capture" element={<RppgCaptureScreen />} />
                     <Route path="/unauthorized" element={<UnauthorizedScreen />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>

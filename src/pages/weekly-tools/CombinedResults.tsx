@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { moodService, PredictionResponse } from "@/services/moodService";
+import { predictionService } from "@/services/predictionService";
 
 const TEAL_PRIMARY = '#00897B';
 
@@ -60,13 +61,23 @@ const CombinedResults = () => {
         moodService.predictReproductive(),
       ]);
 
+      const mentalHealthData = mentalHealth.status === 'fulfilled' ? mentalHealth.value : null;
+      
       setPredictions({
-        mentalHealth: mentalHealth.status === 'fulfilled' ? mentalHealth.value : null,
+        mentalHealth: mentalHealthData,
         metabolic: metabolic.status === 'fulfilled' ? metabolic.value : null,
         cardioNeuro: cardioNeuro.status === 'fulfilled' ? cardioNeuro.value : null,
         reproductive: reproductive.status === 'fulfilled' ? reproductive.value : null,
         errors: newErrors,
       });
+
+      if (mentalHealthData && mentalHealthData.data?.predictions) {
+        try {
+          await predictionService.escalateMood(mentalHealthData.data.predictions);
+        } catch (escalateErr) {
+          console.warn('Mood escalation check failed:', escalateErr);
+        }
+      }
     } catch (err: any) {
       console.error('Error fetching predictions:', err);
     } finally {

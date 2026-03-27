@@ -8,6 +8,14 @@ import { onboardingAPI } from '@/services/onboardingService';
 import { useOnboarding } from '@/context/OnboardingContext';
 import RppgCamera from '@/components/RppgCamera';
 import { rppgService, RppgSessionPayload } from '@/services/rppgService';
+import { predictionService } from '@/services/predictionService';
+
+const getSeverityFromScore = (score: number): string => {
+  if (score >= 0.7) return 'Severe';
+  if (score >= 0.5) return 'Moderate';
+  if (score >= 0.3) return 'Mild';
+  return 'Minimal';
+};
 
 const Step6rPPG = () => {
   const navigate = useNavigate();
@@ -29,19 +37,41 @@ const Step6rPPG = () => {
       setIsLoading(true);
       setErrors({});
       
-      // Log rPPG session to backend
       await rppgService.logSession(metrics);
-      
-      // Save onboarding step 6
       await onboardingAPI.saveStep6rPPG();
-      
-      // Refresh profile data
       await refreshProfile();
-      
+
+      try {
+        const [metabolicCardio, stressReproductive] = await Promise.allSettled([
+          rppgService.predictMetabolicCardio(),
+          rppgService.predictStressReproductive(),
+        ]);
+
+        const predictions: Record<string, { risk_score: number; severity: string }> = {};
+        
+        if (metabolicCardio.status === 'fulfilled') {
+          const mcPreds = metabolicCardio.value.data.predictions;
+          Object.entries(mcPreds).forEach(([key, value]) => {
+            predictions[key] = { risk_score: value, severity: getSeverityFromScore(value) };
+          });
+        }
+
+        if (stressReproductive.status === 'fulfilled') {
+          const srPreds = stressReproductive.value.data.predictions;
+          Object.entries(srPreds).forEach(([key, value]) => {
+            predictions[key] = { risk_score: value, severity: getSeverityFromScore(value) };
+          });
+        }
+
+        if (Object.keys(predictions).length > 0) {
+          await predictionService.escalateRppg(predictions);
+        }
+      } catch (escalateErr) {
+        console.warn('rPPG escalation check failed:', escalateErr);
+      }
+
       setCaptureComplete(true);
       setIsCapturing(false);
-      
-      // Navigate to step 7 after successful capture
       navigate('/onboarding/step/7');
     } catch (err: any) {
       const backendErrors: Record<string, string> = {};

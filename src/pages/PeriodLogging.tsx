@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { menstrualService, CriterionFlags, DerivedFeatures, Predictions } from "@/services/menstrualService";
+import { predictionService } from "@/services/predictionService";
 
 const PRIMARY_PURPLE = '#4A3F8F';
 const DARK_PURPLE = '#2C2F6B';
@@ -132,6 +133,15 @@ const PeriodLogging = () => {
         setCyclesUsed(predictResponse.data.cycles_used);
         setCriterionFlags(predictResponse.data.criterion_flags);
         setPredictionsError(false);
+
+        try {
+          await predictionService.escalateMenstrual(
+            predictResponse.data.predictions,
+            predictResponse.data.criterion_flags
+          );
+        } catch (escalateErr) {
+          console.warn('Menstrual escalation check failed:', escalateErr);
+        }
       } catch (predictErr) {
         console.error('Prediction error:', predictErr);
         setPredictionsError(true);
