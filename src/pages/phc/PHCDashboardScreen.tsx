@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import PHCMobileNav from '@/components/phc/PHCMobileNav';
 import { useNotifications } from '@/context/NotificationContext';
 import { NotificationPanel } from '@/components/NotificationPanel';
+import { phcAPI } from '@/services/phcService';
+import { useAuth } from '@/context/AuthContext';
 import { 
   Home, 
   Users, 
@@ -19,102 +21,121 @@ import {
   Filter,
   ChevronDown,
   Eye,
-  AlertTriangle
+  AlertTriangle,
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 import logo from '@/assets/logo.png';
 
-// Mock data for demonstration
-const mockPatients = [
-  {
-    id: "P-00123",
-    name: "Sarah Johnson",
-    age: 28,
-    initials: "SJ",
-    conditions: ["PCOS", "Hormonal"],
-    pcosScore: 0.42,
-    hormonalScore: 0.38,
-    metabolicScore: 0.25,
-    referredDate: "3 days ago",
-    status: "New",
-    tier: "moderate"
-  },
-  {
-    id: "P-00124", 
-    name: "Maria Garcia",
-    age: 32,
-    initials: "MG",
-    conditions: ["Metabolic"],
-    pcosScore: 0.18,
-    hormonalScore: 0.22,
-    metabolicScore: 0.35,
-    referredDate: "1 day ago",
-    status: "Under Review",
-    tier: "low"
-  },
-  {
-    id: "P-00125",
-    name: "Amina Yusuf",
-    age: 25,
-    initials: "AY",
-    conditions: ["PCOS", "Hormonal", "Metabolic"],
-    pcosScore: 0.78, // High - would show escalation
-    hormonalScore: 0.45,
-    metabolicScore: 0.52,
-    referredDate: "5 days ago",
-    status: "Action Taken",
-    tier: "high" // This would be escalated
-  }
-];
-
 const PHCDashboardScreen = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("All");
   const [sortBy, setSortBy] = useState("Risk Score ↓");
-  const [patients, setPatients] = useState(mockPatients);
-  const [alertsCount, setAlertsCount] = useState(3);
+  const [patients, setPatients] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [phcProfile, setPhcProfile] = useState<any>(null);
   const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
   const { unreadCount, wsConnected } = useNotifications();
 
-  // Mock stats
+  const fetchQueue = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const [queueData, profileData] = await Promise.all([
+        phcAPI.getQueue(),
+        phcAPI.getPHCProfile(),
+      ]);
+      
+      // Handle both { data: [...] } and [...] response formats
+      const patientList = queueData?.data || queueData || [];
+      setPatients(patientList);
+      
+      // Set PHC profile for header
+      if (profileData?.data) {
+        setPhcProfile(profileData.data);
+      } else if (profileData) {
+        setPhcProfile(profileData);
+      }
+    } catch (err: any) {
+      console.error('Error fetching queue:', err);
+      setError(err?.response?.data?.message || 'Failed to load patient queue');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchQueue();
+  }, []);
+
+  // Calculate stats from real data
   const stats = {
-    totalActive: 47,
-    moderateRisk: 12,
-    lowRisk: 35,
-    newReferralsToday: 3
+    totalActive: patients.length,
+    moderateRisk: patients.filter(p => p.severity === 'moderate').length,
+    lowRisk: patients.filter(p => p.severity === 'mild').length,
+    newReferralsToday: patients.filter(p => {
+      if (!p.opened_at) return false;
+      const opened = new Date(p.opened_at);
+      const today = new Date();
+      return opened.toDateString() === today.toDateString();
+    }).length,
   };
 
   const filters = ["All", "Moderate", "Low", "New Today", "Awaiting Review", "Action Taken"];
   const sortOptions = ["Risk Score ↓", "Date Referred", "Last Check-In"];
 
   const getScoreColor = (score: number) => {
-    if (score >= 0.7) return "text-red-600";
-    if (score >= 0.4) return "text-amber-600";
+    if (score >= 70) return "text-red-600";
+    if (score >= 40) return "text-amber-600";
     return "text-green-600";
   };
 
   const getScoreBadge = (score: number) => {
-    if (score >= 0.7) return "bg-red-100 text-red-700";
-    if (score >= 0.4) return "bg-amber-100 text-amber-800";
+    if (score >= 70) return "bg-red-100 text-red-700";
+    if (score >= 40) return "bg-amber-100 text-amber-800";
     return "bg-green-100 text-green-800";
   };
 
   const getConditionColor = (condition: string) => {
-    switch(condition) {
-      case "PCOS": return "bg-purple-100 text-purple-800";
-      case "Hormonal": return "bg-rose-100 text-rose-800";
-      case "Metabolic": return "bg-teal-100 text-teal-800";
+    switch(condition?.toLowerCase()) {
+      case "pcos": return "bg-purple-100 text-purple-800";
+      case "maternal": return "bg-rose-100 text-rose-800";
+      case "cardiovascular": return "bg-teal-100 text-teal-800";
       default: return "bg-gray-100 text-gray-800";
     }
   };
 
   const getStatusColor = (status: string) => {
     switch(status) {
-      case "New": return "bg-green-100 text-green-800";
-      case "Under Review": return "bg-amber-100 text-amber-800";
-      case "Action Taken": return "bg-blue-100 text-blue-800";
-      case "Discharged": return "bg-gray-100 text-gray-800";
+      case "new": return "bg-green-100 text-green-800";
+      case "under_review": return "bg-amber-100 text-amber-800";
+      case "action_taken": return "bg-blue-100 text-blue-800";
+      case "discharged": return "bg-gray-100 text-gray-800";
+      case "escalated": return "bg-red-100 text-red-800";
       default: return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch(status) {
+      case "new": return "New";
+      case "under_review": return "Under Review";
+      case "action_taken": return "Action Taken";
+      case "discharged": return "Discharged";
+      case "escalated": return "Escalated";
+      default: return status;
+    }
+  };
+
+  const getSeverityColor = (severity: string) => {
+    switch(severity) {
+      case "moderate": return "border-l-4 border-amber-500";
+      case "mild": return "";
+      default: return "";
     }
   };
 
@@ -124,6 +145,24 @@ const PHCDashboardScreen = () => {
 
   const handleEscalate = (patientId: string) => {
     navigate(`/phc/refer/${patientId}`);
+  };
+
+  const getInitials = (name: string) => {
+    if (!name) return "??";
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return "N/A";
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (days === 0) return "Today";
+    if (days === 1) return "Yesterday";
+    if (days < 7) return `${days} days ago`;
+    return date.toLocaleDateString();
   };
 
   return (
@@ -141,7 +180,7 @@ const PHCDashboardScreen = () => {
           
           {/* Facility Info */}
           <div className="mb-6 p-3 bg-gray-50 rounded-lg">
-            <p className="text-sm font-medium text-[#1E1E2E]">City General Hospital</p>
+            <p className="text-sm font-medium text-[#1E1E2E]">{phcProfile?.name || 'Loading...'}</p>
             <p className="text-xs text-gray-600">Primary Health Centre</p>
           </div>
 
@@ -195,13 +234,21 @@ const PHCDashboardScreen = () => {
         <header className="bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-semibold text-[#1E1E2E]">Good morning, James</h1>
+              <h1 className="text-2xl font-semibold text-[#1E1E2E]">Good morning, {user?.full_name?.split(' ')[0] || 'Staff'}</h1>
               <p className="text-sm text-gray-600">
                 {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
               </p>
             </div>
             
             <div className="flex items-center gap-4">
+              <button 
+                onClick={fetchQueue}
+                className="p-2 text-gray-600 hover:text-[#2E8B57] transition-colors"
+                title="Refresh"
+              >
+                <RefreshCw className={`h-5 w-5 ${isLoading ? 'animate-spin' : ''}`} />
+              </button>
+              
               {/* Alerts Bell */}
               <button 
                 onClick={() => setIsNotificationPanelOpen(true)}
@@ -312,89 +359,111 @@ const PHCDashboardScreen = () => {
               </div>
             </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient ID</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Condition Flags</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PCOS Score</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hormonal Score</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Metabolic Score</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Referred Date</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {patients.map((patient) => (
-                    <tr key={patient.id} className={`hover:bg-gray-50 ${patient.tier === 'high' ? 'border-l-4 border-red-500' : ''}`}>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-[#2E8B57] rounded-full flex items-center justify-center">
-                            <span className="text-white text-xs font-semibold">{patient.initials}</span>
+            {/* Error State */}
+            {error && (
+              <div className="text-center py-8">
+                <p className="text-red-600 mb-4">{error}</p>
+                <Button onClick={fetchQueue} variant="outline">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Retry
+                </Button>
+              </div>
+            )}
+
+            {/* Loading State */}
+            {isLoading && (
+              <div className="text-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto text-[#2E8B57]" />
+                <p className="text-gray-500 mt-2">Loading patient queue...</p>
+              </div>
+            )}
+
+            {/* Empty State */}
+            {!isLoading && !error && patients.length === 0 && (
+              <div className="text-center py-12">
+                <Users className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500">No patients in queue</p>
+                <p className="text-sm text-gray-400">New patients will appear here when detected</p>
+              </div>
+            )}
+
+            {/* Patient Table */}
+            {!isLoading && !error && patients.length > 0 && (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Condition</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Risk Score</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Opened</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {patients.map((patient) => (
+                      <tr 
+                        key={patient.id} 
+                        className={`hover:bg-gray-50 ${getSeverityColor(patient.severity)}`}
+                      >
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-[#2E8B57] rounded-full flex items-center justify-center">
+                              <span className="text-white text-xs font-semibold">
+                                {getInitials(patient.patient?.full_name)}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-[#1E1E2E]">
+                                {patient.patient?.full_name || 'Unknown'}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {patient.patient?.email || 'No email'}
+                              </p>
+                            </div>
                           </div>
-                          <span className="text-sm font-medium text-[#1E1E2E]">{patient.id}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{patient.age}</td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="flex gap-1">
-                          {patient.conditions.map((condition) => (
-                            <span key={condition} className={`px-2 py-1 text-xs font-medium rounded-full ${getConditionColor(condition)}`}>
-                              {condition}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        {patient.tier === 'high' ? (
-                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">
-                            ESCALATE
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getConditionColor(patient.condition)}`}>
+                            {patient.condition?.toUpperCase() || 'N/A'}
                           </span>
-                        ) : (
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            patient.severity === 'moderate' 
+                              ? 'bg-amber-100 text-amber-800' 
+                              : 'bg-green-100 text-green-800'
+                          }`}>
+                            {patient.severity?.toUpperCase() || 'N/A'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
-                            <span className={`text-sm font-medium ${getScoreColor(patient.pcosScore)}`}>
-                              {patient.pcosScore.toFixed(2)}
+                            <span className={`text-sm font-medium ${getScoreColor(patient.latest_score || patient.opening_score || 0)}`}>
+                              {patient.latest_score || patient.opening_score || 'N/A'}
                             </span>
-                            <div className={`w-2 h-2 rounded-full ${getScoreBadge(patient.pcosScore).split(' ')[0]}`}></div>
+                            {(patient.latest_score || patient.opening_score) && (
+                              <div className={`w-2 h-2 rounded-full ${
+                                (patient.latest_score || 0) >= 70 
+                                  ? 'bg-red-500' 
+                                  : (patient.latest_score || 0) >= 40 
+                                    ? 'bg-amber-500' 
+                                    : 'bg-green-500'
+                              }`}></div>
+                            )}
                           </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-sm font-medium ${getScoreColor(patient.hormonalScore)}`}>
-                            {patient.hormonalScore.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {formatDate(patient.opened_at)}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(patient.status)}`}>
+                            {getStatusLabel(patient.status)}
                           </span>
-                          <div className={`w-2 h-2 rounded-full ${getScoreBadge(patient.hormonalScore).split(' ')[0]}`}></div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-sm font-medium ${getScoreColor(patient.metabolicScore)}`}>
-                            {patient.metabolicScore.toFixed(2)}
-                          </span>
-                          <div className={`w-2 h-2 rounded-full ${getScoreBadge(patient.metabolicScore).split(' ')[0]}`}></div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{patient.referredDate}</td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(patient.status)}`}>
-                          {patient.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        {patient.tier === 'high' ? (
-                          <Button
-                            onClick={() => handleEscalate(patient.id)}
-                            className="bg-red-600 text-white rounded-lg px-3 py-1 text-xs hover:bg-red-700"
-                          >
-                            <AlertTriangle className="h-3 w-3 mr-1" />
-                            Escalate to FMC
-                          </Button>
-                        ) : (
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
                           <Button
                             onClick={() => handlePatientReview(patient.id)}
                             className="bg-[#2E8B57] text-white rounded-lg px-3 py-1 text-xs hover:bg-[#256D46]"
@@ -402,24 +471,26 @@ const PHCDashboardScreen = () => {
                             <Eye className="h-3 w-3 mr-1" />
                             Review
                           </Button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
             {/* Pagination */}
-            <div className="flex items-center justify-between mt-6">
-              <p className="text-sm text-gray-600">
-                Showing 1 to {patients.length} of {patients.length} patients
-              </p>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" disabled>Previous</Button>
-                <Button variant="outline" size="sm" disabled>Next</Button>
+            {!isLoading && !error && patients.length > 0 && (
+              <div className="flex items-center justify-between mt-6">
+                <p className="text-sm text-gray-600">
+                  Showing {patients.length} patient{patients.length !== 1 ? 's' : ''}
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" disabled>Previous</Button>
+                  <Button variant="outline" size="sm" disabled>Next</Button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </main>
       </div>

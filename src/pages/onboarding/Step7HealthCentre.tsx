@@ -125,8 +125,17 @@ const Step7HealthCentre = () => {
     navigate('/onboarding/step/6');
   };
 
-  const handleSkip = () => {
-    navigate('/dashboard');
+  const handleSkip = async () => {
+    try {
+      setLoading(true);
+      await onboardingAPI.markComplete();
+      refreshProfile();
+      navigate('/dashboard');
+    } catch (err: any) {
+      console.error('Error completing onboarding:', err);
+      // Navigate anyway
+      navigate('/dashboard');
+    }
   };
 
   const handleContinue = async () => {
@@ -147,6 +156,9 @@ const Step7HealthCentre = () => {
         lga: formData.lga,
         registered_hcc: hccId
       });
+
+      // Mark onboarding as complete
+      await onboardingAPI.markComplete();
 
       refreshProfile();
       
