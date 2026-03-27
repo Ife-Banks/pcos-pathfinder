@@ -1,0 +1,21 @@
+{
+  "name": "AIMHER Health",
+  "short_name": "AIMHER",
+  "description": "AI-powered PCOS detection and women's health risk scoring",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4A3F8F",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}
