@@ -114,10 +114,6 @@ const PCOSRiskScore = () => {
     fetchComprehensive();
   }, [fetchComprehensive]);
 
-  useEffect(() => {
-    fetchPrediction();
-  }, [fetchPrediction]);
-
   const score = prediction?.risk_score ?? 0;
   const needleAngle = -90 + score * 180;
 

@@ -185,13 +185,39 @@ const RppgCaptureScreen = () => {
               setIsCapturing={setIsCapturing}
             />
 
-            <Button
-              variant="outline"
-              onClick={() => navigate('/dashboard')}
-              className="w-full h-12 rounded-xl"
-            >
-              Cancel
-            </Button>
+            <div className="pt-4 space-y-3">
+              {!captureComplete ? (
+                <Button
+                  variant="clinical"
+                  size="xl"
+                  className="w-full"
+                  onClick={handleStartCapture}
+                  disabled={isCapturing}
+                  style={isCapturing ? {} : { backgroundColor: TEAL_PRIMARY }}
+                >
+                  {isCapturing ? "Capturing..." : "Start Capture"}
+                </Button>
+              ) : (
+                <Button
+                  variant="clinical"
+                  size="xl"
+                  className="w-full"
+                  onClick={() => navigate('/dashboard')}
+                  disabled={isLoading}
+                  style={{ backgroundColor: TEAL_PRIMARY }}
+                >
+                  Back to Dashboard
+                </Button>
+              )}
+              
+              <Button
+                variant="outline"
+                onClick={() => navigate('/dashboard')}
+                className="w-full h-12 rounded-xl"
+              >
+                Cancel
+              </Button>
+            </div>
           </motion.div>
         )}
       </div>
