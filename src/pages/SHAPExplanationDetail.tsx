@@ -20,21 +20,41 @@ const SHAPExplanationDetail = () => {
     setError(null);
 
     try {
+      // Try to get features from the latest comprehensive prediction
       const storedId = localStorage.getItem('latest_prediction_id');
 
       if (storedId) {
         setPredictionId(storedId);
-        const featuresRes = await predictionService.getFeatures(storedId);
-        setFeatures(featuresRes.data.features ?? []);
-        return;
+        try {
+          const featuresRes = await predictionService.getFeatures(storedId);
+          setFeatures(featuresRes.data.features ?? []);
+          return;
+        } catch (featuresErr: any) {
+          // If features endpoint returns 404, features aren't available for this prediction type
+          if (featuresErr?.status === 404) {
+            setFeatures([]);
+            return;
+          }
+          throw featuresErr;
+        }
       }
 
+      // Try to get features from the latest old-style prediction
       const latestRes = await predictionService.getLatest();
       const id = latestRes.data.id;
       localStorage.setItem('latest_prediction_id', id);
       setPredictionId(id);
-      const featuresRes = await predictionService.getFeatures(id);
-      setFeatures(featuresRes.data.features ?? []);
+      
+      try {
+        const featuresRes = await predictionService.getFeatures(id);
+        setFeatures(featuresRes.data.features ?? []);
+      } catch (featuresErr: any) {
+        if (featuresErr?.status === 404) {
+          setFeatures([]);
+        } else {
+          throw featuresErr;
+        }
+      }
     } catch (err: any) {
       if (err?.status === 401) {
         localStorage.removeItem('access_token');
@@ -42,7 +62,7 @@ const SHAPExplanationDetail = () => {
         navigate('/login');
         return;
       }
-      setError('Detailed breakdown not available for this prediction.');
+      setFeatures([]);
     } finally {
       setLoading(false);
     }
@@ -128,9 +148,9 @@ const SHAPExplanationDetail = () => {
         </header>
         <div className="p-4 flex flex-col items-center justify-center min-h-[60vh] text-center">
           <div className="text-6xl mb-4">📋</div>
-          <h2 className="text-lg font-bold text-gray-900 mb-2">Detailed breakdown not available</h2>
+          <h2 className="text-lg font-bold text-gray-900 mb-2">Feature Details Coming Soon</h2>
           <p className="text-sm text-gray-500 max-w-xs">
-            {error || 'Complete more check-ins to generate feature-level insights.'}
+            {error || 'SHAP feature breakdowns are being integrated with the new comprehensive prediction system.'}
           </p>
           <Button
             onClick={() => navigate('/risk-score')}
