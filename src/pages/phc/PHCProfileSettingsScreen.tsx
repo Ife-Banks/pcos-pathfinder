@@ -85,6 +85,10 @@ export default function PHCProfileSettingsScreen() {
   const [deactivating, setDeactivating] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
 
+  // Temp password modal state
+  const [showTempPassword, setShowTempPassword] = useState(false);
+  const [tempPasswordData, setTempPasswordData] = useState<{ email: string; temp_password: string } | null>(null);
+
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -185,7 +189,18 @@ export default function PHCProfileSettingsScreen() {
       console.log('Creating staff with payload:', JSON.stringify(payload, null, 2));
       const res = await apiClient.post('/centers/phc/staff/', payload);
       const body = ensureResponseSuccess(res.data);
-      const created: StaffMember = body.data ?? body;
+      const data = body.data ?? body;
+      
+      // Extract temp password from response
+      if (data.temp_password) {
+        setTempPasswordData({
+          email: data.user_email || newStaffForm.email,
+          temp_password: data.temp_password,
+        });
+        setShowTempPassword(true);
+      }
+      
+      const created: StaffMember = data;
       setStaff((prev) => [...prev, created]);
       setShowAddStaffModal(false);
       setNewStaffForm({ full_name: '', email: '', staff_role: 'cho', employee_id: '' });
@@ -499,6 +514,50 @@ export default function PHCProfileSettingsScreen() {
           <DialogFooter>
             <Button variant="outline" onClick={() => { setShowAddStaffModal(false); setNewStaffForm({ full_name: '', email: '', staff_role: 'cho', employee_id: '' }); setFormErrors({}); }}>Cancel</Button>
             <Button onClick={handleAddStaff} disabled={!newStaffForm.full_name || !newStaffForm.email} className="bg-[#2E8B57] hover:bg-[#246b47]">Create Staff Account</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Temp Password Modal */}
+      <Dialog open={showTempPassword} onOpenChange={setShowTempPassword}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><CheckCircle className="w-5 h-5 text-green-600" /> Staff Account Created</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <Alert className="border-amber-200 bg-amber-50">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800 text-sm">
+                <strong>Important:</strong> Share these credentials securely with the new staff member. They should change their password after first login.
+              </AlertDescription>
+            </Alert>
+            
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs text-gray-500">Email</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Input value={tempPasswordData?.email || ''} readOnly className="flex-1" />
+                  <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(tempPasswordData?.email || ''); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
+                    {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+              
+              <div>
+                <Label className="text-xs text-gray-500">Temporary Password</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Input value={tempPasswordData?.temp_password || ''} readOnly className="flex-1 font-mono" />
+                  <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(tempPasswordData?.temp_password || ''); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
+                    {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => { setShowTempPassword(false); setTempPasswordData(null); }} className="bg-[#2E8B57] hover:bg-[#246b47] w-full">
+              Done
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
