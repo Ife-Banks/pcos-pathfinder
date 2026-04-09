@@ -135,33 +135,13 @@ export const fmcAPI = {
     return body;
   },
 
-  // FMC5 - Diagnostics
-  requestDiagnostics: async (request: {
-    patient_id: string;
-    tests: string[];
-    urgency: 'routine' | 'urgent';
-    custom_note?: string;
-  }) => {
-    const res = await apiClient.post('/fmc/request-diagnostics/', request);
-    const body = res.data;
-    ensureSuccess(body);
-    return body;
-  },
-
-  getDiagnosticsStatus: async (patientId: string) => {
-    const res = await apiClient.get(`/fmc/diagnostics-status/${patientId}/`);
-    const body = res.data;
-    ensureSuccess(body);
-    return body;
-  },
-
   // FMC6 - Analytics
   getAnalytics: async (range: string = '30d', startDate?: string, endDate?: string) => {
     const params: Record<string, string> = { range };
     if (startDate) params.start_date = startDate;
     if (endDate) params.end_date = endDate;
 
-    const res = await apiClient.get('/fmc/analytics/', { params });
+    const res = await apiClient.get('/centers/fmc/analytics/', { params });
     const body = res.data;
     ensureSuccess(body);
     return body;
@@ -169,14 +149,34 @@ export const fmcAPI = {
 
   // FMC7 - Alerts
   getAlerts: async () => {
-    const res = await apiClient.get('/fmc/alerts/');
+    const res = await apiClient.get('/centers/fmc/alerts/');
     const body = res.data;
     ensureSuccess(body);
     return body;
   },
 
   markAlertRead: async (alertId: string) => {
-    const res = await apiClient.patch(`/fmc/alerts/${alertId}/`, { is_read: true });
+    const res = await apiClient.patch(`/centers/fmc/alerts/${alertId}/`, { is_read: true });
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
+  },
+
+  // FMC5 - Diagnostics
+  requestDiagnostics: async (request: {
+    patient_id: string;
+    tests: string[];
+    urgency: 'routine' | 'urgent';
+    custom_note?: string;
+  }) => {
+    const res = await apiClient.post('/centers/fmc/request-diagnostics/', request);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
+  },
+
+  getDiagnosticsStatus: async (patientId: string) => {
+    const res = await apiClient.get(`/centers/fmc/diagnostics-status/${patientId}/`);
     const body = res.data;
     ensureSuccess(body);
     return body;
@@ -191,7 +191,15 @@ export const fmcAPI = {
     closing_score: number;
     discharge_letter: string;
   }) => {
-    const res = await apiClient.post(`/fmc/discharge/${patientId}/`, dischargeData);
+    const res = await apiClient.post(`/centers/fmc/discharge/${patientId}/`, dischargeData);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
+  },
+
+  // Auto-assign
+  autoAssign: async () => {
+    const res = await apiClient.post('/centers/fmc/auto-assign/');
     const body = res.data;
     ensureSuccess(body);
     return body;
@@ -251,14 +259,6 @@ export const fmcAPI = {
 
   deactivateStaff: async (staffId: string) => {
     const res = await apiClient.delete(`/centers/fmc/staff/${staffId}/`);
-    const body = res.data;
-    ensureSuccess(body);
-    return body;
-  },
-
-  // Assignment
-  autoAssign: async () => {
-    const res = await apiClient.post('/fmc/auto-assign/');
     const body = res.data;
     ensureSuccess(body);
     return body;

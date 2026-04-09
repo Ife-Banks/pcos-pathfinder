@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Check, Info, ChevronRight, Loader2 } from "lucide-react";
@@ -52,6 +52,35 @@ const HirsutismScoring = () => {
   const [activeZone, setActiveZone] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const loadLatest = async () => {
+      setLoading(true);
+      try {
+        const res = await mfgService.getLatest();
+        const data = res.data;
+        if (data && data.total_score !== undefined) {
+          setScores({
+            upper_lip: data.mfg_upper_lip ?? 0,
+            chin: data.mfg_chin ?? 0,
+            chest: data.mfg_chest ?? 0,
+            upper_back: data.mfg_upper_back ?? 0,
+            lower_back: data.mfg_lower_back ?? 0,
+            upper_abdomen: data.mfg_upper_abdomen ?? 0,
+            lower_abdomen: data.mfg_lower_abdomen ?? 0,
+            upper_arm: data.mfg_upper_arm ?? 0,
+            thigh: data.mfg_thigh ?? 0,
+          });
+        }
+      } catch (err) {
+        // No previous assessment exists yet
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadLatest();
+  }, []);
 
   const totalScore = useMemo(() => Object.values(scores).reduce((a, b) => a + b, 0), [scores]);
   const category = getScoreCategory(totalScore);

@@ -54,14 +54,6 @@ export default function PHCWalkInRegistrationScreen() {
     full_name: string;
     temp_password: string;
     queue_record_id: string;
-    baseline_risk: {
-      pcos_score: number;
-      pcos_tier: string;
-      hormonal_score: number;
-      hormonal_tier: string;
-      metabolic_score: number;
-      metabolic_tier: string;
-    };
   } | null>(null);
   const [copied, setCopied] = useState(false);
   const [useMetric, setUseMetric] = useState(true);
@@ -82,9 +74,14 @@ export default function PHCWalkInRegistrationScreen() {
     return { value: bmi.toFixed(1), category: cat };
   }, [form.height_cm, form.weight_kg]);
 
-  const isStep1Valid = !!(form.first_name && form.last_name && form.date_of_birth && form.phone && form.gender);
-  const isStep2Valid = !!(form.height_cm && form.weight_kg && form.acanthosis_nigricans !== null);
-  const isStep3Valid = !!(form.cycle_regularity && form.bleeding_intensity && form.night_sweats && form.persistent_fatigue !== null);
+  const isStep1Valid = Boolean(
+    form.first_name?.trim() &&
+    form.last_name?.trim() &&
+    form.email?.trim() &&
+    form.phone?.trim()
+  );
+  const isStep2Valid = true; // Measurements are optional for walk-ins
+  const isStep3Valid = true; // Symptoms are optional for walk-ins
 
   const validateStep1 = () => {
     const errs: Record<string, string> = {};
@@ -108,11 +105,46 @@ export default function PHCWalkInRegistrationScreen() {
     setLoading(true);
     setSubmitError('');
     try {
-      const body = await phcAPI.registerWalkIn({ first_name: form.first_name, last_name: form.last_name, email: form.email || undefined, phone: form.phone, date_of_birth: form.date_of_birth, height_cm: form.height_cm ?? undefined, weight_kg: form.weight_kg ?? undefined, acanthosis_nigricans: form.acanthosis_nigricans ?? undefined, cycle_regularity: form.cycle_regularity ?? undefined, typical_cycle_length: form.gender === 'female' ? form.typical_cycle_length ?? undefined : undefined, last_period_date: form.gender === 'female' && form.last_period_date ? form.last_period_date : undefined, bleeding_intensity: form.bleeding_intensity ?? undefined, night_sweats: form.night_sweats ?? undefined, persistent_fatigue: form.persistent_fatigue ?? undefined, family_history: form.family_history.length > 0 ? form.family_history : undefined });
-      if (body?.status === 'success' || body?.phc_record_id) { setSuccess(body as unknown as { patient_id: string; full_name: string; temp_password: string; queue_record_id: string; baseline_risk: { pcos_score: number; pcos_tier: string; hormonal_score: number; hormonal_tier: string; metabolic_score: number; metabolic_tier: string; }; }); }
+      const body = await phcAPI.registerWalkInComprehensive({
+        first_name: form.first_name,
+        last_name: form.last_name,
+        email: form.email,
+        phone: form.phone,
+        date_of_birth: form.date_of_birth || undefined,
+        gender: form.gender,
+        height_cm: form.height_cm ?? undefined,
+        weight_kg: form.weight_kg ?? undefined,
+        waist_cm: form.waist_cm ?? undefined,
+        acanthosis_nigricans: form.acanthosis_nigricans === true ? 'yes' : form.acanthosis_nigricans === false ? 'no' : 'not_sure',
+        cycle_regularity: form.cycle_regularity ?? undefined,
+        typical_cycle_length: form.gender === 'female' ? form.typical_cycle_length ?? undefined : undefined,
+        periods_per_year: undefined,
+        last_period_date: form.gender === 'female' && form.last_period_date ? form.last_period_date : undefined,
+        bleeding_intensity: form.bleeding_intensity ? ['spotting', 'light', 'medium', 'heavy'][form.bleeding_intensity - 1] : undefined,
+        acne_severity: undefined,
+        night_sweats: form.night_sweats ?? undefined,
+        breast_soreness: undefined,
+        muscle_weakness: undefined,
+        cramp_severity: undefined,
+        fatigue_level: form.persistent_fatigue === true ? 'severe' : form.persistent_fatigue === false ? 'none' : undefined,
+        high_blood_pressure: undefined,
+        abdominal_weight: undefined,
+        hypoglycemia_symptoms: [],
+        family_history: form.family_history.length > 0 ? form.family_history : [],
+        consent_given: true,
+      });
+      
+      if (body?.patient_id) {
+        setSuccess({
+          patient_id: body.patient_id,
+          full_name: body.patient_name || `${form.first_name} ${form.last_name}`,
+          temp_password: body.temp_password || '',
+          queue_record_id: body.phc_record_id || body.record_id || '',
+        });
+      }
     } catch (e: unknown) {
-      const err = e as { message?: string };
-      setSubmitError(err.message || 'Network error');
+      const err = e as { message?: string; response?: { data?: { message?: string } } };
+      setSubmitError(err.response?.data?.message || err.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -182,9 +214,8 @@ export default function PHCWalkInRegistrationScreen() {
         <Input id="phone" type="tel" value={form.phone} onChange={e => updateField('phone', e.target.value)} placeholder="+91 9876543210" />
       </div>
       <div>
-        <Label htmlFor="email">Email (optional)</Label>
+        <Label htmlFor="email">Email Address *</Label>
         <Input id="email" type="email" value={form.email} onChange={e => updateField('email', e.target.value)} placeholder="jane@example.com" />
-        <p className="text-gray-500 text-xs mt-1">Leave blank to auto-generate</p>
       </div>
       <div>
         <Label>Gender *</Label>
@@ -363,20 +394,8 @@ export default function PHCWalkInRegistrationScreen() {
       </motion.div>
       <div>
         <h2 className="text-2xl font-bold text-gray-900">Patient Registered Successfully</h2>
-        <p className="text-gray-500 mt-1">{success.full_name} — ID: {success.queue_record_id}</p>
-      </div>
-      <div className="flex justify-center gap-4 flex-wrap">
-        {[
-          { label: 'PCOS', score: success.baseline_risk.pcos_score, tier: success.baseline_risk.pcos_tier },
-          { label: 'Hormonal', score: success.baseline_risk.hormonal_score, tier: success.baseline_risk.hormonal_tier },
-          { label: 'Metabolic', score: success.baseline_risk.metabolic_score, tier: success.baseline_risk.metabolic_tier },
-        ].map(({ label, score, tier }) => (
-          <div key={label} className="p-4 border rounded-lg min-w-[140px]">
-            <p className="text-sm text-gray-500">{label}</p>
-            <p className="text-2xl font-bold">{score}</p>
-            <span className={`text-xs px-2 py-1 rounded ${tier === 'high' ? 'bg-red-100 text-red-700' : tier === 'moderate' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>{tier}</span>
-          </div>
-        ))}
+        <p className="text-gray-500 mt-1">{success.full_name}</p>
+        <p className="text-sm text-gray-400">ID: {success.queue_record_id.slice(-8)}</p>
       </div>
       <Card className="bg-blue-50 border-blue-200">
         <CardContent className="pt-4">
@@ -387,6 +406,7 @@ export default function PHCWalkInRegistrationScreen() {
           </div>
         </CardContent>
       </Card>
+      <p className="text-sm text-gray-500">Initial assessment is being computed. Check the patient record for risk scores.</p>
       <div className="flex gap-4 justify-center">
         <Button onClick={() => navigate(`/phc/patients/${success.queue_record_id}`)} className="bg-[#2E8B57] hover:bg-[#247049]">View Patient Record</Button>
         <Button variant="outline" onClick={resetWizard}>Register Another</Button>
@@ -418,7 +438,11 @@ export default function PHCWalkInRegistrationScreen() {
         <div className="flex justify-between">
           {step > 1 ? <Button variant="outline" onClick={() => setStep(s => s - 1)}><ArrowLeft size={16} className="mr-2" />Back</Button> : <div />}
           {step < 4 ? (
-            <Button onClick={handleNext} disabled={step === 1 ? !isStep1Valid : step === 2 ? !isStep2Valid : !isStep3Valid} className="bg-[#2E8B57] hover:bg-[#247049]">
+            <Button 
+              onClick={handleNext} 
+              disabled={step === 1 ? !isStep1Valid : !isStep2Valid}
+              className="bg-[#2E8B57] hover:bg-[#247049] disabled:opacity-50"
+            >
               Next <ArrowRight size={16} className="ml-2" />
             </Button>
           ) : (

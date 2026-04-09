@@ -30,6 +30,9 @@ import ClinicianProfileSettingsScreen from "./pages/clinician/ClinicianProfileSe
 import FMCStaffLoginScreen from "./pages/fmc/FMCStaffLoginScreen";
 import FMCMajorRiskDashboardScreen from "./pages/fmc/FMCMajorRiskDashboardScreen";
 import FMCProfileSettingsScreen from "./pages/fmc/FMCProfileSettingsScreen";
+import FMCAnalyticsScreen from "./pages/fmc/FMCAnalyticsScreen";
+import FMCAlertsScreen from "./pages/fmc/FMCAlertsScreen";
+import FMCDischargeScreen from "./pages/fmc/FMCDischargeScreen";
 // PHC screens
 import PHCStaffLoginScreen from "./pages/phc/PHCStaffLoginScreen";
 import PHCMinorRiskDashboardScreen from "./pages/phc/PHCMinorRiskDashboardScreen";
@@ -84,14 +87,8 @@ import PatientPanelScreen from "./pages/PatientPanelScreen";
 import PatientDetailScreen from "./pages/PatientDetailScreen";
 import ClinicianExportScreen from "./pages/ClinicianExportScreen";
 // PHC Portal
-import PHCLoginScreen from "./pages/phc/PHCLoginScreen";
-import PHCDashboardScreen from "./pages/phc/PHCDashboardScreen";
-import PHCRegisterScreen from "./pages/phc/PHCRegisterScreen";
 import PHCAdviceScreen from "./pages/phc/PHCAdviceScreen";
-import PHCReferScreen from "./pages/phc/PHCReferScreen";
 // FMC Portal
-import FMCLoginScreen from "./pages/fmc/FMCLoginScreen";
-import FMCDashboardScreen from "./pages/fmc/FMCDashboardScreen";
 import FMCPatientDetailScreen from "./pages/fmc/FMCPatientDetailScreen";
 import FMCAssignmentScreen from "./pages/fmc/FMCAssignmentScreen";
 import FMCDiagnosticsScreen from "./pages/fmc/FMCDiagnosticsScreen";
@@ -148,6 +145,9 @@ const App = () => {
                     {/* FMC Routes */}
                     <Route path="/fmc/login" element={<FMCStaffLoginScreen />} />
                     <Route path="/fmc/dashboard" element={<FMCMajorRiskDashboardScreen />} />
+                    <Route path="/fmc/analytics" element={<FMCAnalyticsScreen />} />
+                    <Route path="/fmc/alerts" element={<FMCAlertsScreen />} />
+                    <Route path="/fmc/discharge/:caseId" element={<FMCDischargeScreen />} />
                     <Route path="/fmc/profile" element={<FMCProfileSettingsScreen />} />
                     {/* PHC Routes */}
                     <Route path="/phc/login" element={<PHCStaffLoginScreen />} />
@@ -201,12 +201,7 @@ const App = () => {
                     <Route path="/clinician/patients" element={<PatientPanelScreen />} />
                     <Route path="/clinician/patient/:id" element={<PatientDetailScreen />} />
                     <Route path="/clinician/patient/:id/export" element={<ClinicianExportScreen />} />
-                    {/* PHC Portal — alias routes */}
-                    <Route path="/phc/register" element={<PHCWalkInRegistrationScreen />} />
-                    <Route path="/phc/advice" element={<PHCAdviceScreen />} />
                     {/* FMC Portal */}
-                    <Route path="/fmc/login" element={<FMCLoginScreen />} />
-                    <Route path="/fmc/dashboard" element={<FMCDashboardScreen />} />
                     <Route path="/fmc/patients/:id" element={<FMCPatientDetailScreen />} />
                     <Route path="/fmc/assignment" element={<FMCAssignmentScreen />} />
                     <Route path="/fmc/diagnostics" element={<FMCDiagnosticsScreen />} />

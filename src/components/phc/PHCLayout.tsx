@@ -1,11 +1,10 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import {
   Home, Users, UserPlus, MessageCircle, ArrowUpRight,
   BarChart3, Settings, Bell, LogOut, Menu, X
 } from 'lucide-react';
-import { mockAlerts } from '@/data/phcMockData';
 import { phcAPI } from '@/services/phcService';
 
 const navItems = [
@@ -32,7 +31,23 @@ export default function PHCLayout({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const unreadCount = mockAlerts.filter(a => !a.read).length;
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  async function fetchUnreadCount() {
+    try {
+      const data = await phcAPI.getUnreadCount();
+      const count = typeof data === 'number' ? data : (data?.unread_count ?? 0);
+      setUnreadCount(count);
+    } catch {
+      setUnreadCount(0);
+    }
+  }
 
   const facilityName = user?.center_info?.center_name;
   const facilityDisplayName = facilityName || 'Primary Health Centre';

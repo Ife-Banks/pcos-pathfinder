@@ -97,6 +97,46 @@ export const phcAPI = {
     return res.data;
   },
 
+  registerWalkInComprehensive: async (walkInData: {
+    first_name: string;
+    last_name: string;
+    email?: string;
+    phone?: string;
+    date_of_birth?: string;
+    gender?: string;
+    ethnicity?: string;
+    family_history?: string[];
+    height_cm?: number;
+    weight_kg?: number;
+    waist_cm?: number;
+    hip_cm?: number;
+    acanthosis_nigricans?: string;
+    skin_tags?: string;
+    scalp_hair_thinning?: string;
+    cycle_regularity?: string;
+    typical_cycle_length?: number;
+    periods_per_year?: number;
+    last_period_date?: string;
+    bleeding_intensity?: string;
+    acne_severity?: string;
+    night_sweats?: string;
+    breast_soreness?: string;
+    muscle_weakness?: string;
+    cramp_severity?: number;
+    fatigue_level?: string;
+    high_blood_pressure?: string;
+    abdominal_weight?: string;
+    hypoglycemia_symptoms?: string[];
+    consent_given?: boolean;
+  }) => {
+    const res = await apiClient.post('/centers/phc/walk-in/comprehensive/', walkInData);
+    const body = res.data;
+    if (body?.status && body.status !== 'success') {
+      throw new Error(body.message || 'Registration failed');
+    }
+    return body?.data || body;
+  },
+
   sendCredentials: async (patientId: string, phoneNumber: string) => {
     const res = await apiClient.post('/auth/send-credentials/', {
       patient_id: patientId,
@@ -107,7 +147,7 @@ export const phcAPI = {
 
   // PHC5 - Lifestyle Advice
   getRecentAdvice: async (limit: number = 10) => {
-    const res = await apiClient.get(`/centers/phc/advice/?limit=${limit}`);
+    const res = await apiClient.get(`/centers/phc/advice/history/?limit=${limit}`);
     return res.data;
   },
 

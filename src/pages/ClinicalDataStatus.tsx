@@ -1,91 +1,136 @@
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
   ClipboardList,
   CheckCircle2,
-  XCircle,
-  FlaskConical,
-  FileImage,
   Brain,
   ArrowRight,
+  Activity,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { settingsService } from "@/services/settingsService";
+import { menstrualService } from "@/services/menstrualService";
+import { checkinService } from "@/services/checkinService";
 
-interface BiomarkerStatus {
-  key: string;
+interface DataCategory {
+  icon: React.ElementType;
   label: string;
-  unit: string;
-  present: boolean;
-  value?: string;
+  detail: string;
+  complete: boolean;
+  partial: boolean;
+  route: string;
 }
-
-const BIOMARKER_STATUS: BiomarkerStatus[] = [
-  { key: "lh", label: "LH", unit: "mIU/mL", present: true, value: "8.2" },
-  { key: "fsh", label: "FSH", unit: "mIU/mL", present: true, value: "5.1" },
-  { key: "amh", label: "AMH", unit: "ng/mL", present: false },
-  { key: "testosterone", label: "Testosterone", unit: "ng/dL", present: true, value: "45" },
-  { key: "dheas", label: "DHEAS", unit: "µg/dL", present: false },
-  { key: "tsh", label: "TSH", unit: "mIU/L", present: true, value: "2.1" },
-  { key: "fasting_insulin", label: "Fasting Insulin", unit: "µIU/mL", present: false },
-  { key: "glucose", label: "Glucose", unit: "mg/dL", present: true, value: "95" },
-  { key: "hba1c", label: "HbA1c", unit: "%", present: true, value: "5.4" },
-];
 
 const ClinicalDataStatus = () => {
   const navigate = useNavigate();
+  
+  const [loading, setLoading] = useState(true);
+  const [profileData, setProfileData] = useState<{
+    height_cm: number | null;
+    weight_kg: number | null;
+    bmi: number | null;
+  } | null>(null);
+  const [menstrualData, setMenstrualData] = useState<{
+    cycle_count: number;
+    has_data: boolean;
+  } | null>(null);
+  const [checkinData, setCheckinData] = useState<{
+    streak_days: number;
+    has_data: boolean;
+  } | null>(null);
 
-  const presentCount = BIOMARKER_STATUS.filter((b) => b.present).length;
-  const totalCount = BIOMARKER_STATUS.length;
-  const completeness = Math.round((presentCount / totalCount) * 100);
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [profileRes, menstrualRes, checkinRes] = await Promise.allSettled([
+          settingsService.getProfile(),
+          menstrualService.getCycleHistory(),
+          checkinService.getTodayStatus(),
+        ]);
 
-  const hasUltrasound = true;
-  const hasMenstrualData = true;
-  const hasSymptomData = true;
+        if (profileRes.status === "fulfilled") {
+          setProfileData({
+            height_cm: profileRes.value.data.height_cm,
+            weight_kg: profileRes.value.data.weight_kg,
+            bmi: profileRes.value.data.bmi,
+          });
+        }
 
-  const dataCategories = [
+        if (menstrualRes.status === "fulfilled") {
+          const history = menstrualRes.value.data;
+          const cycles = history.cycles || [];
+          setMenstrualData({
+            cycle_count: cycles.length,
+            has_data: cycles.length > 0,
+          });
+        } else {
+          setMenstrualData({ cycle_count: 0, has_data: false });
+        }
+
+        if (checkinRes.status === "fulfilled") {
+          setCheckinData({
+            streak_days: checkinRes.value.data?.streak_days || 0,
+            has_data: true,
+          });
+        } else {
+          setCheckinData({ streak_days: 0, has_data: false });
+        }
+      } catch (err) {
+        // API errors handled gracefully - show empty states
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const hasBodyMetrics = profileData?.bmi != null;
+  const hasMenstrualData = menstrualData?.has_data ?? false;
+  const hasSymptomData = checkinData?.has_data ?? false;
+
+  const dataCategories: DataCategory[] = [
     {
-      icon: FlaskConical,
-      label: "Lab Results",
-      detail: `${presentCount}/${totalCount} biomarkers`,
-      complete: presentCount === totalCount,
-      partial: presentCount > 0,
-      route: "/lab-results",
-    },
-    {
-      icon: FileImage,
-      label: "Ultrasound / DICOM",
-      detail: hasUltrasound ? "Processed" : "Not uploaded",
-      complete: hasUltrasound,
+      icon: Activity,
+      label: "Body Metrics",
+      detail: hasBodyMetrics
+        ? `BMI: ${profileData?.bmi?.toFixed(1)}, ${profileData?.weight_kg}kg`
+        : "Not recorded",
+      complete: hasBodyMetrics,
       partial: false,
-      route: "/ultrasound-upload",
+      route: "/settings/profile",
     },
     {
       icon: Brain,
       label: "Symptom Tracking",
-      detail: hasSymptomData ? "7-day streak" : "No data",
-      complete: hasSymptomData,
-      partial: false,
+      detail: hasSymptomData
+        ? `${checkinData?.streak_days || 0}-day streak`
+        : "No data",
+      complete: hasSymptomData && (checkinData?.streak_days ?? 0) >= 7,
+      partial: hasSymptomData && (checkinData?.streak_days ?? 0) < 7,
       route: "/check-in/morning",
     },
     {
       icon: ClipboardList,
       label: "Menstrual History",
-      detail: hasMenstrualData ? "3 cycles logged" : "No data",
-      complete: hasMenstrualData,
-      partial: false,
+      detail: hasMenstrualData
+        ? `${menstrualData?.cycle_count} cycles logged`
+        : "No data",
+      complete: hasMenstrualData && (menstrualData?.cycle_count ?? 0) >= 3,
+      partial: hasMenstrualData && (menstrualData?.cycle_count ?? 0) < 3,
       route: "/cycle-history",
     },
   ];
 
-  const overallComplete =
-    dataCategories.filter((c) => c.complete).length;
+  const overallComplete = dataCategories.filter((c) => c.complete).length;
   const overallPct = Math.round((overallComplete / dataCategories.length) * 100);
 
-  const getCompletnessBadge = () => {
+  const getCompletenessBadge = () => {
     if (overallPct === 100)
       return { label: "Complete", className: "bg-accent/10 text-accent border-0" };
     if (overallPct >= 50)
@@ -93,7 +138,29 @@ const ClinicalDataStatus = () => {
     return { label: "Incomplete", className: "bg-destructive/10 text-destructive border-0" };
   };
 
-  const badge = getCompletnessBadge();
+  const badge = getCompletenessBadge();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border px-4 py-3 flex items-center gap-3">
+          <button onClick={() => navigate(-1)} className="p-1.5 rounded-lg hover:bg-secondary">
+            <ArrowLeft className="w-5 h-5 text-foreground" />
+          </button>
+          <div className="flex-1">
+            <h1 className="font-display text-lg font-bold text-foreground">Clinical Data</h1>
+            <p className="text-xs text-muted-foreground">Data completeness overview</p>
+          </div>
+        </header>
+        <div className="p-4 flex items-center justify-center min-h-[60vh]">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm text-muted-foreground">Loading data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -109,7 +176,6 @@ const ClinicalDataStatus = () => {
       </header>
 
       <div className="p-4 space-y-4">
-        {/* Overall Completeness */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <Card className="gradient-primary text-primary-foreground">
             <CardContent className="p-5 space-y-3">
@@ -128,7 +194,6 @@ const ClinicalDataStatus = () => {
           </Card>
         </motion.div>
 
-        {/* Categories */}
         <div className="space-y-2.5">
           {dataCategories.map((cat, i) => (
             <motion.div
@@ -172,47 +237,12 @@ const ClinicalDataStatus = () => {
           ))}
         </div>
 
-        {/* Biomarker Detail */}
-        <div>
-          <h2 className="font-display font-semibold text-sm text-muted-foreground mb-3 uppercase tracking-wider">
-            Biomarker Breakdown
-          </h2>
-          <Card>
-            <CardContent className="p-0 divide-y divide-border">
-              {BIOMARKER_STATUS.map((bm) => (
-                <div key={bm.key} className="px-4 py-3 flex items-center gap-3">
-                  {bm.present ? (
-                    <CheckCircle2 className="w-4 h-4 text-accent shrink-0" />
-                  ) : (
-                    <XCircle className="w-4 h-4 text-destructive/60 shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground">{bm.label}</p>
-                  </div>
-                  {bm.present ? (
-                    <span className="text-sm font-semibold text-foreground">
-                      {bm.value} <span className="text-xs text-muted-foreground font-normal">{bm.unit}</span>
-                    </span>
-                  ) : (
-                    <Badge variant="outline" className="text-xs border-destructive/30 text-destructive">
-                      Missing
-                    </Badge>
-                  )}
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-
-        {presentCount < totalCount && (
-          <Button
-            variant="outline-clinical"
-            size="lg"
-            className="w-full"
-            onClick={() => navigate("/lab-results")}
-          >
-            Add Missing Lab Results
-          </Button>
+        {overallPct < 100 && (
+          <div className="bg-muted/50 rounded-xl p-4">
+            <p className="text-sm text-muted-foreground text-center">
+              Complete more daily check-ins and log menstrual cycles to improve your data completeness score.
+            </p>
+          </div>
         )}
       </div>
     </div>

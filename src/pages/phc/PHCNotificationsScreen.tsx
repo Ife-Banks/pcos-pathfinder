@@ -13,6 +13,8 @@ import {
   ArrowRight,
   BellRing,
   Filter,
+  AlertTriangle,
+  Heart,
 } from "lucide-react";
 import PHCLayout from "@/components/phc/PHCLayout";
 import { Button } from "@/components/ui/button";
@@ -20,27 +22,45 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { phcAPI } from "@/services/phcService";
 
-type NotificationType = "new_referral" | "score_change" | "overdue_followup" | "missed_checkin";
+type NotificationType = 
+  | "new_referral" 
+  | "score_change" 
+  | "overdue_followup" 
+  | "missed_checkin"
+  | "risk_update"
+  | "system"
+  | "morning_checkin"
+  | "evening_checkin"
+  | "weekly_prompt"
+  | "period_alert"
+  | "wearable_sync"
+  | "clinician_msg";
 
 interface Notification {
   id: string;
-  type: NotificationType;
+  notification_type: NotificationType;
   title: string;
   body: string;
   is_read: boolean;
   created_at: string;
   data: {
-    action: "open_patient" | "open_dashboard";
-    queue_record_id: string;
+    action?: string;
+    patient_id?: string;
+    queue_record_id?: string;
+    record_id?: string;
+    severity?: string;
+    score?: number;
+    disease?: string;
+    condition?: string;
   };
 }
 
 const FILTERS: { label: string; value: NotificationType | "all" }[] = [
   { label: "All", value: "all" },
+  { label: "Risk Alerts", value: "risk_update" },
   { label: "New Referrals", value: "new_referral" },
   { label: "Score Changes", value: "score_change" },
-  { label: "Overdue Follow-Ups", value: "overdue_followup" },
-  { label: "Missed Check-Ins", value: "missed_checkin" },
+  { label: "System", value: "system" },
 ];
 
 const ACCENT_COLOR = "#2E8B57";
@@ -53,6 +73,7 @@ function formatTimestamp(isoString: string): string {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
+  if (diffMins < 1) return "Just now";
   if (diffMins < 60) return `${diffMins} min ago`;
   if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
   if (diffDays === 1) return "Yesterday";
@@ -70,6 +91,14 @@ function getNotificationIcon(type: NotificationType, className = "h-5 w-5") {
       return <Clock {...iconProps} />;
     case "missed_checkin":
       return <BellOff {...iconProps} />;
+    case "risk_update":
+      return <AlertTriangle {...iconProps} />;
+    case "system":
+      return <Bell {...iconProps} />;
+    case "period_alert":
+      return <Heart {...iconProps} />;
+    default:
+      return <Bell {...iconProps} />;
   }
 }
 
@@ -83,6 +112,14 @@ function getIconBgColor(type: NotificationType): string {
       return "bg-amber-100 text-amber-600";
     case "missed_checkin":
       return "bg-gray-100 text-gray-500";
+    case "risk_update":
+      return "bg-purple-100 text-purple-600";
+    case "system":
+      return "bg-blue-100 text-blue-600";
+    case "period_alert":
+      return "bg-pink-100 text-pink-600";
+    default:
+      return "bg-gray-100 text-gray-600";
   }
 }
 
@@ -96,9 +133,10 @@ function getActionButton(type: NotificationType) {
         </Button>
       );
     case "score_change":
+    case "risk_update":
       return (
-        <Button variant="ghost" className={`${baseClass} bg-blue-50 text-blue-700 hover:bg-blue-100`} size="sm">
-          View Details <ArrowRight className="h-3 w-3" />
+        <Button variant="ghost" className={`${baseClass} bg-purple-50 text-purple-700 hover:bg-purple-100`} size="sm">
+          View Patient <ArrowRight className="h-3 w-3" />
         </Button>
       );
     case "overdue_followup":
@@ -111,6 +149,12 @@ function getActionButton(type: NotificationType) {
       return (
         <Button variant="outline" className={`${baseClass} border-gray-300 text-gray-600 hover:bg-gray-50`} size="sm">
           Send Reminder <ArrowRight className="h-3 w-3" />
+        </Button>
+      );
+    default:
+      return (
+        <Button variant="ghost" className={`${baseClass} bg-gray-50 text-gray-700 hover:bg-gray-100`} size="sm">
+          View <ArrowRight className="h-3 w-3" />
         </Button>
       );
   }
@@ -162,8 +206,12 @@ export default function PHCNotificationsScreen() {
         // continue anyway
       }
     }
-    if (notification.data.queue_record_id) {
-      navigate(`/phc/patients/${notification.data.queue_record_id}`);
+    
+    // For PHC: use record_id (PHCPatientRecord) for navigation
+    // For severe cases: use case_id for FMC navigation
+    const recordId = notification.data?.record_id || notification.data?.case_id;
+    if (recordId) {
+      navigate(`/phc/patients/${recordId}`);
     }
   }
 
@@ -178,7 +226,7 @@ export default function PHCNotificationsScreen() {
   }
 
   const filteredNotifications = notifications
-    .filter((n) => activeFilter === "all" || n.type === activeFilter)
+    .filter((n) => activeFilter === "all" || n.notification_type === activeFilter)
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   return (
@@ -198,6 +246,15 @@ export default function PHCNotificationsScreen() {
                 </Badge>
               )}
             </div>
+            {unreadCount > 0 && (
+              <button
+                onClick={handleMarkAllRead}
+                className="text-sm text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-emerald-50 transition-colors"
+              >
+                <CheckCircle className="h-4 w-4" />
+                Mark All Read
+              </button>
+            )}
           </div>
 
           <div className="flex flex-wrap gap-2 mb-6">
@@ -216,17 +273,6 @@ export default function PHCNotificationsScreen() {
               </button>
             ))}
           </div>
-
-          {filteredNotifications.length > 0 && unreadCount > 0 && (
-            <div className="flex justify-end mb-3">
-              <button
-                onClick={handleMarkAllRead}
-                className="text-sm text-emerald-600 hover:text-emerald-700 font-medium underline-offset-2 hover:underline"
-              >
-                Mark All Read
-              </button>
-            </div>
-          )}
 
           {loading ? (
             <div className="space-y-3">
@@ -269,8 +315,8 @@ export default function PHCNotificationsScreen() {
                   >
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
-                        <div className={`mt-0.5 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${getIconBgColor(notification.type)}`}>
-                          {getNotificationIcon(notification.type)}
+                        <div className={`mt-0.5 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${getIconBgColor(notification.notification_type)}`}>
+                          {getNotificationIcon(notification.notification_type)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
@@ -283,11 +329,16 @@ export default function PHCNotificationsScreen() {
                                   <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: ACCENT_COLOR }} />
                                 )}
                               </div>
-                              <p className="text-sm text-gray-600 mt-0.5 line-clamp-2">{notification.body}</p>
+                              <p className="text-sm text-gray-600 mt-0.5 line-clamp-2">
+                                {notification.body || notification.data?.disease ? 
+                                  `${notification.data?.disease || ''} risk - Score: ${notification.data?.score || 'N/A'}/100` : 
+                                  'New notification'
+                                }
+                              </p>
                               <p className="text-xs text-gray-400 mt-1">{formatTimestamp(notification.created_at)}</p>
                             </div>
                             <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                              {getActionButton(notification.type)}
+                              {getActionButton(notification.notification_type)}
                             </div>
                           </div>
                         </div>
