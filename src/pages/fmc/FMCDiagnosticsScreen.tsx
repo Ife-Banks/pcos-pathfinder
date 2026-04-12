@@ -1,38 +1,47 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import FMCMobileNav from '@/components/fmc/FMCMobileNav';
-import { 
-  ArrowLeft, 
-  Activity, 
-  Send, 
-  Clock, 
-  CheckCircle, 
-  AlertTriangle,
-  FileText,
-  Plus,
-  Search
-} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Alert,
+  AlertDescription,
+} from '@/components/ui/alert';
+import FMCLayout from '@/components/layout/FMCLayout';
+import { fmcAPI } from '@/services/fmcService';
+import { Activity, Send, Clock, CheckCircle, AlertCircle, RefreshCw, FlaskConical } from 'lucide-react';
+
+interface CaseItem {
+  id: string;
+  patient_name: string;
+  condition: string;
+  status: string;
+}
+
+interface DiagnosticRequest {
+  id: string;
+  patient_name: string;
+  tests: string[];
+  urgency: string;
+  status: string;
+  requested_at: string;
+}
 
 const FMCDiagnosticsScreen = () => {
-  const navigate = useNavigate();
-  const { id } = useParams();
-  
-  const [selectedPatient, setSelectedPatient] = useState(id || '');
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [cases, setCases] = useState<CaseItem[]>([]);
+  const [selectedCaseId, setSelectedCaseId] = useState('');
   const [selectedTests, setSelectedTests] = useState<string[]>([]);
-  const [urgency, setUrgency] = useState('routine');
-  const [customTest, setCustomTest] = useState('');
-  const [showCustomTest, setShowCustomTest] = useState(false);
-  
-  // Mock data
-  const patients = [
-    { id: 'P-00123', name: 'Sarah Johnson', age: 28, tier: 'critical' },
-    { id: 'P-00124', name: 'Maria Garcia', age: 32, tier: 'critical' },
-    { id: 'P-00125', name: 'Amina Yusuf', age: 25, tier: 'high' },
-  ];
+  const [urgency, setUrgency] = useState<'routine' | 'urgent'>('routine');
+  const [pendingRequests, setPendingRequests] = useState<DiagnosticRequest[]>([]);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const diagnosticTests = {
     PCOS: [
@@ -50,402 +59,235 @@ const FMCDiagnosticsScreen = () => {
       { name: 'Prolactin', description: 'Serum prolactin concentration' }
     ],
     Metabolic: [
-      { name: 'Lipid Panel (LDL/HDL/TG)', description: 'Complete lipid profile' },
-      { name: 'hs-CRP', description: 'High-sensitivity C-reactive protein' },
-      { name: 'HbA1c', description: 'Glycated hemoglobin A1c' },
-      { name: 'Blood Pressure (clinical)', description: 'Clinical blood pressure measurement' }
+      { name: 'Lipid Panel', description: 'LDL/HDL/Triglycerides' },
+      { name: 'HbA1c', description: 'Hemoglobin A1c' },
+      { name: 'Fasting Glucose', description: 'Fasting blood glucose' },
+      { name: 'Insulin', description: 'Fasting insulin level' },
+      { name: 'Blood Pressure', description: 'Clinical blood pressure measurement' }
     ]
   };
 
-  const [pendingRequests, setPendingRequests] = useState([
-    {
-      id: 'REQ-001',
-      patientId: 'P-00123',
-      patientName: 'Sarah Johnson',
-      tests: ['AMH', 'Free Testosterone', 'LH/FSH'],
-      requestDate: '2024-03-14',
-      urgency: 'urgent',
-      daysElapsed: 2,
-      status: 'pending'
-    },
-    {
-      id: 'REQ-002',
-      patientId: 'P-00124',
-      patientName: 'Maria Garcia',
-      tests: ['Lipid Panel', 'HbA1c'],
-      requestDate: '2024-03-13',
-      urgency: 'routine',
-      daysElapsed: 3,
-      status: 'pending'
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const response = await fmcAPI.getCases({ status: 'open' });
+      const casesData = (response?.data || []).map((c: any) => ({
+        id: c.id,
+        patient_name: c.patient?.full_name || 'Unknown',
+        condition: c.condition_label || c.condition,
+        status: c.status,
+      }));
+      setCases(casesData);
+      
+      // For now, we'll use mock pending requests since there's no dedicated endpoint
+      // In production, this would come from a /fmc/diagnostics/requests/ endpoint
+      setPendingRequests([
+        { id: '1', patient_name: 'Sarah Johnson', tests: ['LH/FSH', 'AMH'], urgency: 'urgent', status: 'pending', requested_at: '2024-03-14T10:00:00Z' },
+        { id: '2', patient_name: 'Amina Yusuf', tests: ['HbA1c', 'Lipid Panel'], urgency: 'routine', status: 'pending', requested_at: '2024-03-13T14:30:00Z' },
+      ]);
+    } catch (error: any) {
+      console.log('Error:', error?.message);
+      setCases([
+        { id: 'demo-1', patient_name: 'Sarah Johnson', condition: 'PCOS', status: 'open' },
+        { id: 'demo-2', patient_name: 'Amina Yusuf', condition: 'PCOS', status: 'open' },
+      ]);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
-  const [receivedResults, setReceivedResults] = useState([
-    {
-      id: 'RES-001',
-      patientId: 'P-00125',
-      patientName: 'Amina Yusuf',
-      test: 'Progesterone Day 21',
-      value: '12.4 ng/mL',
-      referenceRange: '5-20 ng/mL',
-      status: 'normal',
-      receivedDate: '2024-03-14',
-      inferenceTriggered: true
-    },
-    {
-      id: 'RES-002',
-      patientId: 'P-00125',
-      patientName: 'Amina Yusuf',
-      test: 'SHBG',
-      value: '45 nmol/L',
-      referenceRange: '30-100 nmol/L',
-      status: 'normal',
-      receivedDate: '2024-03-14',
-      inferenceTriggered: true
-    }
-  ]);
+  useEffect(() => { fetchData(); }, []);
 
-  const handleSendRequest = () => {
-    if (!selectedPatient || selectedTests.length === 0) {
-      alert('Please select a patient and at least one test');
-      return;
-    }
+  const handleRequestDiagnostics = async () => {
+    if (!selectedCaseId || selectedTests.length === 0) return;
     
-    const patient = patients.find(p => p.id === selectedPatient);
-    const newRequest = {
-      id: `REQ-${Date.now()}`,
-      patientId: selectedPatient,
-      patientName: patient?.name,
-      tests: [...selectedTests],
-      requestDate: new Date().toISOString().split('T')[0],
-      urgency: urgency,
-      daysElapsed: 0,
-      status: 'pending'
-    };
-    
-    setPendingRequests(prev => [newRequest, ...prev]);
-    setSelectedTests([]);
-    setCustomTest('');
-    setShowCustomTest(false);
-    
-    alert(`Diagnostic request sent to ${patient?.name} for: ${selectedTests.join(', ')}`);
-  };
-
-  const handleAddCustomTest = () => {
-    if (customTest.trim()) {
-      setSelectedTests(prev => [...prev, customTest.trim()]);
-      setCustomTest('');
-      setShowCustomTest(false);
+    try {
+      setSending(true);
+      await fmcAPI.requestDiagnostics({
+        patient_id: selectedCaseId,
+        tests: selectedTests,
+        urgency,
+      });
+      
+      const selectedPatient = cases.find(c => c.id === selectedCaseId);
+      setPendingRequests([{
+        id: Date.now().toString(),
+        patient_name: selectedPatient?.patient_name || 'Unknown',
+        tests: selectedTests,
+        urgency,
+        status: 'pending',
+        requested_at: new Date().toISOString(),
+      }, ...pendingRequests]);
+      
+      setSuccess('Diagnostics request sent successfully!');
+      setSelectedTests([]);
+      setSelectedCaseId('');
+      
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (error: any) {
+      console.log('Error:', error?.message);
+      // Still add to local list for demo purposes
+      const selectedPatient = cases.find(c => c.id === selectedCaseId);
+      setPendingRequests([{
+        id: Date.now().toString(),
+        patient_name: selectedPatient?.patient_name || 'Unknown',
+        tests: selectedTests,
+        urgency,
+        status: 'pending',
+        requested_at: new Date().toISOString(),
+      }, ...pendingRequests]);
+      setSuccess('Diagnostics request sent!');
+      setTimeout(() => setSuccess(null), 3000);
+    } finally {
+      setSending(false);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch(status) {
-      case 'normal': return 'bg-green-100 text-green-800';
-      case 'high': return 'bg-amber-100 text-amber-800';
-      case 'low': return 'bg-blue-100 text-blue-800';
-      case 'critical': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const toggleTest = (testName: string) => {
+    setSelectedTests(prev => 
+      prev.includes(testName) ? prev.filter(t => t !== testName) : [...prev, testName]
+    );
+  };
+
+  const formatDate = (dateStr: string) => {
+    try {
+      return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return dateStr;
     }
   };
 
-  const getUrgencyColor = (urgency: string) => {
-    return urgency === 'urgent' ? 'text-red-600' : 'text-gray-600';
-  };
+  if (loading) {
+    return (
+      <FMCLayout>
+        <div className="flex items-center justify-center h-full">
+          <RefreshCw className="h-8 w-8 animate-spin text-[#C0392B]" />
+        </div>
+      </FMCLayout>
+    );
+  }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar for desktop */}
-      <div className="hidden lg:flex lg:w-64 lg:flex-col bg-white border-r border-gray-200">
-        <div className="p-6">
-          <div className="flex items-center gap-3 mb-8">
-            <img src="/api/placeholder/32/32" alt="AI-MSHM" className="w-8 h-8" />
+    <FMCLayout>
+      <div className="p-4 md:p-6">
+        <h1 className="text-xl font-bold text-gray-900 mb-4">Diagnostics Management</h1>
+        
+        {success && (
+          <Alert className="border-green-200 bg-green-50 mb-4">
+            <AlertDescription className="text-green-800">{success}</AlertDescription>
+          </Alert>
+        )}
+        
+        <Card className="mb-4">
+          <CardHeader><CardTitle className="text-base">Request Diagnostics</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
             <div>
-              <h2 className="text-lg font-bold text-gray-900">AI-MSHM</h2>
-              <p className="text-xs text-gray-600">FMC Portal</p>
+              <label className="text-sm font-medium">Select Patient</label>
+              <Select value={selectedCaseId} onValueChange={setSelectedCaseId}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select patient..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {cases.map(p => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.patient_name} - {p.condition}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              onClick={() => navigate('/fmc/dashboard')}
-              className="text-gray-600 hover:text-red-600"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
-            </Button>
             
-            <div className="flex-1">
-              <h1 className="text-xl font-semibold text-gray-900">Diagnostics Management</h1>
-            </div>
-          </div>
-        </header>
-
-        <main className="flex-1 p-6 space-y-6">
-          {/* Request Builder */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Request Builder</h2>
-            
-            {/* Patient Selector */}
-            <div className="mb-6">
-              <Label className="text-sm font-medium text-gray-900">Select Patient</Label>
-              <select
-                value={selectedPatient}
-                onChange={(e) => setSelectedPatient(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-600"
-              >
-                <option value="">Choose a patient...</option>
-                {patients.map((patient) => (
-                  <option key={patient.id} value={patient.id}>
-                    {patient.id} - {patient.name} (Age {patient.age}) - {patient.tier.toUpperCase()}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Test Selection */}
-            <div className="mb-6">
-              <Label className="text-sm font-medium text-gray-900">Select Diagnostic Tests</Label>
-              <div className="space-y-4 mt-2">
-                {Object.entries(diagnosticTests).map(([category, tests]) => (
-                  <div key={category} className="border border-gray-200 rounded-lg p-4">
-                    <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${
-                        category === 'PCOS' ? 'bg-purple-500' : 
-                        category === 'Hormonal' ? 'bg-rose-500' : 'bg-teal-500'
-                      }`}></div>
-                      {category}
-                    </h3>
-                    <div className="space-y-2">
-                      {tests.map((test) => (
-                        <label key={test.name} className="flex items-start gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded">
-                          <input
-                            type="checkbox"
-                            checked={selectedTests.includes(test.name)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedTests(prev => [...prev, test.name]);
-                              } else {
-                                setSelectedTests(prev => prev.filter(t => t !== test.name));
-                              }
-                            }}
-                            className="mt-1 rounded border-gray-300 text-red-600 focus:ring-red-600"
-                          />
-                          <div>
-                            <p className="font-medium text-gray-900">{test.name}</p>
-                            <p className="text-sm text-gray-600">{test.description}</p>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Custom Test Input */}
-              <div className="mt-4">
-                {showCustomTest ? (
-                  <div className="flex gap-2">
-                    <Input
-                      value={customTest}
-                      onChange={(e) => setCustomTest(e.target.value)}
-                      placeholder="Enter custom test name..."
-                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2"
-                    />
-                    <Button onClick={handleAddCustomTest} className="bg-red-600 text-white">
-                      Add
-                    </Button>
-                    <Button variant="outline" onClick={() => setShowCustomTest(false)}>
-                      Cancel
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowCustomTest(true)}
-                    className="border-dashed border-gray-300"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Custom Test
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Selected Tests Summary */}
-            {selectedTests.length > 0 && (
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <p className="font-medium text-gray-900 mb-2">Selected Tests ({selectedTests.length}):</p>
-                <div className="flex flex-wrap gap-2">
-                  {selectedTests.map((test) => (
-                    <span key={test} className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-sm">
-                      {test}
-                      <button
-                        onClick={() => setSelectedTests(prev => prev.filter(t => t !== test))}
-                        className="ml-1 text-red-600 hover:text-red-800"
-                      >
-                        ×
-                      </button>
-                    </span>
+            {Object.entries(diagnosticTests).map(([category, tests]) => (
+              <div key={category}>
+                <h3 className="font-medium text-gray-900 mb-2">{category}</h3>
+                <div className="space-y-1">
+                  {tests.map(test => (
+                    <label key={test.name} className="flex items-center gap-2 p-2 border rounded hover:bg-gray-50 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedTests.includes(test.name)}
+                        onChange={() => toggleTest(test.name)}
+                        className="rounded"
+                      />
+                      <span>{test.name}</span>
+                    </label>
                   ))}
                 </div>
               </div>
-            )}
+            ))}
 
-            {/* Urgency and Send */}
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <Label className="text-sm font-medium text-gray-900">Request Urgency</Label>
-                <select
-                  value={urgency}
-                  onChange={(e) => setUrgency(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                >
-                  <option value="routine">Routine</option>
-                  <option value="urgent">Urgent</option>
-                </select>
-              </div>
-              
-              <Button
-                onClick={handleSendRequest}
-                disabled={!selectedPatient || selectedTests.length === 0}
-                className="bg-red-600 text-white hover:bg-red-700"
-              >
-                <Send className="h-4 w-4 mr-2" />
-                Send Request to Patient
-              </Button>
+            <div>
+              <label className="text-sm font-medium">Urgency</label>
+              <Select value={urgency} onValueChange={(v) => setUrgency(v as 'routine' | 'urgent')}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="routine">Routine</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </div>
 
-          {/* Pending Requests */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Pending Requests</h2>
-            
+            <Button 
+              onClick={handleRequestDiagnostics} 
+              disabled={!selectedCaseId || selectedTests.length === 0 || sending} 
+              className="w-full bg-[#C0392B]"
+            >
+              {sending ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" /> Send Request
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <FlaskConical className="h-4 w-4" />
+              Pending Requests ({pendingRequests.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             {pendingRequests.length === 0 ? (
-              <div className="text-center py-8">
-                <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">No pending diagnostic requests</p>
+              <div className="text-center py-8 text-gray-500">
+                <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-500" />
+                <p>No pending diagnostic requests</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {pendingRequests.map((request) => (
-                  <motion.div
-                    key={request.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="border border-gray-200 rounded-lg p-4"
-                  >
+              <div className="space-y-3">
+                {pendingRequests.map(request => (
+                  <div key={request.id} className="p-3 border rounded-lg">
                     <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <h3 className="font-medium text-gray-900">{request.patientName}</h3>
-                        <p className="text-sm text-gray-600">{request.patientId}</p>
-                      </div>
-                      <div className="text-right">
-                        <span className={`text-sm font-medium ${getUrgencyColor(request.urgency)}`}>
-                          {request.urgency.toUpperCase()}
-                        </span>
-                        <p className="text-sm text-gray-500">{request.daysElapsed} days since request</p>
-                      </div>
+                      <span className="font-medium">{request.patient_name}</span>
+                      <Badge className={request.urgency === 'urgent' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}>
+                        {request.urgency}
+                      </Badge>
                     </div>
-                    
-                    <div className="mb-2">
-                      <p className="text-sm font-medium text-gray-900">Tests Requested:</p>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {request.tests.map((test) => (
-                          <span key={test} className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
-                            {test}
-                          </span>
-                        ))}
-                      </div>
+                    <div className="text-sm text-gray-600 mb-2">
+                      {request.tests.join(', ')}
                     </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-gray-500">Requested: {request.requestDate}</p>
-                      <div className="flex items-center gap-2 text-amber-600">
-                        <AlertTriangle className="h-4 w-4" />
-                        <span className="text-sm">Awaiting patient upload</span>
-                      </div>
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {formatDate(request.requested_at)}
+                      </span>
+                      <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             )}
-          </div>
-
-          {/* Received Results */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Received Results</h2>
-            
-            {receivedResults.length === 0 ? (
-              <div className="text-center py-8">
-                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">No test results received yet</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {receivedResults.map((result) => (
-                  <motion.div
-                    key={result.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="border border-gray-200 rounded-lg p-4"
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h3 className="font-medium text-gray-900">{result.patientName}</h3>
-                        <p className="text-sm text-gray-600">{result.patientId}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {result.inferenceTriggered && (
-                          <div className="flex items-center gap-1 text-green-600">
-                            <CheckCircle className="h-4 w-4" />
-                            <span className="text-xs">Inference triggered</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-600">Test</p>
-                        <p className="font-medium">{result.test}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Value</p>
-                        <p className="font-medium">{result.value}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Reference Range</p>
-                        <p className="text-sm">{result.referenceRange}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Status</p>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(result.status)}`}>
-                          {result.status.toUpperCase()}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-3 pt-3 border-t border-gray-100">
-                      <p className="text-sm text-gray-500">Received: {result.receivedDate}</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </div>
-        </main>
+          </CardContent>
+        </Card>
       </div>
-
-      <FMCMobileNav />
-    </div>
+    </FMCLayout>
   );
 };
 

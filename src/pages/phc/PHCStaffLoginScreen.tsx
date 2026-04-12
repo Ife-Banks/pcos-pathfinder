@@ -56,6 +56,14 @@ const PHCStaffLoginScreen = () => {
         return;
       }
 
+      if (user.must_change_password) {
+        localStorage.setItem('access_token', access);
+        localStorage.setItem('refresh_token', refresh);
+        loginWithTokens(user, access);
+        navigate('/change-password');
+        return;
+      }
+
       localStorage.setItem('access_token', access);
       localStorage.setItem('refresh_token', refresh);
 

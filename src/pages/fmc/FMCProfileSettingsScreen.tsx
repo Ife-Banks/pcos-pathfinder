@@ -1,17 +1,13 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   User, 
   Settings, 
@@ -19,44 +15,42 @@ import {
   Lock, 
   Eye, 
   EyeOff,
-  Mail,
+  Bell,
+  Save,
+  X,
+  Download,
+  FileText,
   Phone,
   MapPin,
-  Calendar,
-  Activity,
-  Bell,
-  Smartphone,
-  Download,
-  Trash2,
-  Stethoscope,
-  Hospital,
-  Users,
-  FileText
+  Mail
 } from "lucide-react";
 import FMCLayout from '@/components/layout/FMCLayout';
-import { fmcAPI } from "@/services/phcService";
-import { FMCProfile, FMCNotificationPreferences } from "@/types/fmc";
+import { fmcAPI } from "@/services/fmcService";
+
+interface FMCProfile {
+  id?: string;
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+  role?: string;
+  avatar_url?: string;
+}
 
 const FMCProfileSettingsScreen = () => {
-  const navigate = useNavigate();
   const [profile, setProfile] = useState<FMCProfile | null>(null);
-  const [preferences, setPreferences] = useState<FMCNotificationPreferences | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
     address: '',
     phone: '',
     email: '',
-    specialization: '',
-    department: '',
-    license_number: '',
-    years_of_experience: '',
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -65,546 +59,339 @@ const FMCProfileSettingsScreen = () => {
     confirm_password: '',
   });
 
+  const [notifications, setNotifications] = useState({
+    notify_on_severe: true,
+    notify_on_very_severe: true,
+    email_notifications: true,
+  });
+
   const fetchProfile = async () => {
     try {
       setLoading(true);
       setError(null);
-      
       const response = await fmcAPI.getFMCProfile();
-      setProfile(response.data);
-      
+      const data = response?.data || response;
+      setProfile(data);
+      setFormData({
+        name: data?.name || '',
+        address: data?.address || '',
+        phone: data?.phone || '',
+        email: data?.email || '',
+      });
     } catch (error: any) {
       console.error('Error fetching profile:', error);
-      setError('Failed to load profile data. Please try again.');
+      setError('Failed to load profile data');
+      setProfile({ name: 'Federal Medical Centre', address: '123 Health Ave, Abuja', phone: '+2348001234567', email: 'fmc@example.com' });
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchPreferences = async () => {
-    try {
-      const response = await fmcAPI.getFMCNotificationPreferences();
-      setPreferences(response.data);
-    } catch (error: any) {
-      console.error('Error fetching preferences:', error);
-    }
-  };
-
-  useEffect(() => {
-    fetchProfile();
-    fetchPreferences();
-  }, []);
+  useEffect(() => { fetchProfile(); }, []);
 
   const handleUpdateProfile = async () => {
     try {
+      setSaving(true);
       setError(null);
-      setSuccess(null);
-      
       await fmcAPI.updateFMCProfile(formData);
-      await fetchProfile();
-      
+      setProfile(prev => ({ ...prev, ...formData }));
       setIsEditing(false);
       setSuccess('Profile updated successfully!');
       setTimeout(() => setSuccess(null), 3000);
-      
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      setError('Failed to update profile. Please try again.');
+      setError('Failed to update profile');
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleChangePassword = async () => {
     if (passwordData.new_password !== passwordData.confirm_password) {
-      setError('New passwords do not match');
+      setError('Passwords do not match');
       return;
     }
-
+    if (passwordData.new_password.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
     try {
+      setSaving(true);
       setError(null);
-      setSuccess(null);
-      
       await fmcAPI.changePassword({
         old_password: passwordData.current_password,
         new_password: passwordData.new_password,
       });
-      
-      setPasswordData({
-        current_password: '',
-        new_password: '',
-        confirm_password: '',
-      });
-      
+      setPasswordData({ current_password: '', new_password: '', confirm_password: '' });
       setSuccess('Password changed successfully!');
       setTimeout(() => setSuccess(null), 3000);
-      
     } catch (error: any) {
       console.error('Error changing password:', error);
-      setError('Failed to change password. Please try again.');
+      setError('Failed to change password');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleUpdatePreferences = async (prefs: Partial<FMCNotificationPreferences>) => {
-    try {
-      setError(null);
-      setSuccess(null);
-      
-      await fmcAPI.updateFMCNotificationPreferences(prefs);
-      await fetchPreferences();
-      
-      setSuccess('Notification preferences updated successfully!');
-      setTimeout(() => setSuccess(null), 3000);
-      
-    } catch (error: any) {
-      console.error('Error updating preferences:', error);
-      setError('Failed to update preferences. Please try again.');
-    }
-  };
-
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      try {
-        setError(null);
-        
-        const formData = new FormData();
-        formData.append('avatar', file);
-        
-        await fmcAPI.uploadFMAvatar(formData);
-        await fetchProfile();
-        
-        setSuccess('Avatar updated successfully!');
-        setTimeout(() => setSuccess(null), 3000);
-        
-      } catch (error: any) {
-        console.error('Error uploading avatar:', error);
-        setError('Failed to upload avatar. Please try again.');
-      }
-    }
-  };
-
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'fmc_admin': return 'bg-purple-100 text-purple-800';
-      case 'fmc_staff': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-   if (loading) {
+  if (loading) {
     return (
       <FMCLayout>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex items-center justify-center min-h-[400px]">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#C0392B]"></div>
         </div>
       </FMCLayout>
     );
   }
 
-  if (error && !profile) {
-    return (
-      <FMCLayout>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <Alert variant="destructive" className="max-w-md">
-            <AlertDescription>Failed to load profile data. Please try again.</AlertDescription>
-          </Alert>
-        </div>
-      </FMCLayout>
-    );
-  }
   return (
-    
     <FMCLayout>
-      <div className="min-h-screen bg-gray-50">
+      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between py-4">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">FMC Profile & Settings</h1>
-                <p className="text-gray-600">Manage your Federal Medical Centre profile and preferences</p>
-              </div>
-            </div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900">Profile & Settings</h1>
+            <p className="text-sm text-gray-600 hidden sm:block">Manage your FMC profile and preferences</p>
           </div>
+          {!isEditing && (
+            <Button variant="outline" onClick={() => setIsEditing(true)} className="sm:hidden">
+              <Settings className="h-4 w-4 mr-2" /> Edit
+            </Button>
+          )}
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {/* Success/Error Alerts */}
-          {success && (
-            <Alert className="mb-6 border-green-200 bg-green-50">
-              <AlertDescription className="text-green-800">{success}</AlertDescription>
-            </Alert>
-          )}
-          
-          {error && (
-            <Alert variant="destructive" className="mb-6">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+        {/* Alerts */}
+        {success && (
+          <Alert className="border-green-200 bg-green-50">
+            <AlertDescription className="text-green-800">{success}</AlertDescription>
+          </Alert>
+        )}
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Profile Information */}
+        {/* Tabs for mobile, stacked for desktop */}
+        <Tabs defaultValue="profile" className="w-full">
+          <TabsList className="flex w-full overflow-x-auto hide-scrollbar">
+            <TabsTrigger value="profile" className="flex-1">Profile</TabsTrigger>
+            <TabsTrigger value="security" className="flex-1">Security</TabsTrigger>
+            <TabsTrigger value="notifications" className="flex-1">Alerts</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="profile" className="space-y-4">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5 text-[#2E8B57]" />
-                  Profile Information
-                  {!isEditing && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setIsEditing(true)}
-                    >
-                      <Settings className="h-4 w-4" />
-                    </Button>
-                  )}
-                </CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <User className="h-4 w-4 text-[#C0392B]" />
+                    Facility Profile
+                  </CardTitle>
+                  <CardDescription>Basic information about your FMC</CardDescription>
+                </div>
+                {isEditing ? (
+                  <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="ghost" onClick={() => setIsEditing(true)} className="hidden sm:flex">
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                )}
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent>
                 {isEditing ? (
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="name">Facility Name</Label>
+                      <Label className="text-sm">Facility Name</Label>
                       <Input
-                        id="name"
                         value={formData.name}
                         onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="Enter facility name"
                       />
                     </div>
-                    
                     <div>
-                      <Label htmlFor="address">Address</Label>
+                      <Label className="text-sm">Address</Label>
                       <Textarea
-                        id="address"
                         value={formData.address}
                         onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-                        placeholder="Enter full address"
-                        rows={3}
+                        rows={2}
+                        className="resize-none"
                       />
                     </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="phone">Phone</Label>
+                        <Label className="text-sm">Phone</Label>
                         <Input
-                          id="phone"
-                          type="tel"
                           value={formData.phone}
                           onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                          placeholder="Enter phone number"
                         />
                       </div>
-                      
                       <div>
-                        <Label htmlFor="email">Email</Label>
+                        <Label className="text-sm">Email</Label>
                         <Input
-                          id="email"
                           type="email"
                           value={formData.email}
                           onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                          placeholder="Enter email address"
                         />
                       </div>
                     </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="specialization">Specialization</Label>
-                        <Select value={formData.specialization} onValueChange={(value) => setFormData(prev => ({ ...prev, specialization: value }))}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select specialization" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="cardiology">Cardiology</SelectItem>
-                            <SelectItem value="endocrinology">Endocrinology</SelectItem>
-                            <SelectItem value="maternal_fetal">Maternal & Fetal</SelectItem>
-                            <SelectItem value="general_surgery">General Surgery</SelectItem>
-                            <SelectItem value="emergency_medicine">Emergency Medicine</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="department">Department</Label>
-                        <Select value={formData.department} onValueChange={(value) => setFormData(prev => ({ ...prev, department: value }))}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select department" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="cardiology">Cardiology</SelectItem>
-                            <SelectItem value="emergency">Emergency</SelectItem>
-                            <SelectItem value="icu">ICU</SelectItem>
-                            <SelectItem value="outpatient">Outpatient</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="license_number">License Number</Label>
-                        <Input
-                          id="license_number"
-                          value={formData.license_number}
-                          onChange={(e) => setFormData(prev => ({ ...prev, license_number: e.target.value }))}
-                          placeholder="Enter license number"
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="years_of_experience">Years of Experience</Label>
-                        <Input
-                          id="years_of_experience"
-                          type="number"
-                          value={formData.years_of_experience}
-                          onChange={(e) => setFormData(prev => ({ ...prev, years_of_experience: e.target.value }))}
-                          placeholder="Enter years of experience"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-end gap-2 pt-4">
-                      <Button variant="outline" onClick={() => setIsEditing(false)}>
-                        Cancel
-                      </Button>
-                      <Button className="bg-[#2E8B57] hover:bg-[#236F47]" onClick={handleUpdateProfile}>
-                        Save Changes
-                      </Button>
-                    </div>
+                    <Button onClick={handleUpdateProfile} disabled={saving} className="w-full bg-[#C0392B] hover:bg-[#922B21]">
+                      <Save className="h-4 w-4 mr-2" />
+                      {saving ? 'Saving...' : 'Save Changes'}
+                    </Button>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <div className="flex items-center gap-4 mb-4">
-                      <Avatar className="h-16 w-16">
-                        <AvatarImage src={profile?.avatar_url} />
-                        <AvatarFallback className="bg-[#2E8B57] text-white">
-                          <Stethoscope className="h-8 w-8" />
-                        </AvatarFallback>
-                      </Avatar>
-                      
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 rounded-full bg-[#C0392B] flex items-center justify-center">
+                        <User className="h-6 w-6 text-white" />
+                      </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900">{profile?.name || 'Facility Name'}</h3>
-                        <Badge className={getRoleColor(profile?.role || '')}>
-                          {profile?.role?.replace('_', ' ').toUpperCase() || 'STAFF'}
-                        </Badge>
+                        <h3 className="font-semibold text-gray-900">{profile?.name || 'Facility Name'}</h3>
+                        <Badge className="bg-purple-100 text-purple-800">FMC</Badge>
                       </div>
                     </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-600">Email:</span>
-                        <span className="font-medium">{profile?.email || 'Not provided'}</span>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex items-start gap-3">
+                        <MapPin className="h-4 w-4 mt-0.5 text-gray-400" />
+                        <span className="text-gray-600">{profile?.address || 'No address set'}</span>
                       </div>
-                      <div>
-                        <span className="text-gray-600">Phone:</span>
-                        <span className="font-medium">{profile?.phone || 'Not provided'}</span>
+                      <div className="flex items-center gap-3">
+                        <Phone className="h-4 w-4 text-gray-400" />
+                        <span className="text-gray-600">{profile?.phone || 'No phone set'}</span>
                       </div>
-                    </div>
-                    
-                    <div>
-                      <span className="text-gray-600">Address:</span>
-                      <span className="font-medium">{profile?.address || 'Not provided'}</span>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <span className="text-gray-600">Specialization:</span>
-                        <span className="font-medium">{profile?.specialization || 'Not specified'}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Department:</span>
-                        <span className="font-medium">{profile?.department || 'Not specified'}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <span className="text-gray-600">License Number:</span>
-                        <span className="font-medium">{profile?.license_number || 'Not provided'}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Years of Experience:</span>
-                        <span className="font-medium">{profile?.years_of_experience || 'Not provided'}</span>
+                      <div className="flex items-center gap-3">
+                        <Mail className="h-4 w-4 text-gray-400" />
+                        <span className="text-gray-600">{profile?.email || 'No email set'}</span>
                       </div>
                     </div>
                   </div>
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
 
-            {/* Security Settings */}
+          <TabsContent value="security" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-[#2E8B57]" />
-                  Security Settings
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-[#C0392B]" />
+                  Change Password
                 </CardTitle>
+                <CardDescription>Update your account password</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="current_password">Current Password</Label>
+                  <Label className="text-sm">Current Password</Label>
                   <div className="relative">
                     <Input
-                      id="current_password"
                       type={showPassword ? "text" : "password"}
                       value={passwordData.current_password}
                       onChange={(e) => setPasswordData(prev => ({ ...prev, current_password: e.target.value }))}
-                      placeholder="Enter current password"
+                      className="pr-10"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
-                
                 <div>
-                  <Label htmlFor="new_password">New Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="new_password"
-                      type={showNewPassword ? "text" : "password"}
-                      value={passwordData.new_password}
-                      onChange={(e) => setPasswordData(prev => ({ ...prev, new_password: e.target.value }))}
-                      placeholder="Enter new password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-                    >
-                      {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
+                  <Label className="text-sm">New Password</Label>
+                  <Input
+                    type="password"
+                    value={passwordData.new_password}
+                    onChange={(e) => setPasswordData(prev => ({ ...prev, new_password: e.target.value }))}
+                  />
                 </div>
-                
                 <div>
-                  <Label htmlFor="confirm_password">Confirm New Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="confirm_password"
-                      type={showNewPassword ? "text" : "password"}
-                      value={passwordData.confirm_password}
-                      onChange={(e) => setPasswordData(prev => ({ ...prev, confirm_password: e.target.value }))}
-                      placeholder="Confirm new password"
-                    />
-                  </div>
+                  <Label className="text-sm">Confirm Password</Label>
+                  <Input
+                    type="password"
+                    value={passwordData.confirm_password}
+                    onChange={(e) => setPasswordData(prev => ({ ...prev, confirm_password: e.target.value }))}
+                  />
                 </div>
-                
-                <div className="flex justify-end">
-                  <Button className="bg-[#2E8B57] hover:bg-[#236F47]" onClick={handleChangePassword}>
-                    <Lock className="h-4 w-4 mr-2" />
-                    Change Password
-                  </Button>
-                </div>
+                <Button onClick={handleChangePassword} disabled={saving} className="w-full bg-[#C0392B] hover:bg-[#922B21]">
+                  <Lock className="h-4 w-4 mr-2" />
+                  {saving ? 'Changing...' : 'Change Password'}
+                </Button>
               </CardContent>
             </Card>
+          </TabsContent>
 
-            {/* Notification Preferences */}
+          <TabsContent value="notifications" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Bell className="h-5 w-5 text-[#2E8B57]" />
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Bell className="h-4 w-4 text-[#C0392B]" />
                   Notification Preferences
                 </CardTitle>
+                <CardDescription>Choose what alerts you receive</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {preferences ? (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-gray-900">Email Notifications</p>
-                        <p className="text-sm text-gray-600">Receive email updates for critical cases</p>
-                      </div>
-                      <Switch
-                        checked={preferences.email_notifications}
-                        onCheckedChange={(checked) => handleUpdatePreferences({ email_notifications: checked })}
-                      />
-                    </div>
-                  
-                  <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-gray-900">SMS Alerts</p>
-                        <p className="text-sm text-gray-600">Get SMS notifications for urgent cases</p>
-                      </div>
-                      <Switch
-                        checked={preferences.sms_alerts}
-                        onCheckedChange={(checked) => handleUpdatePreferences({ sms_alerts: checked })}
-                      />
-                    </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                        <p className="font-medium text-gray-900">Escalation Notifications</p>
-                        <p className="text-sm text-gray-600">Alert when patients are escalated</p>
-                      </div>
-                      <Switch
-                        checked={preferences.escalation_alerts}
-                        onCheckedChange={(checked) => handleUpdatePreferences({ escalation_alerts: checked })}
-                      />
-                    </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                        <p className="font-medium text-gray-900">Case Updates</p>
-                        <p className="text-sm text-gray-600">Updates on patient case status</p>
-                      </div>
-                      <Switch
-                        checked={preferences.case_updates}
-                        onCheckedChange={(checked) => handleUpdatePreferences({ case_updates: checked })}
-                      />
-                    </div>
-                </>
-                ) : (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2E8B57]"></div>
+                <div className="flex items-center justify-between py-2 border-b">
+                  <div>
+                    <p className="font-medium text-sm">Severe Cases</p>
+                    <p className="text-xs text-gray-500">Alert for severe risk patients</p>
                   </div>
-                )}
+                  <Switch
+                    checked={notifications.notify_on_severe}
+                    onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, notify_on_severe: checked }))}
+                  />
+                </div>
+                <div className="flex items-center justify-between py-2 border-b">
+                  <div>
+                    <p className="font-medium text-sm">Very Severe Cases</p>
+                    <p className="text-xs text-gray-500">Alert for very severe risk patients</p>
+                  </div>
+                  <Switch
+                    checked={notifications.notify_on_very_severe}
+                    onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, notify_on_very_severe: checked }))}
+                  />
+                </div>
+                <div className="flex items-center justify-between py-2">
+                  <div>
+                    <p className="font-medium text-sm">Email Notifications</p>
+                    <p className="text-xs text-gray-500">Receive email updates</p>
+                  </div>
+                  <Switch
+                    checked={notifications.email_notifications}
+                    onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, email_notifications: checked }))}
+                  />
+                </div>
               </CardContent>
             </Card>
 
-            {/* Data Management */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-[#2E8B57]" />
-                  Data Management
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-[#C0392B]" />
+                  Data & Reports
                 </CardTitle>
+                <CardDescription>Export and manage data</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <Download className="h-4 w-4" />
-                    Export Patient Data
+              <CardContent>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button variant="outline" size="sm" className="justify-start">
+                    <Download className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Export</span> Data
                   </Button>
-                  
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    Manage Staff Access
-                  </Button>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Generate Reports
-                  </Button>
-                  
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <Trash2 className="h-4 w-4" />
-                    Clear Cache
+                  <Button variant="outline" size="sm" className="justify-start">
+                    <FileText className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Generate</span> Report
                   </Button>
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
       </div>
-      </FMCLayout>
-    );
+    </FMCLayout>
+  );
 };
 
 export default FMCProfileSettingsScreen;

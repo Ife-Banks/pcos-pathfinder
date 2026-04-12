@@ -264,9 +264,9 @@ export const fmcAPI = {
     return body;
   },
 
-  // Network
-  getPHCs: async () => {
-    const res = await apiClient.get('/centers/phc/');
+  // Network - FMC PHC Network (FMC13)
+  getNetworkPHCs: async () => {
+    const res = await apiClient.get('/centers/fmc/network-phc/');
     const body = res.data;
     ensureSuccess(body);
     return body;
@@ -286,6 +286,87 @@ export const fmcAPI = {
 
   exportFHIR: async (patientId: string) => {
     const res = await apiClient.post(`/fhir/export/${patientId}/`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
+  },
+
+  // FMC10 - Consultation Notes
+  getConsultationNotes: async (caseId: string) => {
+    const res = await apiClient.get(`/centers/fmc/cases/${caseId}/consultation-notes/`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
+  },
+
+  createConsultationNote: async (caseId: string, note: {
+    note_type: string;
+    content: string;
+    vital_signs?: object;
+    diagnosis?: object;
+  }) => {
+    const res = await apiClient.post(`/centers/fmc/cases/${caseId}/consultation-notes/`, note);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
+  },
+
+  updateConsultationNote: async (noteId: string, updates: {
+    note_type?: string;
+    content?: string;
+    vital_signs?: object;
+    diagnosis?: object;
+  }) => {
+    const res = await apiClient.patch(`/centers/fmc/consultation-notes/${noteId}/`, updates);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
+  },
+
+  deleteConsultationNote: async (noteId: string) => {
+    const res = await apiClient.delete(`/centers/fmc/consultation-notes/${noteId}/`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
+  },
+
+  // FMC11 - Treatment Plans
+  getTreatmentPlans: async (caseId: string) => {
+    const res = await apiClient.get(`/centers/fmc/cases/${caseId}/treatment-plans/`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
+  },
+
+  createTreatmentPlan: async (caseId: string, plan: {
+    title: string;
+    description: string;
+    medications?: object;
+    lifestyle?: object;
+    follow_up_days?: number;
+  }) => {
+    const res = await apiClient.post(`/centers/fmc/cases/${caseId}/treatment-plans/`, plan);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
+  },
+
+  updateTreatmentPlan: async (planId: string, updates: {
+    title?: string;
+    description?: string;
+    medications?: object;
+    lifestyle?: object;
+    follow_up_days?: number;
+    is_active?: boolean;
+  }) => {
+    const res = await apiClient.patch(`/centers/fmc/treatment-plans/${planId}/`, updates);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
+  },
+
+  deleteTreatmentPlan: async (planId: string) => {
+    const res = await apiClient.delete(`/centers/fmc/treatment-plans/${planId}/`);
     const body = res.data;
     ensureSuccess(body);
     return body;

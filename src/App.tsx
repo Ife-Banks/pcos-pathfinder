@@ -15,6 +15,7 @@ import LoginScreen from "./pages/LoginScreen";
 import ForgotPasswordScreen from "./pages/ForgotPasswordScreen";
 import ResetPasswordScreen from "./pages/ResetPasswordScreen";
 import VerifyEmailScreen from "./pages/VerifyEmailScreen";
+import ChangePasswordScreen from "./pages/ChangePasswordScreen";
 // Clinician screens
 import ClinicianLoginScreen from "./pages/clinician/ClinicianLoginScreen";
 import ClinicianRegistrationScreen from "./pages/clinician/ClinicianRegistrationScreen";
@@ -92,6 +93,10 @@ import PHCAdviceScreen from "./pages/phc/PHCAdviceScreen";
 import FMCPatientDetailScreen from "./pages/fmc/FMCPatientDetailScreen";
 import FMCAssignmentScreen from "./pages/fmc/FMCAssignmentScreen";
 import FMCDiagnosticsScreen from "./pages/fmc/FMCDiagnosticsScreen";
+import FMCConsultationNotesScreen from "./pages/fmc/FMCConsultationNotesScreen";
+import FMCTreatmentPlansScreen from "./pages/fmc/FMCTreatmentPlansScreen";
+import FMCStaffManagementScreen from "./pages/fmc/FMCStaffManagementScreen";
+import FMCNetworkPHCScreen from "./pages/fmc/FMCNetworkPHCScreen";
 import RppgCaptureScreen from "./pages/RppgCaptureScreen";
 
 const queryClient = new QueryClient();
@@ -131,6 +136,7 @@ const App = () => {
                     <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
                     <Route path="/reset-password" element={<ResetPasswordScreen />} />
                     <Route path="/verify-email" element={<VerifyEmailScreen />} />
+                    <Route path="/change-password" element={<ChangePasswordScreen />} />
                     {/* Clinician Routes */}
                     <Route path="/clinician/login" element={<ClinicianLoginScreen />} />
                     <Route path="/clinician/register" element={<ClinicianRegistrationScreen />} />
@@ -145,10 +151,18 @@ const App = () => {
                     {/* FMC Routes */}
                     <Route path="/fmc/login" element={<FMCStaffLoginScreen />} />
                     <Route path="/fmc/dashboard" element={<FMCMajorRiskDashboardScreen />} />
+                    <Route path="/fmc/patient-detail/:caseId" element={<FMCPatientDetailScreen />} />
+                    <Route path="/fmc/assignment" element={<FMCAssignmentScreen />} />
+                    <Route path="/fmc/diagnostics" element={<FMCDiagnosticsScreen />} />
                     <Route path="/fmc/analytics" element={<FMCAnalyticsScreen />} />
                     <Route path="/fmc/alerts" element={<FMCAlertsScreen />} />
                     <Route path="/fmc/discharge/:caseId" element={<FMCDischargeScreen />} />
                     <Route path="/fmc/profile" element={<FMCProfileSettingsScreen />} />
+                    <Route path="/fmc/consultation" element={<FMCConsultationNotesScreen />} />
+                    <Route path="/fmc/consultation/:caseId" element={<FMCConsultationNotesScreen />} />
+                    <Route path="/fmc/treatment-plans" element={<FMCTreatmentPlansScreen />} />
+                    <Route path="/fmc/staff-management" element={<FMCStaffManagementScreen />} />
+                    <Route path="/fmc/network-phc" element={<FMCNetworkPHCScreen />} />
                     {/* PHC Routes */}
                     <Route path="/phc/login" element={<PHCStaffLoginScreen />} />
                     <Route path="/phc/dashboard" element={<PHCMinorRiskDashboardScreen />} />
@@ -201,10 +215,7 @@ const App = () => {
                     <Route path="/clinician/patients" element={<PatientPanelScreen />} />
                     <Route path="/clinician/patient/:id" element={<PatientDetailScreen />} />
                     <Route path="/clinician/patient/:id/export" element={<ClinicianExportScreen />} />
-                    {/* FMC Portal */}
-                    <Route path="/fmc/patients/:id" element={<FMCPatientDetailScreen />} />
-                    <Route path="/fmc/assignment" element={<FMCAssignmentScreen />} />
-                    <Route path="/fmc/diagnostics" element={<FMCDiagnosticsScreen />} />
+                    {/* Catch-all */}
                     <Route path="/rppg-capture" element={<RppgCaptureScreen />} />
                     <Route path="/unauthorized" element={<UnauthorizedScreen />} />
                     <Route path="*" element={<NotFound />} />

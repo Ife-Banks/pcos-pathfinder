@@ -93,6 +93,13 @@ const ClinicianLoginScreen = () => {
         return;
       }
       
+      // Check if password change is required
+      if (response.data.user.must_change_password) {
+        await login(response.data);
+        navigate('/change-password');
+        return;
+      }
+      
       // Store tokens and user data
       await login(response.data);
       
@@ -123,6 +130,16 @@ const ClinicianLoginScreen = () => {
     
     try {
       await clinicianAPI.verify2FA(formData.two_factor_code!, localStorage.getItem('access_token')!);
+      
+      // Check if user needs to change password
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const userData = JSON.parse(userStr);
+        if (userData.must_change_password) {
+          navigate('/change-password');
+          return;
+        }
+      }
       
       // 2FA verified, navigate to dashboard
       navigate('/clinician/dashboard');

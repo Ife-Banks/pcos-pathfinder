@@ -46,6 +46,12 @@ const LoginScreen = () => {
     try {
       const result = await login({ email: form.email, password: form.password });
 
+      // Check if password change is required
+      if (result.data.user.must_change_password) {
+        navigate('/change-password');
+        return;
+      }
+
       // Route based on user profile:
       if (!result.data.user.onboarding_completed) {
         // Route to NEXT incomplete step

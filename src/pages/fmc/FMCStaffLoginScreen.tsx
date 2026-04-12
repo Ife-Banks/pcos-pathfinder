@@ -11,11 +11,8 @@ import {
   Loader2, 
   Eye, 
   EyeOff, 
-  Shield, 
-  User, 
   Mail, 
   Lock, 
-  Key, 
   Hospital,
   AlertTriangle 
 } from "lucide-react";
@@ -25,15 +22,12 @@ import { FMCLoginForm } from "@/types/fmc";
 
 const FMCLoginScreen = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { loginWithTokens } = useAuth();
   const [formData, setFormData] = useState<FMCLoginForm>({
     email: "",
     password: "",
-    staff_id: "",
-    two_factor_code: "",
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [show2FA, setShow2FA] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [facilityInfo, setFacilityInfo] = useState<any>(null);
@@ -51,16 +45,6 @@ const FMCLoginScreen = () => {
       newErrors.password = "Password is required";
     }
     
-    if (!show2FA && !formData.staff_id.trim()) {
-      newErrors.staff_id = "Staff ID is required";
-    }
-    
-    if (show2FA && !formData.two_factor_code.trim()) {
-      newErrors.two_factor_code = "2FA code is required";
-    } else if (show2FA && !/^\d{6}$/.test(formData.two_factor_code)) {
-      newErrors.two_factor_code = "2FA code must be 6 digits";
-    }
-    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -72,7 +56,7 @@ const FMCLoginScreen = () => {
     }
   };
 
-  const handleLoginStep1 = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) return;
@@ -86,26 +70,48 @@ const FMCLoginScreen = () => {
         password: formData.password,
       });
       
-      // Check FMC role
+      console.log('Login response:', response);
+      console.log('response.data:', response.data);
+      console.log('user:', response.data.user);
+      console.log('must_change_password:', response.data.user.must_change_password);
+      
       if (!['fhc_staff', 'fhc_admin'].includes(response.data.user.role)) {
         setErrors({ general: "Your account does not have FMC staff access." });
         return;
       }
       
-      // Check if email is verified
       if (!response.data.user.is_email_verified) {
         navigate('/verify-email');
         return;
       }
       
-      // Store tokens and user data
-      await login(response.data);
+      if (response.data.user.must_change_password) {
+        const { access, refresh, user } = response.data;
+        localStorage.setItem('access_token', access);
+        localStorage.setItem('refresh_token', refresh);
+        loginWithTokens(user, access, refresh);
+        navigate('/change-password');
+        return;
+      }
       
-      // Set facility info
-      setFacilityInfo(response.data.user.center_info);
+      const { access, refresh, user } = response.data;
+      localStorage.setItem('access_token', access);
+      localStorage.setItem('refresh_token', refresh);
       
-      // Show 2FA screen
-      setShow2FA(true);
+      // Extract FMC info from center_info and set proper user data
+      const fmcInfo = user.center_info;
+      const userWithFMC = {
+        ...user,
+        center_info: {
+          ...user.center_info,
+          fmc_name: fmcInfo?.center_type === 'fmc' ? fmcInfo?.center_name : fmcInfo?.fmc_name,
+          fmc_type: fmcInfo?.center_type
+        }
+      };
+      
+      setFacilityInfo(userWithFMC.center_info);
+      loginWithTokens(userWithFMC, access, refresh);
+      navigate('/fmc/dashboard');
       
     } catch (error: any) {
       console.error('Login error:', error);
@@ -121,31 +127,8 @@ const FMCLoginScreen = () => {
     }
   };
 
-  const handleLoginStep2 = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) return;
-    
-    setIsLoading(true);
-    setErrors({});
-    
-    try {
-      await fmcAPI.verify2FA(formData.two_factor_code!, localStorage.getItem('access_token')!);
-      
-      // 2FA verified, navigate to dashboard
-      navigate('/fmc/dashboard');
-      
-    } catch (error: any) {
-      console.error('2FA error:', error);
-      setErrors({ two_factor_code: "Invalid 2FA code" });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const fetchUserDetails = async (email: string) => {
     try {
-      // Simulate fetching facility info based on email domain
       if (email.includes('luth')) {
         setFacilityInfo({
           center_type: 'fhc',
@@ -177,7 +160,6 @@ const FMCLoginScreen = () => {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
       >
-        {/* Logo and Title */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-[#C0392B] rounded-2xl mx-auto mb-4 flex items-center justify-center">
             <span className="text-white text-2xl font-bold">AI-MSHM</span>
@@ -191,12 +173,9 @@ const FMCLoginScreen = () => {
 
         <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle className="text-center">
-              {show2FA ? "Two-Factor Authentication" : "Staff Login"}
-            </CardTitle>
+            <CardTitle className="text-center">Staff Login</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* General Error */}
             {errors.general && (
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
@@ -204,151 +183,84 @@ const FMCLoginScreen = () => {
               </Alert>
             )}
 
-            {!show2FA ? (
-              <form onSubmit={handleLoginStep1} className="space-y-4">
-                {/* Email */}
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="staff@luth.gov.ng"
-                      value={formData.email}
-                      onChange={handleInputChange('email')}
-                      className="pl-10"
-                      disabled={isLoading}
-                    />
-                  </div>
-                  {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="staff@luth.gov.ng"
+                    value={formData.email}
+                    onChange={handleInputChange('email')}
+                    className="pl-10"
+                    disabled={isLoading}
+                  />
                 </div>
+                {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
+              </div>
 
-                {/* Password */}
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter your password"
-                      value={formData.password}
-                      onChange={handleInputChange('password')}
-                      className="pl-10 pr-10"
-                      disabled={isLoading}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                  {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    value={formData.password}
+                    onChange={handleInputChange('password')}
+                    className="pl-10 pr-10"
+                    disabled={isLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
+                {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
+              </div>
 
-                {/* Staff ID */}
-                <div className="space-y-2">
-                  <Label htmlFor="staff_id">Staff ID</Label>
-                  <div className="relative">
-                    <Shield className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="staff_id"
-                      type="text"
-                      placeholder="e.g., LUTH-2024-089"
-                      value={formData.staff_id}
-                      onChange={handleInputChange('staff_id')}
-                      className="pl-10"
-                      disabled={isLoading}
-                    />
-                  </div>
-                  {errors.staff_id && <p className="text-sm text-red-600">{errors.staff_id}</p>}
-                </div>
-
-                {/* Facility Display */}
-                {facilityInfo && (
-                  <div className="bg-red-50 p-3 rounded-lg">
-                    <p className="text-sm text-red-800">
-                      <strong>Facility:</strong> {facilityInfo.center_name}
-                    </p>
-                    {facilityInfo.department && (
-                      <p className="text-sm text-red-700">
-                        <strong>Department:</strong> {facilityInfo.department}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                <Button
-                  type="submit"
-                  className="w-full bg-[#C0392B] hover:bg-[#922B21]"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Verifying Credentials...
-                    </>
-                  ) : (
-                    "Access FMC Portal"
-                  )}
-                </Button>
-              </form>
-            ) : (
-              <form onSubmit={handleLoginStep2} className="space-y-4">
-                <div className="bg-green-50 p-4 rounded-lg text-center">
-                  <Shield className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                  <p className="text-sm text-green-800">
-                    Credentials verified. Please enter your 2FA code.
+              {facilityInfo && (
+                <div className="bg-red-50 p-3 rounded-lg">
+                  <p className="text-sm text-red-800">
+                    <strong>Facility:</strong> {facilityInfo.center_name}
                   </p>
-                </div>
-
-                {/* 2FA Code */}
-                <div className="space-y-2">
-                  <Label htmlFor="two_factor_code">Two-Factor Authentication Code</Label>
-                  <div className="relative">
-                    <Key className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="two_factor_code"
-                      type="text"
-                      placeholder="123456"
-                      value={formData.two_factor_code}
-                      onChange={handleInputChange('two_factor_code')}
-                      className="pl-10 text-center text-lg tracking-widest"
-                      maxLength={6}
-                      disabled={isLoading}
-                    />
-                  </div>
-                  {errors.two_factor_code && <p className="text-sm text-red-600">{errors.two_factor_code}</p>}
-                </div>
-
-                <Button
-                  type="submit"
-                  className="w-full bg-[#C0392B] hover:bg-[#922B21]"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Verifying...
-                    </>
-                  ) : (
-                    "Verify & Continue"
+                  {facilityInfo.department && (
+                    <p className="text-sm text-red-700">
+                      <strong>Department:</strong> {facilityInfo.department}
+                    </p>
                   )}
-                </Button>
-              </form>
-            )}
+                </div>
+              )}
 
-            {/* Links */}
+              <Button
+                type="submit"
+                className="w-full bg-[#C0392B] hover:bg-[#922B21]"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying Credentials...
+                  </>
+                ) : (
+                  "Access FMC Portal"
+                )}
+              </Button>
+            </form>
+
             <div className="text-center space-y-2 pt-4">
               <button
                 type="button"
                 onClick={() => navigate('/forgot-password')}
                 className="text-sm text-[#C0392B] hover:underline"
               >
-                Staff ID forgotten?
+                Forgot password?
               </button>
               <div className="text-sm text-gray-600">
                 PHC staff instead?{' '}
@@ -364,7 +276,6 @@ const FMCLoginScreen = () => {
           </CardContent>
         </Card>
 
-        {/* Version */}
         <div className="text-center mt-6">
           <p className="text-xs text-gray-500">
             AI-MSHM FMC Portal v1.0.0

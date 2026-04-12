@@ -13,6 +13,7 @@ interface User {
   role: string;
   avatar_url: string | null;
   is_email_verified: boolean;
+  must_change_password: boolean;
   onboarding_completed: boolean;
   onboarding_step: number; // 0–5
   center_info: any | null;
@@ -118,6 +119,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const routeAfterLogin = (user: any) => {
     if (!user.is_email_verified) return '/verify-email';
+    if (user.must_change_password) return '/change-password';
     if (!['clinician', 'patient', 'fhc_staff', 'fhc_admin', 'hcc_staff', 'hcc_admin'].includes(user.role)) return '/role-mismatch';
     
     // FMC roles
@@ -179,6 +181,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       role: userData.role,
       avatar_url: userData.avatar_url,
       is_email_verified: userData.is_email_verified,
+      must_change_password: userData.must_change_password || false,
       onboarding_completed: userData.onboarding_completed,
       onboarding_step: userData.onboarding_step,
       center_info: userData.center_info,
