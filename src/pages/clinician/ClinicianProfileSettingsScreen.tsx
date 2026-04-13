@@ -206,8 +206,50 @@ const ClinicianProfileSettingsScreen = () => {
   };
 
   useEffect(() => {
-    fetchProfile();
-  }, []);
+    const checkOnboarding = async () => {
+      try {
+        setLoading(true);
+        const response = await clinicianAPI.getProfile();
+        const profileData = response.data;
+        
+        // Check if clinician needs to complete onboarding
+        if (!profileData.onboarded) {
+          navigate('/clinician/onboarding');
+          return;
+        }
+        
+        setProfile(profileData);
+        
+        // Set form data
+        setFormData({
+          full_name: profileData.user_full_name || '',
+          email: profileData.user_email || '',
+          phone: '',
+          specialty: profileData.specialization || '',
+          license_number: profileData.license_number || '',
+          bio: profileData.bio || '',
+          office_address: '',
+          consultation_hours: '',
+        });
+        
+        // Fetch notification prefs
+        try {
+          const prefsResponse = await clinicianAPI.getNotificationPreferences();
+          setNotificationPrefs(prefsResponse.data);
+        } catch (e) {
+          // Ignore notification prefs error
+        }
+        
+      } catch (error) {
+        console.error('Error checking onboarding:', error);
+        setError('Failed to load profile');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    checkOnboarding();
+  }, [navigate]);
 
   if (loading) {
     return (

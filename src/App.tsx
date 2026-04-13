@@ -27,6 +27,7 @@ import ClinicianPrescriptionsScreen from "./pages/clinician/ClinicianPrescriptio
 import ClinicianCommunicationScreen from "./pages/clinician/ClinicianCommunicationScreen";
 import ClinicianAnalyticsScreen from "./pages/clinician/ClinicianAnalyticsScreen";
 import ClinicianProfileSettingsScreen from "./pages/clinician/ClinicianProfileSettingsScreen";
+import ClinicianOnboardingScreen from "./pages/clinician/ClinicianOnboardingScreen";
 // FMC screens
 import FMCStaffLoginScreen from "./pages/fmc/FMCStaffLoginScreen";
 import FMCMajorRiskDashboardScreen from "./pages/fmc/FMCMajorRiskDashboardScreen";
@@ -96,6 +97,7 @@ import FMCDiagnosticsScreen from "./pages/fmc/FMCDiagnosticsScreen";
 import FMCConsultationNotesScreen from "./pages/fmc/FMCConsultationNotesScreen";
 import FMCTreatmentPlansScreen from "./pages/fmc/FMCTreatmentPlansScreen";
 import FMCStaffManagementScreen from "./pages/fmc/FMCStaffManagementScreen";
+import FMCClinicianManagementScreen from "./pages/fmc/FMCClinicianManagementScreen";
 import FMCNetworkPHCScreen from "./pages/fmc/FMCNetworkPHCScreen";
 import RppgCaptureScreen from "./pages/RppgCaptureScreen";
 
@@ -148,6 +150,7 @@ const App = () => {
                     <Route path="/clinician/communication" element={<ClinicianCommunicationScreen />} />
                     <Route path="/clinician/analytics" element={<ClinicianAnalyticsScreen />} />
                     <Route path="/clinician/profile" element={<ClinicianProfileSettingsScreen />} />
+                    <Route path="/clinician/onboarding" element={<ClinicianOnboardingScreen />} />
                     {/* FMC Routes */}
                     <Route path="/fmc/login" element={<FMCStaffLoginScreen />} />
                     <Route path="/fmc/dashboard" element={<FMCMajorRiskDashboardScreen />} />
@@ -162,6 +165,7 @@ const App = () => {
                     <Route path="/fmc/consultation/:caseId" element={<FMCConsultationNotesScreen />} />
                     <Route path="/fmc/treatment-plans" element={<FMCTreatmentPlansScreen />} />
                     <Route path="/fmc/staff-management" element={<FMCStaffManagementScreen />} />
+                    <Route path="/fmc/clinician-management" element={<FMCClinicianManagementScreen />} />
                     <Route path="/fmc/network-phc" element={<FMCNetworkPHCScreen />} />
                     {/* PHC Routes */}
                     <Route path="/phc/login" element={<PHCStaffLoginScreen />} />

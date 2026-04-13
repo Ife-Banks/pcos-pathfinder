@@ -205,7 +205,6 @@ export const fmcAPI = {
     return body;
   },
 
-  // FMC9 - Settings & Management
   getFMCProfile: async () => {
     const res = await apiClient.get('/centers/fmc/profile/');
     const body = res.data;

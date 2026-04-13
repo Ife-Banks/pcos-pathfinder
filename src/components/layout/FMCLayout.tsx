@@ -13,7 +13,8 @@ import {
   Building2,
   Pill,
   FileText,
-  Shield
+  Shield,
+  Stethoscope
 } from 'lucide-react';
 
 const FMCLayout = ({ children }: { children: React.ReactNode }) => {
@@ -31,6 +32,7 @@ const FMCLayout = ({ children }: { children: React.ReactNode }) => {
     { label: 'Analytics', icon: BarChart2, path: '/fmc/analytics', key: 'analytics' },
     { label: 'Alerts', icon: Bell, path: '/fmc/alerts', key: 'alerts' },
     { label: 'Staff', icon: Shield, path: '/fmc/staff-management', key: 'staff' },
+    { label: 'Clinicians', icon: Stethoscope, path: '/fmc/clinician-management', key: 'clinicians' },
     { label: 'Settings', icon: Settings, path: '/fmc/profile', key: 'settings' },
   ];
 

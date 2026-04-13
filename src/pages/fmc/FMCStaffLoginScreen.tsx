@@ -115,12 +115,23 @@ const FMCLoginScreen = () => {
       
     } catch (error: any) {
       console.error('Login error:', error);
-      if (error.status === 401) {
-        setErrors({ general: "Incorrect email or password" });
-      } else if (error.code === 'email_not_verified') {
-        setErrors({ general: "Please verify your email first" });
+      const msg = error.message?.toLowerCase() || '';
+      const responseMsg = error.response?.data?.message?.toLowerCase() || '';
+      
+      if (responseMsg.includes('invalid') || msg.includes('invalid') || responseMsg.includes('credentials') || msg.includes('credentials')) {
+        setErrors({ general: "Incorrect email or password. Please check your credentials and try again." });
+      } else if (responseMsg.includes('email not verified') || msg.includes('email not verified') || responseMsg.includes('verify') || msg.includes('verify')) {
+        setErrors({ general: "Email not verified. Please check your inbox for the verification link." });
+      } else if (responseMsg.includes('locked') || msg.includes('locked') || responseMsg.includes('too many')) {
+        setErrors({ general: "Account locked. Please wait 15 minutes before trying again." });
+      } else if (responseMsg.includes('not found') || msg.includes('not found')) {
+        setErrors({ general: "Account not found. Please check if you have an FMC staff account." });
+      } else if (responseMsg.includes('forbidden') || msg.includes('forbidden')) {
+        setErrors({ general: "Access denied. Your account does not have FMC staff permissions." });
+      } else if (error.status === 401) {
+        setErrors({ general: "Login failed. Incorrect email or password." });
       } else {
-        setErrors({ general: "An error occurred. Please try again." });
+        setErrors({ general: "Login failed. Please try again." });
       }
     } finally {
       setIsLoading(false);

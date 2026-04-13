@@ -12,7 +12,8 @@ import {
   FileText,
   Pill,
   Shield,
-  Building2
+  Building2,
+  Stethoscope
 } from 'lucide-react';
 
 const FMCMobileNav = () => {
@@ -37,6 +38,7 @@ const FMCMobileNav = () => {
     { icon: BarChart3, label: "Analytics", href: "/fmc/analytics" },
     { icon: AlertTriangle, label: "Alerts", href: "/fmc/alerts" },
     { icon: Shield, label: "Staff", href: "/fmc/staff-management" },
+    { icon: Stethoscope, label: "Clinicians", href: "/fmc/clinician-management" },
     { icon: Settings, label: "Settings", href: "/fmc/profile" },
     { icon: LogOut, label: "Logout", href: "#", action: handleLogout },
   ];

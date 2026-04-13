@@ -73,12 +73,20 @@ const PHCStaffLoginScreen = () => {
     } catch (err: any) {
       console.error('Login error:', err);
       const msg = err.message?.toLowerCase() || '';
-      if (msg.includes('invalid') || msg.includes('credentials')) {
-        setError("Incorrect email or password.");
-      } else if (err.code === 'email_not_verified') {
-        setError("Please verify your email before logging in.");
+      const responseMsg = err.response?.data?.message?.toLowerCase() || '';
+      
+      if (responseMsg.includes('invalid') || msg.includes('invalid') || responseMsg.includes('credentials') || msg.includes('credentials')) {
+        setError("Incorrect email or password. Please check your credentials and try again.");
+      } else if (responseMsg.includes('email not verified') || msg.includes('email not verified') || responseMsg.includes('verify') || msg.includes('verify')) {
+        setError("Email not verified. Please check your inbox for the verification link.");
+      } else if (responseMsg.includes('locked') || responseMsg.includes('locked') || responseMsg.includes('too many')) {
+        setError("Account locked. Please wait 15 minutes before trying again.");
+      } else if (responseMsg.includes('not found') || msg.includes('not found')) {
+        setError("Account not found. Please check if you have a PHC staff account.");
+      } else if (responseMsg.includes('forbidden') || msg.includes('forbidden')) {
+        setError("Access denied. Your account does not have PHC staff permissions.");
       } else {
-        setError(err.message || "An error occurred. Please try again.");
+        setError("Login failed. Please verify your credentials and try again.");
       }
     } finally {
       setIsLoading(false);

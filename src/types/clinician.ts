@@ -119,13 +119,31 @@ export interface NotificationPreferences {
 
 export interface ClinicianProfile {
   id: string;
-  user: UserProfile;
+  user_email: string;
+  user_full_name: string;
+  fhc: string;
+  fhc_name: string;
+  fhc_code: string;
+  specialization: string;
+  downstream_expertise: string[];
+  onboarded: boolean;
+  onboarded_at: string | null;
   license_number: string;
-  specialty: string;
-  medical_board_affiliation: string;
   years_of_experience: number;
-  notification_preferences: NotificationPreferences;
-  fmc_affiliation: string;
+  bio: string;
+  is_verified: boolean;
+  verified_at: string | null;
+  profile_photo_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClinicianOnboardingForm {
+  specialization: string;
+  downstream_expertise: string[];
+  license_number?: string;
+  years_of_experience?: number;
+  bio?: string;
 }
 
 export interface TimelineEvent {
