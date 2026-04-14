@@ -135,6 +135,20 @@ export const fmcAPI = {
     return body;
   },
 
+  deactivateClinician: async (clinicianId: string) => {
+    const res = await apiClient.post(`/centers/fmc/clinicians/${clinicianId}/deactivate/`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
+  },
+
+  activateClinician: async (clinicianId: string) => {
+    const res = await apiClient.post(`/centers/fmc/clinicians/${clinicianId}/activate/`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
+  },
+
   // FMC6 - Analytics
   getAnalytics: async (range: string = '30d', startDate?: string, endDate?: string) => {
     const params: Record<string, string> = { range };
