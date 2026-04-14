@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import FMCLayout from "@/components/layout/FMCLayout";
 import { 
   Users, 
   Search, 
@@ -27,6 +28,7 @@ interface Clinician {
   id: string;
   user_email: string;
   user_full_name: string;
+  user_is_active: boolean;
   specialization: string;
   license_number: string;
   years_of_experience: number;
@@ -140,6 +142,35 @@ const FMCClinicianManagementScreen = () => {
     }
   };
 
+  const handleDeactivateClinician = async (clinicianId: string) => {
+    if (!confirm("Are you sure you want to deactivate this clinician? They won't be able to log in.")) return;
+    try {
+      await fmcAPI.deactivateClinician(clinicianId);
+      setClinicians(clinicians.map(c => 
+        c.id === clinicianId ? { ...c, user_is_active: false } : c
+      ));
+      setSuccess("Clinician deactivated successfully!");
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      console.error("Error deactivating clinician:", err);
+      setError(err?.message || "Failed to deactivate clinician");
+    }
+  };
+
+  const handleActivateClinician = async (clinicianId: string) => {
+    try {
+      await fmcAPI.activateClinician(clinicianId);
+      setClinicians(clinicians.map(c => 
+        c.id === clinicianId ? { ...c, user_is_active: true } : c
+      ));
+      setSuccess("Clinician activated successfully!");
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      console.error("Error activating clinician:", err);
+      setError(err?.message || "Failed to activate clinician");
+    }
+  };
+
   const filteredClinicians = clinicians.filter(c =>
     c.user_full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.user_email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -170,17 +201,18 @@ const FMCClinicianManagementScreen = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Clinician Management</h1>
-            <p className="text-gray-600">Manage clinicians affiliated with this FMC</p>
-          </div>
-          <Button 
-            onClick={() => setIsCreateOpen(true)}
-            className="bg-[#C0392B] hover:bg-[#922B21]"
+    <FMCLayout>
+      <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Clinician Management</h1>
+              <p className="text-gray-600">Manage clinicians affiliated with this FMC</p>
+            </div>
+            <Button 
+              onClick={() => setIsCreateOpen(true)}
+              className="bg-[#C0392B] hover:bg-[#922B21]"
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Clinician
@@ -292,6 +324,15 @@ const FMCClinicianManagementScreen = () => {
                           Pending
                         </Badge>
                       )}
+                      {clinician.user_is_active ? (
+                        <Badge className="bg-blue-100 text-blue-800">
+                          Active
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-gray-100 text-gray-600">
+                          Inactive
+                        </Badge>
+                      )}
                       {!clinician.is_verified && (
                         <Button
                           size="sm"
@@ -300,6 +341,25 @@ const FMCClinicianManagementScreen = () => {
                           className="text-green-600 border-green-600 hover:bg-green-50"
                         >
                           Verify
+                        </Button>
+                      )}
+                      {clinician.user_is_active ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeactivateClinician(clinician.id)}
+                          className="text-orange-600 border-orange-600 hover:bg-orange-50"
+                        >
+                          Deactivate
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleActivateClinician(clinician.id)}
+                          className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                        >
+                          Activate
                         </Button>
                       )}
                       <Button
@@ -403,6 +463,7 @@ const FMCClinicianManagementScreen = () => {
         </Dialog>
       </div>
     </div>
+    </FMCLayout>
   );
 };
 
