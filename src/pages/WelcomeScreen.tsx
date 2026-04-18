@@ -93,14 +93,7 @@ const WelcomeScreen = () => {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
               {/* Hero Heartbeat Animation */}
               <div className="flex justify-center lg:justify-start mb-6">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.2, duration: 0.5 }}
-                  className="w-full max-w-md lg:max-w-full"
-                >
-                  <HeroHeartbeat compact />
-                </motion.div>
+                <HeroHeartbeat compact />
               </div>
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold font-display text-foreground mb-3 text-center lg:text-left leading-tight">
                 Artificial Intelligence for{" "}

@@ -9,6 +9,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ai-mshm-backe
 interface User {
   id: string;
   email: string;
+  unique_id: string | null;
   full_name: string;
   role: string;
   avatar_url: string | null;
@@ -96,14 +97,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const data = await authAPI.login(credentials);
     await saveTokens(data.data.access, data.data.refresh);
     
-    // Set access token state
     setAccessToken(data.data.access);
     
-    // Set user with complete profile from login response
     const user = data.data.user;
     setUser({
       id: user.id,
       email: user.email,
+      unique_id: user.unique_id,
       full_name: user.full_name,
       role: user.role,
       avatar_url: user.avatar_url,
@@ -120,6 +120,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const routeAfterLogin = (user: any) => {
     if (!user.is_email_verified) return '/verify-email';
     if (user.must_change_password) return '/change-password';
+    
+    // Admin role - check is_staff or is_superuser flag
+    if (user.is_staff || user.is_superuser || user.role === 'admin') {
+      return '/system-admin/dashboard';
+    }
+    
     if (!['clinician', 'patient', 'fhc_staff', 'fhc_admin', 'hcc_staff', 'hcc_admin'].includes(user.role)) return '/role-mismatch';
     
     // FMC roles
@@ -167,16 +173,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const loginWithTokens = (userData: any, accessToken: string, refreshToken?: string) => {
-    // Set access token state and localStorage
     setAccessToken(accessToken);
     localStorage.setItem('access_token', accessToken);
     if (refreshToken) {
       localStorage.setItem('refresh_token', refreshToken);
     }
+    localStorage.setItem('user', JSON.stringify(userData));
 
     setUser({
       id: userData.id,
       email: userData.email,
+      unique_id: userData.unique_id || null,
       full_name: userData.full_name,
       role: userData.role,
       avatar_url: userData.avatar_url,

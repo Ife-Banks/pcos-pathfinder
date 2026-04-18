@@ -69,6 +69,20 @@ import HMODashboardScreen from "./pages/hmo/HMODashboardScreen";
 import ClinicDashboardScreen from "./pages/clinic/ClinicDashboardScreen";
 import PVTDashboardScreen from "./pages/pvt/PVTDashboardScreen";
 import PTTHDashboardScreen from "./pages/ptth/PTTHDashboardScreen";
+// Admin imports
+import AdminLayout from "./components/layout/AdminLayout";
+import AdminLoginScreen from "./pages/admin/AdminLoginScreen";
+import AdminDashboardScreen from "./pages/admin/AdminDashboardScreen";
+import AdminUsersScreen from "./pages/admin/AdminUsersScreen";
+import AdminFacilitiesScreen from "./pages/admin/AdminFacilitiesScreen";
+import AdminStaffScreen from "./pages/admin/AdminStaffScreen";
+import AdminDatabaseScreen from "./pages/admin/AdminDatabaseScreen";
+import AdminAnalyticsScreen from "./pages/admin/AdminAnalyticsScreen";
+import AdminLogsScreen from "./pages/admin/AdminLogsScreen";
+import AdminHealthScreen from "./pages/admin/AdminHealthScreen";
+import AdminAlertsScreen from "./pages/admin/AdminAlertsScreen";
+import AdminSecurityScreen from "./pages/admin/AdminSecurityScreen";
+import AdminSettingsScreen from "./pages/admin/AdminSettingsScreen";
 import PHCPatientDetailScreen from "./pages/phc/PHCPatientDetailScreen";
 import PHCWalkInRegistrationScreen from "./pages/phc/PHCWalkInRegistrationScreen";
 import PHCAdviceInterventionScreen from "./pages/phc/PHCAdviceInterventionScreen";
@@ -244,6 +258,22 @@ const App = () => {
                     <Route path="/ptth/login" element={<PrivateTeachingHospitalLoginScreen />} />
                     <Route path="/ptth" element={<PTTHLayout />}>
                       <Route path="/ptth/dashboard" element={<PTTHDashboardScreen />} />
+                    </Route>
+                    {/* Admin Routes */}
+                    <Route path="/system-admin/login" element={<AdminLoginScreen />} />
+                    <Route path="/system-admin" element={<AdminLayout />}>
+                      <Route index element={<AdminDashboardScreen />} />
+                      <Route path="dashboard" element={<AdminDashboardScreen />} />
+                      <Route path="users" element={<AdminUsersScreen />} />
+                      <Route path="facilities" element={<AdminFacilitiesScreen />} />
+                      <Route path="staff" element={<AdminStaffScreen />} />
+                      <Route path="database" element={<AdminDatabaseScreen />} />
+                      <Route path="analytics" element={<AdminAnalyticsScreen />} />
+                      <Route path="logs" element={<AdminLogsScreen />} />
+                      <Route path="health" element={<AdminHealthScreen />} />
+                      <Route path="alerts" element={<AdminAlertsScreen />} />
+                      <Route path="security" element={<AdminSecurityScreen />} />
+                      <Route path="settings" element={<AdminSettingsScreen />} />
                     </Route>
                     {/* Patient Routes */}
                     <Route path="/onboarding" element={<OnboardingScreen />} />

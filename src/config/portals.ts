@@ -13,6 +13,13 @@ export interface SubSector {
 
 export const PORTAL_OPTIONS: PortalOption[] = [
   {
+    sector: "System Administration",
+    sectorKey: "admin",
+    subSectors: [
+      { name: "System Admin Portal", key: "admin", path: "/system-admin/login", color: "bg-slate-700" },
+    ],
+  },
+  {
     sector: "Government & Public Health",
     sectorKey: "government",
     subSectors: [
