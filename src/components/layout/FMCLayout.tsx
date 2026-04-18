@@ -121,6 +121,9 @@ const FMCLayout = ({ children }: { children: React.ReactNode }) => {
               <p className="text-sm font-medium text-gray-900 truncate">
                 {user?.full_name || 'FMC Staff'}
               </p>
+              {user?.unique_id && (
+                <p className="text-xs text-[#C0392B] font-medium">{user.unique_id}</p>
+              )}
               <div className="flex items-center gap-1">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                 <span className="text-xs text-gray-500">Online</span>

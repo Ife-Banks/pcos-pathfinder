@@ -408,9 +408,14 @@ const DashboardScreen = () => {
     return `${pending.join(' & ')} due`;
   };
 
+  const isMale = profile?.gender === 'MALE';
+  const isFemale = profile?.gender === 'FEMALE';
+
   const periodCardSubtitle = menstrualSummary && menstrualSummary.mean_cycle_len
     ? `Cycle ${Math.round(menstrualSummary.mean_cycle_len)} days · CLV ${menstrualSummary.CLV ?? '—'}`
     : "Log your cycle";
+
+  const riskScoreTitle = isMale ? "Cardiovascular Risk Score" : "PCOS Risk Score";
 
   const morningComplete = todayData?.morning_status === 'complete';
   const eveningComplete = todayData?.evening_status === 'complete';
@@ -494,8 +499,13 @@ const DashboardScreen = () => {
     }
   }
 
+  if (isFemale) {
+    quickActions.push(
+      { icon: Calendar, title: "Period Tracking", subtitle: periodCardSubtitle, route: "/period-logging", gradient: "gradient-clinical", urgent: false },
+    );
+  }
+
   quickActions.push(
-    { icon: Calendar, title: "Period Tracking", subtitle: periodCardSubtitle, route: "/period-logging", gradient: "gradient-clinical", urgent: false },
     { icon: ClipboardCheck, title: "Weekly Tools", subtitle: getWeeklyToolsSubtitle(), route: "/weekly-tools", gradient: "gradient-primary", urgent: !mfgComplete || !phq4Complete },
     { icon: BarChart3, title: "Risk Trends", subtitle: "View your history", route: "/risk-trend", gradient: "gradient-clinical", urgent: false },
     { icon: Camera, title: "Measure HRV", subtitle: "Capture heart rate variability", route: "/rppg-capture", gradient: "bg-blue-500", urgent: false },
@@ -505,6 +515,13 @@ const DashboardScreen = () => {
   const predictionAge = prediction ? getDaysSince(prediction.computed_at) : null;
   const isUpdatedToday = predictionAge === 0;
   const hasValidDate = predictionAge !== null;
+
+  const navItems = [
+    { icon: Activity, label: "Home", route: "/dashboard", active: true },
+    ...(isFemale ? [{ icon: Calendar, label: "Cycle", route: "/cycle-history", active: false }] : []),
+    { icon: BarChart3, label: "Results", route: "/risk-score", active: false },
+    { icon: User, label: "Profile", route: "/profile", active: false },
+  ];
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
@@ -525,6 +542,9 @@ const DashboardScreen = () => {
                   profile?.full_name || 'User'
                 )}
               </p>
+              {profile?.unique_id && (
+                <p className="text-xs text-teal-600 font-medium">{profile.unique_id}</p>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -620,7 +640,7 @@ const DashboardScreen = () => {
               className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm"
             >
               <div className="flex items-center justify-between mb-4">
-                <h2 className="font-display font-bold text-gray-900">PCOS Risk Score</h2>
+                <h2 className="font-display font-bold text-gray-900">{riskScoreTitle}</h2>
                 {prediction && hasValidDate && (
                   <span className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">
                     {isUpdatedToday ? 'Updated today' : `Updated ${predictionAge} day${predictionAge !== 1 ? 's' : ''} ago`}
@@ -901,12 +921,7 @@ const DashboardScreen = () => {
 
       <nav className="sticky bottom-0 bg-white/90 backdrop-blur-lg border-t border-gray-200 px-6 py-3">
         <div className="flex justify-around max-w-md mx-auto">
-          {[
-            { icon: Activity, label: "Home", route: "/dashboard", active: true },
-            { icon: Calendar, label: "Cycle", route: "/cycle-history", active: false },
-            { icon: BarChart3, label: "Results", route: "/risk-score", active: false },
-            { icon: User, label: "Profile", route: "/profile", active: false },
-          ].map((item) => (
+          {navItems.map((item) => (
             <button
               key={item.label}
               onClick={() => navigate(item.route)}

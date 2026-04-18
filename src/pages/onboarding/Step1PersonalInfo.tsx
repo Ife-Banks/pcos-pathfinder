@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { onboardingAPI } from '@/services/onboardingService';
@@ -18,6 +19,8 @@ const Step1PersonalInfo = () => {
     full_name: '',
     age: '',
     ethnicity: '',
+    gender: '',
+    phone_number: '',
   });
   
   const [isLoading, setIsLoading] = useState(false);
@@ -30,6 +33,8 @@ const Step1PersonalInfo = () => {
         full_name: profile.full_name || '',
         age: profile.age?.toString() || '',
         ethnicity: profile.ethnicity || '',
+        gender: profile.gender || '',
+        phone_number: profile.phone_number || '',
       });
     }
   }, [profile]);
@@ -48,6 +53,14 @@ const Step1PersonalInfo = () => {
     
     if (!form.ethnicity) {
       newErrors.ethnicity = 'Please select your ethnicity';
+    }
+
+    if (!form.gender) {
+      newErrors.gender = 'Please select your gender';
+    }
+
+    if (!form.phone_number.trim()) {
+      newErrors.phone_number = 'Phone number is required';
     }
     
     setErrors(newErrors);
@@ -70,12 +83,16 @@ const Step1PersonalInfo = () => {
         full_name: form.full_name,
         age: parseInt(form.age),
         ethnicity: form.ethnicity,
+        gender: form.gender,
+        phone_number: form.phone_number,
       });
       
       // Refresh profile data
       await refreshProfile();
       
-      navigate('/onboarding/step/2');
+      // Route based on gender - different path for males vs females
+      const nextStep = form.gender === 'MALE' ? '/onboarding/step/2a' : '/onboarding/step/2';
+      navigate(nextStep);
     } catch (err: any) {
       const backendErrors: Record<string, string> = {};
       if (err?.errors) {
@@ -103,6 +120,11 @@ const Step1PersonalInfo = () => {
     { value: 'middle_eastern', label: 'Middle Eastern' },
     { value: 'mixed', label: 'Mixed / Other' },
     { value: 'prefer_not', label: 'Prefer not to say' },
+  ];
+
+  const genderOptions = [
+    { value: 'MALE', label: 'Male' },
+    { value: 'FEMALE', label: 'Female' },
   ];
 
   return (
@@ -158,6 +180,42 @@ const Step1PersonalInfo = () => {
             />
             {errors.full_name && (
               <p className="text-sm text-destructive">{errors.full_name}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="gender">Gender</Label>
+            <Select 
+              value={form.gender} 
+              onValueChange={(value) => setForm({ ...form, gender: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select gender" />
+              </SelectTrigger>
+              <SelectContent>
+                {genderOptions.map(option => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.gender && (
+              <p className="text-sm text-destructive">{errors.gender}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phone_number">Phone Number</Label>
+            <Input
+              id="phone_number"
+              type="tel"
+              placeholder="e.g., +2348123456789"
+              value={form.phone_number}
+              onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
+            />
+            {errors.phone_number && (
+              <p className="text-sm text-destructive">{errors.phone_number}</p>
             )}
           </div>
 

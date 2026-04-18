@@ -10,6 +10,7 @@ const ensureSuccess = (body: any) => {
 export interface UserProfile {
   id: string;
   email: string;
+  unique_id: string | null;
   full_name: string;
   role: string;
   avatar_url: string | null;
@@ -17,6 +18,7 @@ export interface UserProfile {
   onboarding_completed: boolean;
   onboarding_step: number;
   date_joined: string;
+  gender?: string;
 }
 
 export interface UserProfileResponse {

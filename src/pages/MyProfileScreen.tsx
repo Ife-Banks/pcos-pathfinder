@@ -221,6 +221,9 @@ const MyProfileScreen = () => {
                     </Avatar>
                     <div className="flex-1">
                       <h2 className="font-display font-bold text-gray-900 text-lg">{userProfile?.full_name ?? 'User'}</h2>
+                      {userProfile?.unique_id && (
+                        <p className="text-sm text-teal-600 font-medium">{userProfile.unique_id}</p>
+                      )}
                       <p className="text-sm text-gray-500 flex items-center gap-1.5">
                         <Mail className="h-3.5 w-3.5" />
                         {userProfile?.email ?? ''}

@@ -121,6 +121,7 @@ export interface ClinicianProfile {
   id: string;
   user_email: string;
   user_full_name: string;
+  unique_id: string | null;
   fhc: string;
   fhc_name: string;
   fhc_code: string;
@@ -177,7 +178,7 @@ export interface Appointment {
 
 // Form types
 export interface ClinicianLoginForm {
-  email: string;
+  identifier: string;
   password: string;
   medical_license_number?: string;
   two_factor_code?: string;

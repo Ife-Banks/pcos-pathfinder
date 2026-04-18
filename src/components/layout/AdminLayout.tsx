@@ -15,7 +15,9 @@ import {
   Bell,
   Lock,
   FileText,
-  Server
+  Server,
+  ClipboardCheck,
+  UserPlus
 } from 'lucide-react';
 
 const AdminLayout = () => {
@@ -28,6 +30,8 @@ const AdminLayout = () => {
     { label: 'Users', icon: Users, path: '/system-admin/users', key: 'users' },
     { label: 'Facilities', icon: Building2, path: '/system-admin/facilities', key: 'facilities' },
     { label: 'Staff Management', icon: Shield, path: '/system-admin/staff', key: 'staff' },
+    { label: 'Check-Ins', icon: ClipboardCheck, path: '/system-admin/checkins', key: 'checkins' },
+    { label: 'Onboardings', icon: UserPlus, path: '/system-admin/onboardings', key: 'onboardings' },
     { label: 'Database', icon: Database, path: '/system-admin/database', key: 'database' },
     { label: 'Analytics', icon: BarChart2, path: '/system-admin/analytics', key: 'analytics' },
     { label: 'Logs', icon: FileText, path: '/system-admin/logs', key: 'logs' },

@@ -187,6 +187,17 @@ export default function PHCLayout({ children }: { children: ReactNode }) {
       <div className="hidden md:flex fixed top-0 left-64 right-0 bg-white border-b border-gray-100 z-30 h-14 items-center px-6 justify-between">
         <div />
         <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-[#2E8B57] flex items-center justify-center">
+              <span className="text-white text-xs font-medium">{userInitials}</span>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-medium text-gray-900">{userFullName}</p>
+              {user?.unique_id && (
+                <p className="text-xs text-[#2E8B57] font-medium">{user.unique_id}</p>
+              )}
+            </div>
+          </div>
           <button onClick={() => navigate('/phc/alerts')} className="relative p-2 hover:bg-gray-50 rounded-lg">
             <Bell size={20} className="text-gray-600" />
             {unreadCount > 0 && (

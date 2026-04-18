@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +40,8 @@ interface FMCProfile {
 }
 
 const FMCProfileSettingsScreen = () => {
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [profile, setProfile] = useState<FMCProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -248,6 +252,9 @@ const FMCProfileSettingsScreen = () => {
                       </div>
                       <div>
                         <h3 className="font-semibold text-gray-900">{profile?.name || 'Facility Name'}</h3>
+                        {user?.unique_id && (
+                          <p className="text-sm text-[#C0392B] font-medium">{user.unique_id}</p>
+                        )}
                         <Badge className="bg-purple-100 text-purple-800">FMC</Badge>
                       </div>
                     </div>

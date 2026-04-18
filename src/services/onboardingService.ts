@@ -21,11 +21,13 @@ export const onboardingAPI = {
 
   // PATCH /api/v1/onboarding/step/1/
   // Fields: full_name (string), age (integer 10–120),
-  //         ethnicity (enum — see choices below)
+  //         ethnicity (enum — see choices below), gender (male/female), phone_number
   saveStep1: async (payload: {
     full_name: string;
     age: number;
     ethnicity: string;
+    gender: string;
+    phone_number: string;
   }) => {
     const res = await apiClient.patch(`${BASE}/step/1/`, payload);
     const body = res.data;

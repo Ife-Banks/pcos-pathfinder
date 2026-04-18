@@ -115,20 +115,10 @@ const ClinicianAnalyticsScreen = () => {
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                onClick={() => navigate('/clinician/dashboard')}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to Dashboard
-              </Button>
-              <div>
+            <div>
                 <h1 className="text-2xl font-bold text-gray-900">Analytics Dashboard</h1>
                 <p className="text-gray-600">Patient population insights and trends</p>
               </div>
-            </div>
             <div className="flex items-center gap-2">
               <Select value={dateRange} onValueChange={setDateRange}>
                 <SelectTrigger className="w-40">
@@ -245,7 +235,7 @@ const ClinicianAnalyticsScreen = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {analytics.risk_distribution.map((risk, index) => (
+                {(analytics.risk_distribution || []).map((risk, index) => (
                   <div key={index} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className={`w-3 h-3 rounded-full ${getRiskLevelColor(risk.level)}`} />
@@ -276,7 +266,7 @@ const ClinicianAnalyticsScreen = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {analytics.age_distribution.map((age, index) => (
+                {(analytics.age_distribution || []).map((age, index) => (
                   <div key={index} className="flex items-center justify-between">
                     <span className="font-medium">{age.range}</span>
                     <div className="flex items-center gap-4">
@@ -309,15 +299,15 @@ const ClinicianAnalyticsScreen = () => {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Active Plans</span>
-                  <span className="font-semibold">{analytics.treatment_plans.active}</span>
+                  <span className="font-semibold">{(analytics.treatment_plans || {}).active || 0}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Completed</span>
-                  <span className="font-semibold">{analytics.treatment_plans.completed}</span>
+                  <span className="font-semibold">{(analytics.treatment_plans || {}).completed || 0}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Success Rate</span>
-                  <span className="font-semibold text-green-600">{analytics.treatment_plans.success_rate}%</span>
+                  <span className="font-semibold text-green-600">{(analytics.treatment_plans || {}).success_rate || 0}%</span>
                 </div>
               </div>
             </CardContent>
@@ -334,15 +324,15 @@ const ClinicianAnalyticsScreen = () => {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Active Prescriptions</span>
-                  <span className="font-semibold">{analytics.prescriptions.active}</span>
+                  <span className="font-semibold">{(analytics.prescriptions || {}).active || 0}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Refills This Month</span>
-                  <span className="font-semibold">{analytics.prescriptions.refills}</span>
+                  <span className="font-semibold">{(analytics.prescriptions || {}).refills || 0}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Adherence Rate</span>
-                  <span className="font-semibold text-green-600">{analytics.prescriptions.adherence_rate}%</span>
+                  <span className="font-semibold text-green-600">{(analytics.prescriptions || {}).adherence_rate || 0}%</span>
                 </div>
               </div>
             </CardContent>
@@ -359,15 +349,15 @@ const ClinicianAnalyticsScreen = () => {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Messages Sent</span>
-                  <span className="font-semibold">{analytics.communication.messages_sent}</span>
+                  <span className="font-semibold">{(analytics.communication || {}).messages_sent || 0}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Response Time</span>
-                  <span className="font-semibold">{analytics.communication.avg_response_time}h</span>
+                  <span className="font-semibold">{(analytics.communication || {}).avg_response_time || 0}h</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Patient Satisfaction</span>
-                  <span className="font-semibold text-green-600">{analytics.communication.satisfaction}%</span>
+                  <span className="font-semibold text-green-600">{(analytics.communication || {}).satisfaction || 0}%</span>
                 </div>
               </div>
             </CardContent>
@@ -389,7 +379,7 @@ const ClinicianAnalyticsScreen = () => {
                   <Users className="h-8 w-8 text-blue-600" />
                 </div>
                 <h4 className="font-semibold text-gray-900">New Patients</h4>
-                <p className="text-2xl font-bold text-blue-600">{analytics.trends.new_patients}</p>
+                <p className="text-2xl font-bold text-blue-600">{(analytics.trends || {}).new_patients || 0}</p>
                 <p className="text-sm text-gray-600">This period</p>
               </div>
               
@@ -398,7 +388,7 @@ const ClinicianAnalyticsScreen = () => {
                   <AlertTriangle className="h-8 w-8 text-red-600" />
                 </div>
                 <h4 className="font-semibold text-gray-900">High Risk Cases</h4>
-                <p className="text-2xl font-bold text-red-600">{analytics.trends.high_risk_cases}</p>
+                <p className="text-2xl font-bold text-red-600">{(analytics.trends || {}).high_risk_cases || 0}</p>
                 <p className="text-sm text-gray-600">Requiring attention</p>
               </div>
               
@@ -407,7 +397,7 @@ const ClinicianAnalyticsScreen = () => {
                   <CheckCircle className="h-8 w-8 text-green-600" />
                 </div>
                 <h4 className="font-semibold text-gray-900">Improved Patients</h4>
-                <p className="text-2xl font-bold text-green-600">{analytics.trends.improved_patients}</p>
+                <p className="text-2xl font-bold text-green-600">{(analytics.trends || {}).improved_patients || 0}</p>
                 <p className="text-sm text-gray-600">Risk score decreased</p>
               </div>
               
@@ -416,7 +406,7 @@ const ClinicianAnalyticsScreen = () => {
                   <Clock className="h-8 w-8 text-amber-600" />
                 </div>
                 <h4 className="font-semibold text-gray-900">Avg Follow-up</h4>
-                <p className="text-2xl font-bold text-amber-600">{analytics.trends.avg_follow_up_days}d</p>
+                <p className="text-2xl font-bold text-amber-600">{(analytics.trends || {}).avg_follow_up_days || 0}d</p>
                 <p className="text-sm text-gray-600">Between visits</p>
               </div>
             </div>

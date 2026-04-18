@@ -146,7 +146,7 @@ export interface DischargeForm {
 }
 
 export interface FMCLoginForm {
-  email: string;
+  identifier: string;
   password: string;
   two_factor_code?: string;
 }

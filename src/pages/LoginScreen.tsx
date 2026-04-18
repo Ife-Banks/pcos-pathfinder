@@ -16,13 +16,13 @@ const LoginScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showResendVerification, setShowResendVerification] = useState(false);
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({ identifier: "", password: "" });
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
-    if (!form.email.trim()) {
-      newErrors.email = "Email is required";
+    if (!form.identifier.trim()) {
+      newErrors.identifier = "Email or ID is required";
     }
     
     if (!form.password.trim()) {
@@ -44,7 +44,7 @@ const LoginScreen = () => {
     setErrors({});
     
     try {
-      const result = await login({ email: form.email, password: form.password });
+      const result = await login({ email: form.identifier, password: form.password });
 
       // Check if password change is required
       if (result.data.user.must_change_password) {
@@ -73,10 +73,10 @@ const LoginScreen = () => {
       // Check for email_not_verified code in errors object
       if (errorData?.errors?.code === 'email_not_verified') {
         newErrors.general = 'Please verify your email first.';
-      } else if (errorData?.errors?.email) {
-        newErrors.email = Array.isArray(errorData.errors.email) 
-          ? errorData.errors.email[0] 
-          : errorData.errors.email;
+      } else if (errorData?.errors?.identifier) {
+        newErrors.identifier = Array.isArray(errorData.errors.identifier) 
+          ? errorData.errors.identifier[0] 
+          : errorData.errors.identifier;
       } else if (errorData?.errors?.password) {
         newErrors.password = Array.isArray(errorData.errors.password)
           ? errorData.errors.password[0]
@@ -141,16 +141,16 @@ const LoginScreen = () => {
           )}
           
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="identifier">Email or Patient ID</Label>
             <Input 
-              id="email" 
-              type="email" 
-              placeholder="you@example.com" 
-              value={form.email} 
-              onChange={(e) => setForm({ ...form, email: e.target.value })} 
+              id="identifier" 
+              type="text" 
+              placeholder="you@example.com or MDC/2024/001234" 
+              value={form.identifier} 
+              onChange={(e) => setForm({ ...form, identifier: e.target.value })} 
               required 
             />
-            {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+            {errors.identifier && <p className="text-sm text-destructive">{errors.identifier}</p>}
           </div>
           
           <div className="space-y-2">

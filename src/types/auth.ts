@@ -3,12 +3,13 @@ export type UserRole = 'patient' | 'clinician' | 'hcc_admin' | 'fhc_admin' | 'ad
 export interface UserProfile {
   id: string;
   email: string;
+  unique_id: string | null;
   full_name: string;
   role: UserRole;
   avatar_url: string | null;
   is_email_verified: boolean;
   onboarding_completed: boolean;
-  onboarding_step: number; // 0–5
+  onboarding_step: number;
   center_info: CenterInfo | null;
   date_joined: string;
 }

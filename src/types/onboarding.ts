@@ -11,9 +11,11 @@ export interface OnboardingProfile {
   full_name:              string;
   age:                    number | null;
   ethnicity:              Ethnicity | '';
+  gender:                 string | '';
+  phone_number:           string;
   height_cm:              number | null;
   weight_kg:              number | null;
-  bmi:                    number | null;   // READ-ONLY, never send this
+  bmi:                    number | null;
   has_skin_changes:       boolean | null;
   cycle_length_days:      number | null;
   periods_per_year:       number | null;

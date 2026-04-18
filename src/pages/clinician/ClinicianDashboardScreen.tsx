@@ -61,11 +61,11 @@ const ClinicianDashboardScreen = () => {
         }
       }
       
-      const response = await clinicianAPI.getMyPatients(filters);
-      setPatients(response.data.patients);
+      const response = await clinicianAPI.getMyCases(filters);
+      setPatients(response.data);
       
       // Check for new assignments
-      const newAssignments = response.data.patients.filter((p: PatientSummary) => p.is_new_assignment);
+      const newAssignments = response.data.filter((p: PatientSummary) => p.is_new_assignment);
       if (newAssignments.length > 0) {
         setShowNewAssignments(true);
       }

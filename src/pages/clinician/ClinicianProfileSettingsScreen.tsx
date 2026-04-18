@@ -277,14 +277,6 @@ const ClinicianProfileSettingsScreen = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-4">
             <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                onClick={() => navigate('/clinician/dashboard')}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to Dashboard
-              </Button>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Profile & Settings</h1>
                 <p className="text-gray-600">Manage your account and preferences</p>
@@ -335,6 +327,9 @@ const ClinicianProfileSettingsScreen = () => {
                   </div>
                   
                   <h3 className="text-lg font-semibold text-gray-900">{profile?.full_name}</h3>
+                  {profile?.unique_id && (
+                    <Badge className="bg-[#1A5276] text-white">{profile.unique_id}</Badge>
+                  )}
                   <Badge className={getSpecialtyColor(profile?.specialty || '')}>
                     {profile?.specialty?.replace('_', ' ').toUpperCase()}
                   </Badge>

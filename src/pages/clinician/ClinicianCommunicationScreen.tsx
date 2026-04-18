@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
-  ArrowLeft, 
   Send, 
   Reply, 
   Forward, 
@@ -69,7 +69,7 @@ const ClinicianCommunicationScreen = () => {
       setConversations(response.data);
       
       // Fetch patients for new message
-      const patientsResponse = await clinicianAPI.getPatients();
+      const patientsResponse = await clinicianAPI.getMyCases();
       setPatients(patientsResponse.data);
       
     } catch (error: any) {
@@ -239,14 +239,6 @@ const ClinicianCommunicationScreen = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-4">
             <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                onClick={() => navigate('/clinician/dashboard')}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to Dashboard
-              </Button>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Patient Communication</h1>
                 <p className="text-gray-600">Secure messaging with patients</p>

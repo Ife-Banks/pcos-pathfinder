@@ -76,6 +76,8 @@ import AdminDashboardScreen from "./pages/admin/AdminDashboardScreen";
 import AdminUsersScreen from "./pages/admin/AdminUsersScreen";
 import AdminFacilitiesScreen from "./pages/admin/AdminFacilitiesScreen";
 import AdminStaffScreen from "./pages/admin/AdminStaffScreen";
+import AdminCheckInsScreen from "./pages/admin/AdminCheckInsScreen";
+import AdminOnboardingsScreen from "./pages/admin/AdminOnboardingsScreen";
 import AdminDatabaseScreen from "./pages/admin/AdminDatabaseScreen";
 import AdminAnalyticsScreen from "./pages/admin/AdminAnalyticsScreen";
 import AdminLogsScreen from "./pages/admin/AdminLogsScreen";
@@ -101,6 +103,13 @@ import Step4MenstrualHistory from "./pages/onboarding/Step4MenstrualHistory";
 import Step5WearableSetup from "./pages/onboarding/Step5WearableSetup";
 import Step6rPPG from "./pages/onboarding/Step6rPPG";
 import Step7HealthCentre from "./pages/onboarding/Step7HealthCentre";
+// Male onboarding steps
+import Step2aPhysicalMeasurements from "./pages/onboarding/Step2aPhysicalMeasurements";
+import Step3aSkinChanges from "./pages/onboarding/Step3aSkinChanges";
+import Step4aMentalHealth from "./pages/onboarding/Step4aMentalHealth";
+import Step5aWearableSetup from "./pages/onboarding/Step5aWearableSetup";
+import Step6arPPG from "./pages/onboarding/Step6arPPG";
+import Step7aHealthCentre from "./pages/onboarding/Step7aHealthCentre";
 import MorningCheckIn from "./pages/MorningCheckIn";
 import EveningCheckIn from "./pages/EveningCheckIn";
 import PeriodLogging from "./pages/PeriodLogging";
@@ -267,6 +276,8 @@ const App = () => {
                       <Route path="users" element={<AdminUsersScreen />} />
                       <Route path="facilities" element={<AdminFacilitiesScreen />} />
                       <Route path="staff" element={<AdminStaffScreen />} />
+                      <Route path="checkins" element={<AdminCheckInsScreen />} />
+                      <Route path="onboardings" element={<AdminOnboardingsScreen />} />
                       <Route path="database" element={<AdminDatabaseScreen />} />
                       <Route path="analytics" element={<AdminAnalyticsScreen />} />
                       <Route path="logs" element={<AdminLogsScreen />} />
@@ -278,7 +289,15 @@ const App = () => {
                     {/* Patient Routes */}
                     <Route path="/onboarding" element={<OnboardingScreen />} />
                     <Route path="/onboarding/step/1" element={<Step1PersonalInfo />} />
+                    {/* Female Onboarding Steps */}
                     <Route path="/onboarding/step/2" element={<Step2PhysicalMeasurements />} />
+                    {/* Male Onboarding Steps */}
+                    <Route path="/onboarding/step/2a" element={<Step2aPhysicalMeasurements />} />
+                    <Route path="/onboarding/step/3a" element={<Step3aSkinChanges />} />
+                    <Route path="/onboarding/step/4a" element={<Step4aMentalHealth />} />
+                    <Route path="/onboarding/step/5a" element={<Step5aWearableSetup />} />
+                    <Route path="/onboarding/step/6a" element={<Step6arPPG />} />
+                    <Route path="/onboarding/step/7a" element={<Step7aHealthCentre />} />
                     <Route path="/onboarding/step/3" element={<Step3SkinChanges />} />
                     <Route path="/onboarding/step/4" element={<Step4MenstrualHistory />} />
                     <Route path="/onboarding/step/5" element={<Step5WearableSetup />} />

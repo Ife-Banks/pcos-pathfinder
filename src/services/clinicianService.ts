@@ -57,7 +57,7 @@ export const clinicianAPI = {
     if (filters?.tier) params.tier = filters.tier;
     if (filters?.status) params.status = filters.status;
 
-    const res = await apiClient.get('/clinician/cases/', { params });
+    const res = await apiClient.get('/centers/clinician/cases/', { params });
     const body = res.data;
     ensureSuccess(body);
     return body;
@@ -65,28 +65,28 @@ export const clinicianAPI = {
 
   // CL3 - Patient Detail
   getPatient: async (patientId: string) => {
-    const res = await apiClient.get(`/clinician/cases/${patientId}/`);
+    const res = await apiClient.get(`/centers/clinician/cases/${patientId}/`);
     const body = res.data;
     ensureSuccess(body);
     return body;
   },
 
   saveTreatmentPlan: async (patientId: string, plan: any) => {
-    const res = await apiClient.post(`/clinician/treatment-plans/${patientId}/`, plan);
+    const res = await apiClient.post(`/centers/clinician/treatment-plans/${patientId}/`, plan);
     const body = res.data;
     ensureSuccess(body);
     return body;
   },
 
   updateTreatmentPlanStatus: async (planId: string, status: string) => {
-    const res = await apiClient.patch(`/clinician/treatment-plans/${planId}/`, { status });
+    const res = await apiClient.patch(`/centers/clinician/treatment-plans/${planId}/`, { status });
     const body = res.data;
     ensureSuccess(body);
     return body;
   },
 
   generatePatientLetter: async (patientId: string) => {
-    const res = await apiClient.post(`/clinician/letter/${patientId}/`);
+    const res = await apiClient.post(`/centers/clinician/letter/${patientId}/`);
     const body = res.data;
     ensureSuccess(body);
     return body;
@@ -94,28 +94,28 @@ export const clinicianAPI = {
 
   // CL4 - Treatment Plan Builder
   getTreatmentPlans: async () => {
-    const res = await apiClient.get('/clinician/treatment-plans/');
+    const res = await apiClient.get('/centers/clinician/treatment-plans/');
     const body = res.data;
     ensureSuccess(body);
     return body;
   },
 
   updateTreatmentPlan: async (planId: string, updates: any) => {
-    const res = await apiClient.patch(`/clinician/treatment-plans/${planId}/`, updates);
+    const res = await apiClient.patch(`/centers/clinician/treatment-plans/${planId}/`, updates);
     const body = res.data;
     ensureSuccess(body);
     return body;
   },
 
   deleteTreatmentPlan: async (planId: string) => {
-    const res = await apiClient.delete(`/clinician/treatment-plans/${planId}/`);
+    const res = await apiClient.delete(`/centers/clinician/treatment-plans/${planId}/`);
     const body = res.data;
     ensureSuccess(body);
     return body;
   },
 
   createTreatmentPlan: async (plan: any) => {
-    const res = await apiClient.post('/clinician/treatment-plans/', plan);
+    const res = await apiClient.post('/centers/clinician/treatment-plans/', plan);
     const body = res.data;
     ensureSuccess(body);
     return body;
@@ -123,42 +123,42 @@ export const clinicianAPI = {
 
   // CL5 - Prescriptions
   addPrescription: async (prescription: any) => {
-    const res = await apiClient.post('/clinician/prescriptions/', prescription);
+    const res = await apiClient.post('/centers/clinician/prescriptions/', prescription);
     const body = res.data;
     ensureSuccess(body);
     return body;
   },
 
   getPrescriptions: async () => {
-    const res = await apiClient.get('/clinician/prescriptions/');
+    const res = await apiClient.get('/centers/clinician/prescriptions/');
     const body = res.data;
     ensureSuccess(body);
     return body;
   },
 
   updatePrescription: async (prescriptionId: string, updates: any) => {
-    const res = await apiClient.patch(`/clinician/prescriptions/${prescriptionId}/`, updates);
+    const res = await apiClient.patch(`/centers/clinician/prescriptions/${prescriptionId}/`, updates);
     const body = res.data;
     ensureSuccess(body);
     return body;
   },
 
   deletePrescription: async (prescriptionId: string) => {
-    const res = await apiClient.delete(`/clinician/prescriptions/${prescriptionId}/`);
+    const res = await apiClient.delete(`/centers/clinician/prescriptions/${prescriptionId}/`);
     const body = res.data;
     ensureSuccess(body);
     return body;
   },
 
   refillPrescription: async (prescriptionId: string) => {
-    const res = await apiClient.post(`/clinician/prescriptions/${prescriptionId}/refill/`);
+    const res = await apiClient.post(`/centers/clinician/prescriptions/${prescriptionId}/refill/`);
     const body = res.data;
     ensureSuccess(body);
     return body;
   },
 
   generatePrescriptionLetter: async (patientId: string) => {
-    const res = await apiClient.post(`/clinician/letter/${patientId}/`);
+    const res = await apiClient.post(`/centers/clinician/letter/${patientId}/`);
     const body = res.data;
     ensureSuccess(body);
     return body;
@@ -166,56 +166,56 @@ export const clinicianAPI = {
 
   // CL6 - Communication
   getConversations: async () => {
-    const res = await apiClient.get('/clinician/communications/');
+    const res = await apiClient.get('/centers/clinician/communications/');
     const body = res.data;
     ensureSuccess(body);
     return body;
   },
 
   getConversationMessages: async (conversationId: string) => {
-    const res = await apiClient.get(`/clinician/communications/${conversationId}/messages/`);
+    const res = await apiClient.get(`/centers/clinician/communications/${conversationId}/messages/`);
     const body = res.data;
     ensureSuccess(body);
     return body;
   },
 
   markConversationAsRead: async (conversationId: string) => {
-    const res = await apiClient.patch(`/clinician/communications/${conversationId}/read/`);
+    const res = await apiClient.patch(`/centers/clinician/communications/${conversationId}/read/`);
     const body = res.data;
     ensureSuccess(body);
     return body;
   },
 
   archiveConversation: async (conversationId: string) => {
-    const res = await apiClient.post(`/clinician/communications/${conversationId}/archive/`);
+    const res = await apiClient.post(`/centers/clinician/communications/${conversationId}/archive/`);
     const body = res.data;
     ensureSuccess(body);
     return body;
   },
 
   deleteConversation: async (conversationId: string) => {
-    const res = await apiClient.delete(`/clinician/communications/${conversationId}/`);
+    const res = await apiClient.delete(`/centers/clinician/communications/${conversationId}/`);
     const body = res.data;
     ensureSuccess(body);
     return body;
   },
 
   sendMessage: async (patientId: string, message: any) => {
-    const res = await apiClient.post(`/clinician/message/${patientId}/`, message);
+    const res = await apiClient.post(`/centers/clinician/message/${patientId}/`, message);
     const body = res.data;
     ensureSuccess(body);
     return body;
   },
 
   bookAppointment: async (patientId: string, appointment: any) => {
-    const res = await apiClient.post(`/clinician/appointment/${patientId}/`, appointment);
+    const res = await apiClient.post(`/centers/clinician/appointment/${patientId}/`, appointment);
     const body = res.data;
     ensureSuccess(body);
     return body;
   },
 
   generateClinicalLetter: async (patientId: string, letter: any) => {
-    const res = await apiClient.post(`/clinician/letter/${patientId}/`, letter);
+    const res = await apiClient.post(`/centers/clinician/letter/${patientId}/`, letter);
     const body = res.data;
     ensureSuccess(body);
     return body;
@@ -223,7 +223,7 @@ export const clinicianAPI = {
 
   // CL7 - Analytics
   getAnalytics: async (range: string = '30d') => {
-    const res = await apiClient.get('/clinician/analytics/', { params: { range } });
+    const res = await apiClient.get('/centers/clinician/analytics/', { params: { range } });
     const body = res.data;
     ensureSuccess(body);
     return body;
@@ -231,14 +231,14 @@ export const clinicianAPI = {
 
   // CL8 - Profile & Settings
   getProfile: async () => {
-    const res = await apiClient.get('/clinician/profile/');
+    const res = await apiClient.get('/centers/clinician/profile/');
     const body = res.data;
     ensureSuccess(body);
     return body;
   },
 
   updateProfile: async (profileData: any) => {
-    const res = await apiClient.patch('/clinician/profile/', profileData);
+    const res = await apiClient.patch('/centers/clinician/profile/', profileData);
     const body = res.data;
     ensureSuccess(body);
     return body;
@@ -247,7 +247,7 @@ export const clinicianAPI = {
   uploadAvatar: async (file: File) => {
     const formData = new FormData();
     formData.append('profile_photo', file);
-    const res = await apiClient.patch('/clinician/profile/', formData, {
+    const res = await apiClient.patch('/centers/clinician/profile/', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     const body = res.data;
@@ -263,7 +263,7 @@ export const clinicianAPI = {
   },
 
   updateNotificationPreferences: async (preferences: any) => {
-    const res = await apiClient.patch('/clinician/notification-preferences/', preferences);
+    const res = await apiClient.patch('/centers/clinician/notification-preferences/', preferences);
     const body = res.data;
     ensureSuccess(body);
     return body;
@@ -278,21 +278,21 @@ export const clinicianAPI = {
 
   // Timeline & Reports (Screens 36-37)
   getPatientTreatmentPlans: async (patientId: string) => {
-    const res = await apiClient.get('/clinician/treatment-plans/', { params: { patient_id: patientId } });
+    const res = await apiClient.get('/centers/clinician/treatment-plans/', { params: { patient_id: patientId } });
     const body = res.data;
     ensureSuccess(body);
     return body;
   },
 
   getPatientPrescriptions: async (patientId: string) => {
-    const res = await apiClient.get('/clinician/prescriptions/', { params: { patient_id: patientId } });
+    const res = await apiClient.get('/centers/clinician/prescriptions/', { params: { patient_id: patientId } });
     const body = res.data;
     ensureSuccess(body);
     return body;
   },
 
   getPatientMessages: async (patientId: string) => {
-    const res = await apiClient.get('/clinician/communications/', { params: { patient_id: patientId } });
+    const res = await apiClient.get('/centers/clinician/communications/', { params: { patient_id: patientId } });
     const body = res.data;
     ensureSuccess(body);
     return body;
@@ -303,14 +303,14 @@ export const clinicianAPI = {
     if (filters?.range) params.range = filters.range;
     if (filters?.type) params.type = filters.type;
 
-    const res = await apiClient.get(`/clinician/patient/${patientId}/timeline/`, { params });
+    const res = await apiClient.get(`/centers/clinician/patient/${patientId}/timeline/`, { params });
     const body = res.data;
     ensureSuccess(body);
     return body;
   },
 
   exportTimeline: async (patientId: string, format: string = 'csv') => {
-    const res = await apiClient.get(`/clinician/patient/${patientId}/timeline/export/`, {
+    const res = await apiClient.get(`/centers/clinician/patient/${patientId}/timeline/export/`, {
       params: { format },
     });
     const body = res.data;
@@ -351,7 +351,7 @@ export const clinicianAPI = {
     years_of_experience?: number;
     bio?: string;
   }) => {
-    const res = await apiClient.post('/clinician/onboarding/', data);
+    const res = await apiClient.post('/centers/clinician/onboarding/', data);
     const body = res.data;
     ensureSuccess(body);
     return body;

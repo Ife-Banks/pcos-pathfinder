@@ -361,6 +361,9 @@ export default function PHCProfileSettingsScreen() {
               <div className="w-12 h-12 rounded-full bg-[#2E8B57] flex items-center justify-center text-white font-bold text-lg">{user?.full_name?.charAt(0) || 'U'}</div>
               <div>
                 <p className="font-semibold text-lg">{user?.full_name || 'PHC Staff'}</p>
+                {user?.unique_id && (
+                  <p className="text-sm text-[#2E8B57] font-medium">{user.unique_id}</p>
+                )}
                 <Badge className={isAdmin ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>{isAdmin ? 'PHC Admin' : 'PHC Staff'}</Badge>
               </div>
             </div>
