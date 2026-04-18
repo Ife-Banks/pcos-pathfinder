@@ -1,6 +1,6 @@
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Outlet } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -28,6 +28,7 @@ import ClinicianCommunicationScreen from "./pages/clinician/ClinicianCommunicati
 import ClinicianAnalyticsScreen from "./pages/clinician/ClinicianAnalyticsScreen";
 import ClinicianProfileSettingsScreen from "./pages/clinician/ClinicianProfileSettingsScreen";
 import ClinicianOnboardingScreen from "./pages/clinician/ClinicianOnboardingScreen";
+import ClinicianLayout from "./components/layout/ClinicianLayout";
 // FMC screens
 import FMCStaffLoginScreen from "./pages/fmc/FMCStaffLoginScreen";
 import FMCMajorRiskDashboardScreen from "./pages/fmc/FMCMajorRiskDashboardScreen";
@@ -37,7 +38,37 @@ import FMCAlertsScreen from "./pages/fmc/FMCAlertsScreen";
 import FMCDischargeScreen from "./pages/fmc/FMCDischargeScreen";
 // PHC screens
 import PHCStaffLoginScreen from "./pages/phc/PHCStaffLoginScreen";
+// STH screens
+import STHStaffLoginScreen from "./pages/sth/STHStaffLoginScreen";
+// STTH screens
+import STTHStaffLoginScreen from "./pages/stth/STTHStaffLoginScreen";
+// FTH screens
+import FTHStaffLoginScreen from "./pages/fth/FTHStaffLoginScreen";
+// HMO screens
+import HMOStaffLoginScreen from "./pages/hmo/HMOStaffLoginScreen";
+// Clinic screens
+import ClinicStaffLoginScreen from "./pages/clinic/ClinicStaffLoginScreen";
+// Private Hospital screens
+import PrivateHospitalLoginScreen from "./pages/pvt/PrivateHospitalLoginScreen";
+// Private Teaching Hospital screens
+import PrivateTeachingHospitalLoginScreen from "./pages/ptth/PrivateTeachingHospitalLoginScreen";
 import PHCMinorRiskDashboardScreen from "./pages/phc/PHCMinorRiskDashboardScreen";
+// Layouts
+import STHLayout from "./components/layout/STHLayout";
+import STTHLayout from "./components/layout/STTHLayout";
+import FTHLayout from "./components/layout/FTHLayout";
+import HmoLayout from "./components/layout/HMOLayout";
+import ClinicLayout from "./components/layout/ClinicLayout";
+import PVTLayout from "./components/layout/PVTLayout";
+import PTTHLayout from "./components/layout/PTTHLayout";
+// Dashboard screens
+import STHDashboardScreen from "./pages/sth/STHDashboardScreen";
+import STTHDashboardScreen from "./pages/stth/STTHDashboardScreen";
+import FTHDashboardScreen from "./pages/fth/FTHDashboardScreen";
+import HMODashboardScreen from "./pages/hmo/HMODashboardScreen";
+import ClinicDashboardScreen from "./pages/clinic/ClinicDashboardScreen";
+import PVTDashboardScreen from "./pages/pvt/PVTDashboardScreen";
+import PTTHDashboardScreen from "./pages/ptth/PTTHDashboardScreen";
 import PHCPatientDetailScreen from "./pages/phc/PHCPatientDetailScreen";
 import PHCWalkInRegistrationScreen from "./pages/phc/PHCWalkInRegistrationScreen";
 import PHCAdviceInterventionScreen from "./pages/phc/PHCAdviceInterventionScreen";
@@ -140,17 +171,19 @@ const App = () => {
                     <Route path="/verify-email" element={<VerifyEmailScreen />} />
                     <Route path="/change-password" element={<ChangePasswordScreen />} />
                     {/* Clinician Routes */}
+                    <Route path="/clinician" element={<ClinicianLayout />}>
+                      <Route path="dashboard" element={<ClinicianDashboardScreen />} />
+                      <Route path="patient/:id" element={<ClinicianPatientDetailScreen />} />
+                      <Route path="treatment-plans" element={<ClinicianTreatmentPlansScreen />} />
+                      <Route path="prescriptions" element={<ClinicianPrescriptionsScreen />} />
+                      <Route path="communication" element={<ClinicianCommunicationScreen />} />
+                      <Route path="analytics" element={<ClinicianAnalyticsScreen />} />
+                      <Route path="profile" element={<ClinicianProfileSettingsScreen />} />
+                      <Route path="onboarding" element={<ClinicianOnboardingScreen />} />
+                    </Route>
                     <Route path="/clinician/login" element={<ClinicianLoginScreen />} />
                     <Route path="/clinician/register" element={<ClinicianRegistrationScreen />} />
                     <Route path="/clinician/pending-verification" element={<ClinicianPendingVerificationScreen />} />
-                    <Route path="/clinician/dashboard" element={<ClinicianDashboardScreen />} />
-                    <Route path="/clinician/patient/:id" element={<ClinicianPatientDetailScreen />} />
-                    <Route path="/clinician/treatment-plans" element={<ClinicianTreatmentPlansScreen />} />
-                    <Route path="/clinician/prescriptions" element={<ClinicianPrescriptionsScreen />} />
-                    <Route path="/clinician/communication" element={<ClinicianCommunicationScreen />} />
-                    <Route path="/clinician/analytics" element={<ClinicianAnalyticsScreen />} />
-                    <Route path="/clinician/profile" element={<ClinicianProfileSettingsScreen />} />
-                    <Route path="/clinician/onboarding" element={<ClinicianOnboardingScreen />} />
                     {/* FMC Routes */}
                     <Route path="/fmc/login" element={<FMCStaffLoginScreen />} />
                     <Route path="/fmc/dashboard" element={<FMCMajorRiskDashboardScreen />} />
@@ -177,6 +210,41 @@ const App = () => {
                     <Route path="/phc/analytics" element={<PHCAnalyticsScreen />} />
                     <Route path="/phc/alerts" element={<PHCNotificationsScreen />} />
                     <Route path="/phc/settings" element={<PHCProfileSettingsScreen />} />
+                    {/* STH Routes */}
+                    <Route path="/sth/login" element={<STHStaffLoginScreen />} />
+                    <Route path="/sth" element={<STHLayout />}>
+                      <Route path="/sth/dashboard" element={<STHDashboardScreen />} />
+                    </Route>
+                    {/* STTH Routes */}
+                    <Route path="/stth/login" element={<STTHStaffLoginScreen />} />
+                    <Route path="/stth" element={<STTHLayout />}>
+                      <Route path="/stth/dashboard" element={<STTHDashboardScreen />} />
+                    </Route>
+                    {/* FTH Routes */}
+                    <Route path="/fth/login" element={<FTHStaffLoginScreen />} />
+                    <Route path="/fth" element={<FTHLayout />}>
+                      <Route path="/fth/dashboard" element={<FTHDashboardScreen />} />
+                    </Route>
+                    {/* HMO Routes */}
+                    <Route path="/hmo/login" element={<HMOStaffLoginScreen />} />
+                    <Route path="/hmo" element={<HmoLayout />}>
+                      <Route path="/hmo/dashboard" element={<HMODashboardScreen />} />
+                    </Route>
+                    {/* Clinic Routes */}
+                    <Route path="/clinic/login" element={<ClinicStaffLoginScreen />} />
+                    <Route path="/clinic" element={<ClinicLayout />}>
+                      <Route path="/clinic/dashboard" element={<ClinicDashboardScreen />} />
+                    </Route>
+                    {/* Private Hospital Routes */}
+                    <Route path="/pvt/login" element={<PrivateHospitalLoginScreen />} />
+                    <Route path="/pvt" element={<PVTLayout />}>
+                      <Route path="/pvt/dashboard" element={<PVTDashboardScreen />} />
+                    </Route>
+                    {/* Private Teaching Hospital Routes */}
+                    <Route path="/ptth/login" element={<PrivateTeachingHospitalLoginScreen />} />
+                    <Route path="/ptth" element={<PTTHLayout />}>
+                      <Route path="/ptth/dashboard" element={<PTTHDashboardScreen />} />
+                    </Route>
                     {/* Patient Routes */}
                     <Route path="/onboarding" element={<OnboardingScreen />} />
                     <Route path="/onboarding/step/1" element={<Step1PersonalInfo />} />
