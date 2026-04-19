@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Building2, 
-  Activity, 
+import {
+  LayoutDashboard,
+  Users,
+  Building2,
+  Activity,
   Shield,
   Database,
   AlertTriangle,
@@ -13,27 +13,60 @@ import {
   TrendingUp,
   FileText
 } from 'lucide-react';
+import { adminAPI, AdminStats, ActivityLog } from '@/services/adminService';
 
 const AdminDashboardScreen = () => {
-  const stats = [
-    { label: 'Total Users', value: '12,450', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', change: '+12%' },
-    { label: 'Facilities', value: '156', icon: Building2, color: 'text-green-600', bg: 'bg-green-50', change: '+5%' },
-    { label: 'Active Sessions', value: '342', icon: Activity, color: 'text-purple-600', bg: 'bg-purple-50', change: '+8%' },
-    { label: 'Databases', value: '24', icon: Database, color: 'text-amber-600', bg: 'bg-amber-50', change: '0%' },
-  ];
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [recentActivity, setRecentActivity] = useState<ActivityLog[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const recentActivity = [
-    { action: 'New user registration', user: 'Sarah J.', facility: 'PHC Lagos', time: '2 min ago' },
-    { action: 'Patient escalation', user: 'Dr. Wilson', facility: 'FMC Abuja', time: '15 min ago' },
-    { action: 'New facility added', user: 'Admin', facility: 'State Hospital', time: '1 hour ago' },
-    { action: 'System backup', user: 'System', facility: 'Database', time: '3 hours ago' },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [statsRes, logsRes] = await Promise.all([
+          adminAPI.getSystemStats(),
+          adminAPI.getActivityLogs({ page_size: 10 }),
+        ]);
+        if (statsRes.data) {
+          setStats(statsRes.data);
+        }
+        if (logsRes.data?.logs) {
+          setRecentActivity(logsRes.data.logs);
+        }
+      } catch (err) {
+        console.error('Failed to load admin data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
-  const systemHealth = [
-    { service: 'API Gateway', status: 'healthy', uptime: '99.9%' },
-    { service: 'Auth Service', status: 'healthy', uptime: '99.8%' },
-    { service: 'Database', status: 'healthy', uptime: '99.9%' },
-    { service: 'WebSocket', status: 'warning', uptime: '98.5%' },
+  const formatNumber = (num: number) => {
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+    return num.toString();
+  };
+
+  const getChangeColor = (change: number) => {
+    if (change > 0) return '+' + change + '%';
+    if (change < 0) return change + '%';
+    return '0%';
+  };
+
+  const statCards = stats ? [
+    { label: 'Total Users', value: formatNumber(stats.users.total), icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', change: '+' + stats.users.new_this_week },
+    { label: 'Facilities', value: stats.facilities.count, icon: Building2, color: 'text-green-600', bg: 'bg-green-50', change: '+' + stats.users.new_this_week },
+    { label: 'Active Sessions', value: stats.sessions.active_today, icon: Activity, color: 'text-purple-600', bg: 'bg-purple-50', change: '+' + stats.checkins.this_week },
+    { label: 'Pending Onboardings', value: stats.onboardings.pending, icon: Database, color: 'text-amber-600', bg: 'bg-amber-50', change: '0' },
+  ] : [];
+
+  const recentActivityList = recentActivity.length > 0 ? recentActivity.map(log => ({
+    action: log.action.replace(/_/g, ' '),
+    user: log.user,
+    facility: log.facility || '-',
+    time: new Date(log.timestamp).toLocaleTimeString(),
+  })) : [
+    { action: 'No recent activity', user: '-', facility: '-', time: '-' },
   ];
 
   return (
@@ -51,7 +84,17 @@ const AdminDashboardScreen = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, i) => (
+        {loading ? (
+          <>
+            {[1,2,3,4].map(i => (
+              <div key={i} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 animate-pulse">
+                <div className="h-10 w-10 bg-gray-200 rounded-lg mb-3" />
+                <div className="h-8 w-16 bg-gray-200 rounded" />
+                <div className="h-4 w-20 bg-gray-200 rounded mt-2" />
+              </div>
+            ))}
+          </>
+        ) : statCards.map((stat, i) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, y: 20 }}
@@ -64,10 +107,10 @@ const AdminDashboardScreen = () => {
                 <stat.icon className={`h-5 w-5 ${stat.color}`} />
               </div>
               <span className={`text-xs font-medium ${
-                stat.change.startsWith('+') ? 'text-green-600' : 
-                stat.change === '0%' ? 'text-gray-500' : 'text-red-600'
+                typeof stat.change === 'string' && stat.change.startsWith('+') ? 'text-green-600' : 
+                stat.change === 0 ? 'text-gray-500' : 'text-green-600'
               }`}>
-                {stat.change}
+                {typeof stat.change === 'string' ? stat.change : (stat.change > 0 ? '+' + stat.change : stat.change)}
               </span>
             </div>
             <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
@@ -84,14 +127,26 @@ const AdminDashboardScreen = () => {
             <button className="text-sm text-blue-600 hover:underline">View All</button>
           </div>
           <div className="space-y-3">
-            {recentActivity.map((item, i) => (
+            {loading ? (
+              <>
+                {[1,2,3,4].map(i => (
+                  <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg animate-pulse">
+                    <div className="w-8 h-8 bg-gray-200 rounded-full" />
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
+                      <div className="h-3 bg-gray-200 rounded w-1/2" />
+                    </div>
+                  </div>
+                ))}
+              </>
+            ) : recentActivityList.map((item, i) => (
               <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                     <FileText className="h-4 w-4 text-blue-600" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{item.action}</p>
+                    <p className="text-sm font-medium text-gray-900 capitalize">{item.action}</p>
                     <p className="text-xs text-gray-500">{item.user} • {item.facility}</p>
                   </div>
                 </div>
