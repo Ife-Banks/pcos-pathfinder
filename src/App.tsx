@@ -74,7 +74,10 @@ import AdminLayout from "./components/layout/AdminLayout";
 import AdminLoginScreen from "./pages/admin/AdminLoginScreen";
 import AdminDashboardScreen from "./pages/admin/AdminDashboardScreen";
 import AdminUsersScreen from "./pages/admin/AdminUsersScreen";
+import AdminUserDetailScreen from "./pages/admin/AdminUserDetailScreen";
 import AdminFacilitiesScreen from "./pages/admin/AdminFacilitiesScreen";
+import AdminAddFacilityScreen from "./pages/admin/AdminAddFacilityScreen";
+import AdminFacilityDetailScreen from "./pages/admin/AdminFacilityDetailScreen";
 import AdminStaffScreen from "./pages/admin/AdminStaffScreen";
 import AdminCheckInsScreen from "./pages/admin/AdminCheckInsScreen";
 import AdminOnboardingsScreen from "./pages/admin/AdminOnboardingsScreen";
@@ -274,7 +277,10 @@ const App = () => {
                       <Route index element={<AdminDashboardScreen />} />
                       <Route path="dashboard" element={<AdminDashboardScreen />} />
                       <Route path="users" element={<AdminUsersScreen />} />
+                      <Route path="users/:id" element={<AdminUserDetailScreen />} />
                       <Route path="facilities" element={<AdminFacilitiesScreen />} />
+                      <Route path="facilities/new" element={<AdminAddFacilityScreen />} />
+                      <Route path="facilities/:id" element={<AdminFacilityDetailScreen />} />
                       <Route path="staff" element={<AdminStaffScreen />} />
                       <Route path="checkins" element={<AdminCheckInsScreen />} />
                       <Route path="onboardings" element={<AdminOnboardingsScreen />} />

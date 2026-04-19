@@ -69,6 +69,13 @@ const AdminDashboardScreen = () => {
     { action: 'No recent activity', user: '-', facility: '-', time: '-' },
   ];
 
+  const systemHealth = [
+    { service: 'API Gateway', status: 'healthy', uptime: '99.9%' },
+    { service: 'Auth Service', status: 'healthy', uptime: '99.8%' },
+    { service: 'Database', status: 'healthy', uptime: '99.9%' },
+    { service: 'WebSocket', status: 'warning', uptime: '98.5%' },
+  ];
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">

@@ -46,6 +46,25 @@ export interface ActivityLog {
   timestamp: string;
 }
 
+export interface Facility {
+  id: string;
+  code: string;
+  name: string;
+  tier: string;
+  facility_type: string;
+  address: string;
+  phone: string;
+  email: string;
+  state: string;
+  lga: string;
+  zone: string;
+  status: string;
+  escalates_to: string;
+  admin_user: string;
+  admin_email: string;
+  license_number?: string;
+}
+
 export const adminAPI = {
   login: async (credentials: { email: string; password: string }) => {
     const res = await apiClient.post('/auth/login/', credentials);
@@ -71,8 +90,25 @@ export const adminAPI = {
     const res = await apiClient.get('/auth/users/', { params });
     return res.data;
   },
-  getAllFacilities: async (params?: any) => {
-    const res = await apiClient.get('/centers/all/', { params });
+  getUserById: async (userId: string): Promise<any> => {
+    const res = await apiClient.get(`/auth/users/${userId}/`);
+    return res.data;
+  },
+  getAllFacilities: async (params?: any): Promise<any> => {
+    const res = await apiClient.get('/centers/admin/centers/', { params });
+    return res.data;
+  },
+  createFacility: async (data: any): Promise<any> => {
+    const res = await apiClient.post('/centers/admin/centers/', data);
+    return res.data;
+  },
+  getCountries: async (): Promise<any> => {
+    const res = await apiClient.get('/centers/countries/');
+    return res.data;
+  },
+  getStates: async (countryId?: string): Promise<any> => {
+    const params = countryId ? { country: countryId } : {};
+    const res = await apiClient.get('/centers/states/', { params });
     return res.data;
   },
   getSystemStats: async (): Promise<{ data: AdminStats }> => {

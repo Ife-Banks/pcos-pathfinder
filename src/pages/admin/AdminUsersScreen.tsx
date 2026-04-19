@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  Users, 
-  Search, 
-  Filter, 
+import {
+  Users,
+  Search,
+  Filter,
   MoreVertical,
   Mail,
   Shield,
@@ -15,19 +16,40 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { adminAPI, UserRecord } from '@/services/adminService';
 
 const AdminUsersScreen = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('all');
+  const [users, setUsers] = useState<UserRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [total, setTotal] = useState(0);
 
-  const users = [
-    { id: 1, name: 'Sarah Johnson', email: 'sarah@phc.gov.ng', role: 'hcc_staff', facility: 'PHC Lagos', status: 'active', joined: '2024-01-15' },
-    { id: 2, name: 'Dr. Michael Chen', email: 'dr.chen@fmc.gov.ng', role: 'clinician', facility: 'FMC Abuja', status: 'active', joined: '2024-02-20' },
-    { id: 3, name: 'Emily Davis', email: 'emily@aimher.com', role: 'patient', facility: '-', status: 'active', joined: '2024-03-10' },
-    { id: 4, name: 'Admin User', email: 'admin@aimher.com', role: 'admin', facility: 'HQ', status: 'active', is_superuser: true, joined: '2023-12-01' },
-    { id: 5, name: 'James Wilson', email: 'james@clinic.ng', role: 'clinic_staff', facility: 'City Clinic', status: 'inactive', joined: '2024-01-25' },
-    { id: 6, name: 'Lisa Brown', email: 'lisa@phc.gov.ng', role: 'hcc_admin', facility: 'PHC Kano', status: 'active', joined: '2024-04-05' },
-  ];
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setLoading(true);
+      try {
+        const params: any = { page_size: 50 };
+        if (filter === 'active') params.status = 'active';
+        if (filter === 'inactive') params.status = 'inactive';
+        if (filter === 'staff') params.role = 'staff';
+        if (filter === 'patients') params.role = 'patient';
+        if (searchQuery) params.search = searchQuery;
+
+        const res = await adminAPI.getAllUsers(params);
+        if (res.data?.users) {
+          setUsers(res.data.users);
+          setTotal(res.data.total);
+        }
+      } catch (err) {
+        console.error('Failed to load users:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsers();
+  }, [filter, searchQuery]);
 
   const getRoleBadge = (role: string, isSuperuser?: boolean) => {
     if (isSuperuser) return <Badge className="bg-purple-100 text-purple-700">Admin</Badge>;
@@ -53,17 +75,6 @@ const AdminUsersScreen = () => {
       </span>
     );
   };
-
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = filter === 'all' || 
-                         (filter === 'active' && user.status === 'active') ||
-                         (filter === 'inactive' && user.status === 'inactive') ||
-                         (filter === 'staff' && user.role.includes('staff')) ||
-                         (filter === 'patients' && user.role === 'patient');
-    return matchesSearch && matchesFilter;
-  });
 
   return (
     <div className="p-6 space-y-6">
@@ -144,61 +155,66 @@ const AdminUsersScreen = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filteredUsers.map((user, i) => (
+              {loading ? (
+                <>
+                  {[1,2,3,4,5].map(i => (
+                    <tr key={i} className="animate-pulse">
+                      <td className="px-4 py-3"><div className="h-10 bg-gray-200 rounded" /></td>
+                      <td className="px-4 py-3"><div className="h-6 w-16 bg-gray-200 rounded" /></td>
+                      <td className="px-4 py-3"><div className="h-6 w-20 bg-gray-200 rounded" /></td>
+                      <td className="px-4 py-3"><div className="h-6 w-16 bg-gray-200 rounded" /></td>
+                      <td className="px-4 py-3"><div className="h-6 w-20 bg-gray-200 rounded" /></td>
+                    </tr>
+                  ))}
+                </>
+              ) : users.map((user, i) => (
                 <motion.tr
                   key={user.id}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: i * 0.05 }}
-                  className="hover:bg-gray-50"
+                  className="hover:bg-gray-50 cursor-pointer"
+                  onClick={() => navigate(`/system-admin/users/${user.id}`)}
                 >
                   <td className="px-4 py-3">
                     <div>
-                      <p className="font-medium text-gray-900">{user.name}</p>
+                      <p className="font-medium text-gray-900">{user.full_name}</p>
                       <p className="text-sm text-gray-500">{user.email}</p>
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    {getRoleBadge(user.role, user.is_superuser)}
+                    {getRoleBadge(user.role)}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">
-                    {user.facility}
+                    {user.facility || '-'}
                   </td>
                   <td className="px-4 py-3">
-                    {getStatusBadge(user.status)}
+                    {user.is_active ? getStatusBadge('active') : getStatusBadge('inactive')}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-500">
-                    {user.joined}
+                    {user.date_joined ? new Date(user.date_joined).toLocaleDateString() : '-'}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => window.location.href = `mailto:${user.email}`}
+                        title="Send email"
+                      >
                         <Mail className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <MoreVertical className="h-4 w-4" />
                       </Button>
                     </div>
                   </td>
                 </motion.tr>
               ))}
-            </tbody>
+</tbody>
           </table>
-        </div>
-        
-        {/* Pagination */}
-        <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
-          <p className="text-sm text-gray-500">
-            Showing {filteredUsers.length} of {users.length} users
-          </p>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" disabled>
-              Previous
-            </Button>
-            <Button variant="outline" size="sm" disabled>
-              Next
-            </Button>
-          </div>
+          {!loading && total > 0 && (
+            <div className="px-4 py-3 border-t border-gray-200 text-sm text-gray-500">
+              Showing {users.length} of {total} users
+            </div>
+          )}
         </div>
       </div>
     </div>
