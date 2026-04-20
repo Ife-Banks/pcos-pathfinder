@@ -38,10 +38,13 @@ const AdminFacilitiesScreen = () => {
   const [total, setTotal] = useState(0);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchFacilities = async () => {
       setLoading(true);
       try {
         const res = await adminAPI.getAllFacilities();
+        if (cancelled) return;
+        
         const facilitiesData = res?.data?.results || res?.data?.data?.results || [];
         
         const mapped = facilitiesData.map((f: any) => ({
@@ -60,13 +63,21 @@ const AdminFacilitiesScreen = () => {
         
         setFacilities(mapped);
         setTotal(mapped.length);
-      } catch (err) {
+      } catch (err: any) {
+        if (cancelled) return;
+        // Ignore aborted/cancelled requests
+        if (err?.code === 'ERR_CANCELED' || err?.message?.includes('canceled')) {
+          return;
+        }
         console.error('Failed to load facilities:', err);
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
     fetchFacilities();
+    return () => { cancelled = true; };
   }, []);
 
   const getTypeBadge = (type: string) => {

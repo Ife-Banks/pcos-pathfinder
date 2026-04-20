@@ -55,6 +55,7 @@ const PHCMinorRiskDashboardScreen = () => {
   ];
 
   const fetchRecords = useCallback(async () => {
+    let cancelled = false;
     try {
       setLoading(true);
       setError(null);
@@ -74,6 +75,8 @@ const PHCMinorRiskDashboardScreen = () => {
               return phcAPI.getQueue(queueFilters);
             })(),
       ]);
+      
+      if (cancelled) return;
 
       const all = allRes.data ?? [];
       setAllRecords(all);
@@ -86,11 +89,18 @@ const PHCMinorRiskDashboardScreen = () => {
       }
 
     } catch (err: unknown) {
-      const e = err as { message?: string };
+      if (cancelled) return;
+      const e = err as { code?: string; message?: string };
+      // Don't show error for cancelled requests
+      if (e?.code === 'ERR_CANCELED' || e?.message?.includes('canceled')) {
+        return;
+      }
       console.error('Error fetching records:', err);
-      setError(e.message || 'Failed to load patient records. Please try again.');
+      setError('Unable to connect to server. Please check your network and try again.');
     } finally {
-      setLoading(false);
+      if (!cancelled) {
+        setLoading(false);
+      }
     }
   }, [activeFilter]);
 

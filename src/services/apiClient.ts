@@ -38,8 +38,15 @@ const processQueue = (error: any, token: string | null = null) => {
 apiClient.interceptors.response.use(
   (res) => res,
   async (error) => {
+    // Ignore cancelled/aborted requests
     if (isCancelError(error)) {
       console.log('[apiClient] Request was cancelled, ignoring');
+      return Promise.reject(error);
+    }
+
+    // Handle network errors - don't redirect to login
+    if (!error.response) {
+      console.log('[apiClient] Network error - no response, not redirecting');
       return Promise.reject(error);
     }
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { adminAPI } from '@/services/adminService';
@@ -17,13 +17,16 @@ import {
   FileText,
   Server,
   ClipboardCheck,
-  UserPlus
+  UserPlus,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 const AdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const navItems = [
     { label: 'Dashboard', icon: LayoutDashboard, path: '/system-admin/dashboard', key: 'dashboard' },
@@ -40,6 +43,17 @@ const AdminLayout = () => {
     { label: 'Security', icon: Lock, path: '/system-admin/security', key: 'security' },
     { label: 'Settings', icon: Settings, path: '/system-admin/settings', key: 'settings' },
   ];
+
+  const isActive = (item: typeof navItems[0]) => {
+    const path = location.pathname;
+    // Exact match
+    if (path === item.path) return true;
+    // Child routes - /users/123, /facilities/new, /facilities/af01c5a8
+    if (path.startsWith(item.path + '/')) return true;
+    // Special case for dashboard index route
+    if (item.key === 'dashboard' && path === '/system-admin') return true;
+    return false;
+  };
 
   const handleLogout = async () => {
     try {
@@ -61,56 +75,72 @@ const AdminLayout = () => {
 
   return (
     <div className="flex h-screen bg-gray-900">
-      <aside className="w-64 bg-slate-800 border-r border-slate-700 flex flex-col">
+      <aside className={`${isCollapsed ? 'w-16' : 'w-64'} bg-slate-800 border-r border-slate-700 flex flex-col transition-all duration-300 relative`}>
+        {/* Header */}
         <div className="p-4 border-b border-slate-700">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-slate-600 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-slate-600 rounded-xl flex items-center justify-center flex-shrink-0">
               <Shield className="h-5 w-5 text-white" />
             </div>
-            <div>
-              <p className="font-bold text-white text-sm">AI-MSHM</p>
-              <p className="text-xs text-slate-400">System Admin</p>
-            </div>
+            {!isCollapsed && (
+              <div>
+                <p className="font-bold text-white text-sm">AI-MSHM</p>
+                <p className="text-xs text-slate-400">System Admin</p>
+              </div>
+            )}
           </div>
         </div>
 
+        {/* Collapse Toggle */}
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="absolute top-20 -right-3 w-6 h-6 bg-slate-700 border border-slate-600 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-600 transition-colors z-10"
+        >
+          {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        </button>
+
+        {/* Navigation */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map(item => {
-            const isActive = location.pathname === item.path || 
-              (item.key === 'dashboard' && location.pathname.includes('/system-admin'));
+            const active = isActive(item);
             return (
               <button
                 key={item.key}
                 onClick={() => navigate(item.path)}
+                title={isCollapsed ? item.label : undefined}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                  isActive
-                    ? 'bg-slate-600 text-white'
+                  active
+                    ? 'bg-blue-600 text-white'
                     : 'text-slate-300 hover:bg-slate-700 hover:text-white'
                 }`}
               >
-                <item.icon className="h-5 w-5" />
-                {item.label}
+                <item.icon className="h-5 w-5 flex-shrink-0" />
+                {!isCollapsed && <span className="truncate">{item.label}</span>}
               </button>
             );
           })}
         </nav>
 
+        {/* Footer */}
         <div className="p-3 border-t border-slate-700 space-y-2">
           <div className="flex items-center gap-3 px-2 py-1">
-            <div className="w-10 h-10 bg-slate-600 rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-slate-600 rounded-full flex items-center justify-center flex-shrink-0">
               <span className="text-white font-medium">SA</span>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">Admin</p>
-              <p className="text-xs text-slate-400">Super Admin</p>
-            </div>
+            {!isCollapsed && (
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white truncate">Admin</p>
+                <p className="text-xs text-slate-400">Super Admin</p>
+              </div>
+            )}
           </div>
           <button
             onClick={handleLogout}
+            title={isCollapsed ? 'Log Out' : undefined}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-red-900/50 hover:text-red-400 transition-colors"
           >
-            <LogOut className="h-5 w-5" />
-            Log Out
+            <LogOut className="h-5 w-5 flex-shrink-0" />
+            {!isCollapsed && <span>Log Out</span>}
           </button>
         </div>
       </aside>
