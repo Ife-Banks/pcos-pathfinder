@@ -59,8 +59,9 @@ export default function PHCLayout({ children }: { children: ReactNode }) {
 
   const handleLogout = async () => {
     const refresh = localStorage.getItem('refresh_token');
+    const access = localStorage.getItem('access_token');
     try {
-      await phcAPI.logout(refresh!, '');
+      await phcAPI.logout(refresh!, access || '');
     } catch (e) {
       console.error('Logout error:', e);
     } finally {
