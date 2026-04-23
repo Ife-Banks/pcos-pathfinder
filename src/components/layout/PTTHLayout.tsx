@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import {
   LayoutDashboard,
@@ -16,11 +16,9 @@ import {
   Stethoscope
 } from 'lucide-react';
 
-interface PTTHLayoutProps {
-  children: React.ReactNode;
-}
 
-const PTTHLayout = ({ children }: PTTHLayoutProps) => {
+
+const PTTHLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
@@ -28,6 +26,7 @@ const PTTHLayout = ({ children }: PTTHLayoutProps) => {
   const navItems = [
     { label: 'Dashboard', icon: LayoutDashboard, path: '/ptth/dashboard', key: 'dashboard' },
     { label: 'Patients', icon: Users, path: '/ptth/patients', key: 'patients' },
+    { label: 'Referrals', icon: Building2, path: '/ptth/referrals', key: 'referrals' },
     { label: 'Referrals', icon: Building2, path: '/ptth/referrals', key: 'referrals' },
     { label: 'Consultation', icon: FileText, path: '/ptth/consultation', key: 'consultation' },
     { label: 'Treatments', icon: Pill, path: '/ptth/treatments', key: 'treatments' },
@@ -105,7 +104,7 @@ const PTTHLayout = ({ children }: PTTHLayoutProps) => {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto">{children}</main>
+      <main className="flex-1 overflow-y-auto"><Outlet /></main>
     </div>
   );
 };

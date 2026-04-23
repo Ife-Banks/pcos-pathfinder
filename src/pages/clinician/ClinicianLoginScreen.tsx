@@ -66,22 +66,18 @@ const ClinicianLoginScreen = () => {
     try {
       const response = await clinicianAPI.login(formData);
       
-      if (response.data.access && response.data.refresh) {
-        await loginWithTokens(response.data.access, response.data.refresh);
+      const accessToken = response.data?.access;
+      const refreshToken = response.data?.refresh;
+      const userData = response.data?.user;
+      
+      if (accessToken && refreshToken) {
+        await loginWithTokens(userData, accessToken, refreshToken);
         
-        if (response.data.requires_2fa) {
-          setShow2FA(true);
-        } else {
-          const userStr = localStorage.getItem('user');
-          if (userStr) {
-            const userData = JSON.parse(userStr);
-            if (userData.must_change_password) {
-              navigate('/change-password');
-              return;
-            }
-          }
-          navigate('/clinician/dashboard');
+        if (userData?.must_change_password) {
+          navigate('/change-password');
+          return;
         }
+        navigate('/clinician/dashboard');
       }
     } catch (error: any) {
       console.error('Login error:', error);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import {
   LayoutDashboard,
@@ -17,11 +17,9 @@ import {
   AlertTriangle
 } from 'lucide-react';
 
-interface FTHLayoutProps {
-  children: React.ReactNode;
-}
 
-const FTHLayout = ({ children }: FTHLayoutProps) => {
+
+const FTHLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
@@ -29,6 +27,7 @@ const FTHLayout = ({ children }: FTHLayoutProps) => {
   const navItems = [
     { label: 'Dashboard', icon: LayoutDashboard, path: '/fth/dashboard', key: 'dashboard' },
     { label: 'Patients', icon: Users, path: '/fth/patients', key: 'patients' },
+    { label: 'Referrals', icon: Building2, path: '/fth/referrals', key: 'referrals' },
     { label: 'Referrals', icon: Building2, path: '/fth/referrals', key: 'referrals' },
     { label: 'Major Risk', icon: AlertTriangle, path: '/fth/major-risk', key: 'majorRisk' },
     { label: 'Consultation', icon: FileText, path: '/fth/consultation', key: 'consultation' },
@@ -107,7 +106,7 @@ const FTHLayout = ({ children }: FTHLayoutProps) => {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto">{children}</main>
+      <main className="flex-1 overflow-y-auto"><Outlet /></main>
     </div>
   );
 };

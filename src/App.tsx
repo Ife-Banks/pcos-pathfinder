@@ -42,6 +42,9 @@ import PHCStaffLoginScreen from "./pages/phc/PHCStaffLoginScreen";
 import STHStaffLoginScreen from "./pages/sth/STHStaffLoginScreen";
 // STTH screens
 import STTHStaffLoginScreen from "./pages/stth/STTHStaffLoginScreen";
+import RegisterPatientScreen from "./pages/shared/RegisterPatientScreen";
+import PatientsListScreen from "./pages/shared/PatientsListScreen";
+import FMCPatientsListScreen from "./pages/fmc/FMCPatientsListScreen";
 // FTH screens
 import FTHStaffLoginScreen from "./pages/fth/FTHStaffLoginScreen";
 // HMO screens
@@ -75,6 +78,7 @@ import AdminLoginScreen from "./pages/admin/AdminLoginScreen";
 import AdminDashboardScreen from "./pages/admin/AdminDashboardScreen";
 import AdminUsersScreen from "./pages/admin/AdminUsersScreen";
 import AdminUserDetailScreen from "./pages/admin/AdminUserDetailScreen";
+import AdminAddUserScreen from "./pages/admin/AdminAddUserScreen";
 import AdminFacilitiesScreen from "./pages/admin/AdminFacilitiesScreen";
 import AdminAddFacilityScreen from "./pages/admin/AdminAddFacilityScreen";
 import AdminFacilityDetailScreen from "./pages/admin/AdminFacilityDetailScreen";
@@ -212,6 +216,8 @@ const App = () => {
                     <Route path="/clinician/pending-verification" element={<ClinicianPendingVerificationScreen />} />
                     {/* FMC Routes */}
                     <Route path="/fmc/login" element={<FMCStaffLoginScreen />} />
+                    <Route path="/fmc/patients" element={<FMCPatientsListScreen />} />
+                    <Route path="/fmc/register-patient" element={<RegisterPatientScreen facility="fmc" themeColor="red" facilityName="Federal Medical Centre" />} />
                     <Route path="/fmc/dashboard" element={<FMCMajorRiskDashboardScreen />} />
                     <Route path="/fmc/patient-detail/:caseId" element={<FMCPatientDetailScreen />} />
                     <Route path="/fmc/assignment" element={<FMCAssignmentScreen />} />
@@ -238,28 +244,52 @@ const App = () => {
                     <Route path="/phc/settings" element={<PHCProfileSettingsScreen />} />
                     {/* STH Routes */}
                     <Route path="/sth/login" element={<STHStaffLoginScreen />} />
+                    <Route path="/sth/patients" element={<PatientsListScreen facility="sth" facilityName="State Hospital" themeColor="teal" />} />
+                    <Route path="/sth/register-patient" element={<RegisterPatientScreen facility="sth" themeColor="teal" facilityName="State Hospital" />} />
                     <Route path="/sth" element={<STHLayout />}>
                       <Route path="/sth/dashboard" element={<STHDashboardScreen />} />
                     </Route>
                     {/* STTH Routes */}
                     <Route path="/stth/login" element={<STTHStaffLoginScreen />} />
+                    <Route path="/stth/patients" element={<PatientsListScreen facility="stth" facilityName="State Teaching Hospital" themeColor="cyan" />} />
+                    <Route path="/stth/register-patient" element={<RegisterPatientScreen facility="stth" themeColor="cyan" facilityName="State Teaching Hospital" />} />
                     <Route path="/stth" element={<STTHLayout />}>
                       <Route path="/stth/dashboard" element={<STTHDashboardScreen />} />
                     </Route>
                     {/* FTH Routes */}
                     <Route path="/fth/login" element={<FTHStaffLoginScreen />} />
+                    <Route path="/fth/patients" element={<PatientsListScreen facility="fth" facilityName="Federal Teaching Hospital" themeColor="purple" />} />
+                    <Route path="/fth/register-patient" element={<RegisterPatientScreen facility="fth" themeColor="purple" facilityName="Federal Teaching Hospital" />} />
                     <Route path="/fth" element={<FTHLayout />}>
                       <Route path="/fth/dashboard" element={<FTHDashboardScreen />} />
                     </Route>
                     {/* HMO Routes */}
                     <Route path="/hmo/login" element={<HMOStaffLoginScreen />} />
+                    <Route path="/hmo/enrollees" element={<PatientsListScreen facility="hmo" facilityName="Health Insurance (HMO)" themeColor="blue" />} />
+                    <Route path="/hmo/enroll" element={<RegisterPatientScreen facility="hmo" themeColor="blue" facilityName="Health Insurance (HMO)" />} />
                     <Route path="/hmo" element={<HmoLayout />}>
                       <Route path="/hmo/dashboard" element={<HMODashboardScreen />} />
                     </Route>
-                    {/* Clinic Routes */}
+{/* Clinic Routes */}
                     <Route path="/clinic/login" element={<ClinicStaffLoginScreen />} />
+                    <Route path="/clinic/patients" element={<PatientsListScreen facility="cln" facilityName="Private Clinic" themeColor="orange" />} />
+                    <Route path="/clinic/register-patient" element={<RegisterPatientScreen facility="cln" themeColor="orange" facilityName="Private Clinic" />} />
                     <Route path="/clinic" element={<ClinicLayout />}>
                       <Route path="/clinic/dashboard" element={<ClinicDashboardScreen />} />
+                    </Route>
+                    {/* Private Hospital Routes */}
+                    <Route path="/pvt/login" element={<PrivateHospitalLoginScreen />} />
+                    <Route path="/pvt/patients" element={<PatientsListScreen facility="pvt" facilityName="Private Hospital" themeColor="amber" />} />
+                    <Route path="/pvt/register-patient" element={<RegisterPatientScreen facility="pvt" themeColor="amber" facilityName="Private Hospital" />} />
+                    <Route path="/pvt" element={<PVTLayout />}>
+                      <Route path="/pvt/dashboard" element={<PVTDashboardScreen />} />
+                    </Route>
+                    {/* Private Teaching Hospital Routes */}
+                    <Route path="/ptth/login" element={<PrivateTeachingHospitalLoginScreen />} />
+                    <Route path="/ptth/patients" element={<PatientsListScreen facility="ptth" facilityName="Private Teaching Hospital" themeColor="yellow" />} />
+                    <Route path="/ptth/register-patient" element={<RegisterPatientScreen facility="ptth" themeColor="yellow" facilityName="Private Teaching Hospital" />} />
+                    <Route path="/ptth" element={<PTTHLayout />}>
+                      <Route path="/ptth/dashboard" element={<PTTHDashboardScreen />} />
                     </Route>
                     {/* Private Hospital Routes */}
                     <Route path="/pvt/login" element={<PrivateHospitalLoginScreen />} />
@@ -277,6 +307,7 @@ const App = () => {
                       <Route index element={<AdminDashboardScreen />} />
                       <Route path="dashboard" element={<AdminDashboardScreen />} />
                       <Route path="users" element={<AdminUsersScreen />} />
+                      <Route path="users/add" element={<AdminAddUserScreen />} />
                       <Route path="users/:id" element={<AdminUserDetailScreen />} />
                       <Route path="facilities" element={<AdminFacilitiesScreen />} />
                       <Route path="facilities/new" element={<AdminAddFacilityScreen />} />

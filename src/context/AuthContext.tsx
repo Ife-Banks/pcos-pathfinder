@@ -173,12 +173,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const loginWithTokens = (userData: any, accessToken: string, refreshToken?: string) => {
+    console.log('[AuthContext] loginWithTokens called:', { 
+      userData: !!userData, 
+      accessToken: !!accessToken, 
+      refreshToken: !!refreshToken,
+      accessTokenLength: accessToken?.length
+    });
+    
     setAccessToken(accessToken);
     localStorage.setItem('access_token', accessToken);
+    const storedToken = localStorage.getItem('access_token');
+    console.log('[AuthContext] Stored token length:', storedToken?.length);
+    
     if (refreshToken) {
       localStorage.setItem('refresh_token', refreshToken);
     }
     localStorage.setItem('user', JSON.stringify(userData));
+
+    // Wait a tick to ensure state updates
+    setTimeout(() => {
+      const check = localStorage.getItem('access_token');
+      console.log('[AuthContext] After setTimeout check:', !!check);
+    }, 10);
+    
+    console.log('[AuthContext] Tokens stored successfully');
 
     setUser({
       id: userData.id,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import {
   LayoutDashboard,
@@ -13,17 +13,16 @@ import {
   Pill
 } from 'lucide-react';
 
-interface ClinicLayoutProps {
-  children: React.ReactNode;
-}
 
-const ClinicLayout = ({ children }: ClinicLayoutProps) => {
+
+const ClinicLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
 
   const navItems = [
     { label: 'Dashboard', icon: LayoutDashboard, path: '/clinic/dashboard', key: 'dashboard' },
+    { label: 'Register Patient', icon: UserPlus, path: '/clinic/register', key: 'register' },
     { label: 'Patients', icon: Users, path: '/clinic/patients', key: 'patients' },
     { label: 'Consultation', icon: FileText, path: '/clinic/consultation', key: 'consultation' },
     { label: 'Prescriptions', icon: Pill, path: '/clinic/prescriptions', key: 'prescriptions' },
@@ -97,7 +96,7 @@ const ClinicLayout = ({ children }: ClinicLayoutProps) => {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto">{children}</main>
+      <main className="flex-1 overflow-y-auto"><Outlet /></main>
     </div>
   );
 };

@@ -46,23 +46,21 @@ const PHCStaffLoginScreen = () => {
         password,
       });
 
-      console.log('[PHC Login] Response:', response);
-      // Support both response.data and response
-      const data = response?.data ?? response;
-const access = data?.access;
-      const refresh = data?.refresh;
-      const user = data?.user;
+      const accessToken = response.data?.access;
+      const refreshToken = response.data?.refresh;
+      const userData = response.data?.user;
 
-      if (!user || !['hcc_admin', 'hcc_staff'].includes(user.role)) {
+      if (!userData || !['hcc_admin', 'hcc_staff', 'hcc_admin', 'admin'].includes(userData.role)) {
         setError("Your account does not have PHC staff access.");
         setIsLoading(false);
         return;
       }
 
-      await loginWithTokens(access, refresh);
+      await loginWithTokens(userData, accessToken, refreshToken);
       navigate('/phc/dashboard');
     } catch (err: any) {
-      const message = err.response?.data?.detail || err.message || "Login failed";
+      const errorData = err.response?.data;
+      const message = errorData?.message || errorData?.detail || JSON.stringify(errorData) || err.message || "Login failed";
       setError(message);
     } finally {
       setIsLoading(false);

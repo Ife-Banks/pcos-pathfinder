@@ -17,10 +17,13 @@ export const apiClient = axios.create({
 // Attach token to every request
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
+  
   if (token) {
+    console.log('[apiClient] Attaching token:', token.substring(0, 15) + '...');
     config.headers.Authorization = `Bearer ${token}`;
   } else {
-    console.log('[apiClient] No access_token found in localStorage');
+    console.log('[apiClient] ❌ NO TOKEN FOUND in localStorage!');
+    console.log('[apiClient] All localStorage keys:', Object.keys(localStorage).join(', '));
   }
   return config;
 });

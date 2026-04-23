@@ -1,9 +1,10 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { fmcAPI } from '@/services/fmcService';
 import {
   LayoutDashboard,
+  Users,
   UserPlus,
   Activity,
   BarChart2,
@@ -24,6 +25,7 @@ const FMCLayout = ({ children }: { children: React.ReactNode }) => {
 
   const navItems = [
     { label: 'Dashboard', icon: LayoutDashboard, path: '/fmc/dashboard', key: 'dashboard' },
+    { label: 'Patients', icon: Users, path: '/fmc/patients', key: 'patients' },
     { label: 'PHC Network', icon: Building2, path: '/fmc/network-phc', key: 'network' },
     { label: 'Assignment', icon: UserPlus, path: '/fmc/assignment', key: 'assignment' },
     { label: 'Consultation', icon: FileText, path: '/fmc/consultation', key: 'consultation' },

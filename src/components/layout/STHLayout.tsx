@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { portalAPI } from '@/services/portalService';
 import {
@@ -33,6 +33,7 @@ const STHLayout = ({ children }: STHLayoutProps) => {
   const navItems = [
     { label: 'Dashboard', icon: LayoutDashboard, path: '/sth/dashboard', key: 'dashboard' },
     { label: 'Patients', icon: Users, path: '/sth/patients', key: 'patients' },
+    { label: 'PHC Referrals', icon: Building2, path: '/sth/referrals', key: 'referrals' },
     { label: 'PHC Referrals', icon: Building2, path: '/sth/referrals', key: 'referrals' },
     { label: 'Consultation', icon: FileText, path: '/sth/consultation', key: 'consultation' },
     { label: 'Treatments', icon: Pill, path: '/sth/treatments', key: 'treatments' },
@@ -137,7 +138,7 @@ const STHLayout = ({ children }: STHLayoutProps) => {
       </aside>
 
       <main className="flex-1 overflow-y-auto">
-        {children}
+        <Outlet />
       </main>
     </div>
   );

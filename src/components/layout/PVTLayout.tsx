@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import {
   LayoutDashboard,
@@ -16,11 +16,9 @@ import {
   Stethoscope
 } from 'lucide-react';
 
-interface PVTLayoutProps {
-  children: React.ReactNode;
-}
 
-const PVTLayout = ({ children }: PVTLayoutProps) => {
+
+const PVTLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
@@ -28,6 +26,7 @@ const PVTLayout = ({ children }: PVTLayoutProps) => {
   const navItems = [
     { label: 'Dashboard', icon: LayoutDashboard, path: '/pvt/dashboard', key: 'dashboard' },
     { label: 'Patients', icon: Users, path: '/pvt/patients', key: 'patients' },
+    { label: 'Consultation', icon: FileText, path: '/pvt/consultation', key: 'consultation' },
     { label: 'Consultation', icon: FileText, path: '/pvt/consultation', key: 'consultation' },
     { label: 'Treatments', icon: Pill, path: '/pvt/treatments', key: 'treatments' },
     { label: 'Diagnostics', icon: Activity, path: '/pvt/diagnostics', key: 'diagnostics' },
@@ -102,7 +101,7 @@ const PVTLayout = ({ children }: PVTLayoutProps) => {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto">{children}</main>
+      <main className="flex-1 overflow-y-auto"><Outlet /></main>
     </div>
   );
 };

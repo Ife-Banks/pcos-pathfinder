@@ -8,8 +8,8 @@ const ensureSuccess = (body: any) => {
 
 export const fmcAPI = {
   // FMC1 - Authentication
-  login: async (credentials: { email: string; password: string }) => {
-    const res = await apiClient.post('/auth/login/', credentials);
+  login: async (credentials: { identifier: string; password: string }) => {
+    const res = await apiClient.post('/auth/login/', { email: credentials.identifier, password: credentials.password });
     const body = res.data;
     ensureSuccess(body);
     return body;

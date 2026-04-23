@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import {
   LayoutDashboard,
@@ -13,17 +13,16 @@ import {
   Activity
 } from 'lucide-react';
 
-interface HmolayoutProps {
-  children: React.ReactNode;
-}
 
-const HmoLayout = ({ children }: HmolayoutProps) => {
+
+const HmoLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
 
   const navItems = [
     { label: 'Dashboard', icon: LayoutDashboard, path: '/hmo/dashboard', key: 'dashboard' },
+    { label: 'Enroll Member', icon: UserPlus, path: '/hmo/enroll', key: 'enroll' },
     { label: 'Enrollees', icon: Users, path: '/hmo/enrollees', key: 'enrollees' },
     { label: 'Claims', icon: CreditCard, path: '/hmo/claims', key: 'claims' },
     { label: 'Reports', icon: FileText, path: '/hmo/reports', key: 'reports' },
@@ -98,7 +97,7 @@ const HmoLayout = ({ children }: HmolayoutProps) => {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto">{children}</main>
+      <main className="flex-1 overflow-y-auto"><Outlet /></main>
     </div>
   );
 };
