@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { onboardingAPI } from '@/services/onboardingService';
 import { OnboardingProfile } from '@/types/onboarding';
@@ -12,12 +12,11 @@ interface OnboardingContextType {
 const OnboardingContext = createContext<OnboardingContextType | null>(null);
 
 export const OnboardingProvider = ({ children }: { children: React.ReactNode }) => {
-  const { accessToken } = useAuth(); // get accessToken directly from context
+  const { user, accessToken } = useAuth();
   const [profile, setProfile] = useState<OnboardingProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const refreshProfile = async () => {
-    // Guard: never call API without a valid token
+  const refreshProfile = useCallback(async () => {
     if (!accessToken || accessToken === 'undefined' || accessToken === 'null') {
       return;
     }
@@ -30,18 +29,15 @@ export const OnboardingProvider = ({ children }: { children: React.ReactNode }) 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [accessToken]);
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const role = user?.role;
-
-    if (!accessToken || !role || role !== 'patient') {
+    if (!accessToken || !user || user.role !== 'patient') {
       return;
     }
 
     refreshProfile();
-  }, [accessToken, refreshProfile]); // ← only run for patient roles with a token
+  }, [accessToken, user?.id]);
 
   return (
     <OnboardingContext.Provider value={{ profile, isLoading, refreshProfile }}>
