@@ -408,8 +408,8 @@ const DashboardScreen = () => {
     return `${pending.join(' & ')} due`;
   };
 
-  const isMale = profile?.gender === 'MALE';
-  const isFemale = profile?.gender === 'FEMALE';
+  const isMale = profile?.gender === 'male';
+  const isFemale = profile?.gender === 'female';
 
   const periodCardSubtitle = menstrualSummary && menstrualSummary.mean_cycle_len
     ? `Cycle ${Math.round(menstrualSummary.mean_cycle_len)} days · CLV ${menstrualSummary.CLV ?? '—'}`

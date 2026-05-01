@@ -5,6 +5,7 @@ export interface RegisterPatientData {
   email?: string;
   phone?: string;
   age?: number;
+  gender?: 'male' | 'female';
   condition?: string;
   severity?: string;
   notes?: string;

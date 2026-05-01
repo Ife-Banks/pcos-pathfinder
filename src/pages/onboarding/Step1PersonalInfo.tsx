@@ -91,7 +91,7 @@ const Step1PersonalInfo = () => {
       await refreshProfile();
       
       // Route based on gender - different path for males vs females
-      const nextStep = form.gender === 'MALE' ? '/onboarding/step/2a' : '/onboarding/step/2';
+      const nextStep = form.gender === 'male' ? '/onboarding/step/2a' : '/onboarding/step/2';
       navigate(nextStep);
     } catch (err: any) {
       const backendErrors: Record<string, string> = {};

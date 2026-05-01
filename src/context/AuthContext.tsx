@@ -17,6 +17,7 @@ interface User {
   must_change_password: boolean;
   onboarding_completed: boolean;
   onboarding_step: number; // 0–5
+  gender: string | null;
   center_info: any | null;
   date_joined: string;
   accessToken: string;
@@ -110,6 +111,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       is_email_verified: user.is_email_verified,
       onboarding_completed: user.onboarding_completed,
       onboarding_step: user.onboarding_step,
+      gender: user.gender || null,
       center_info: user.center_info,
       date_joined: user.date_joined,
       accessToken: data.data.access
@@ -209,6 +211,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       must_change_password: userData.must_change_password || false,
       onboarding_completed: userData.onboarding_completed,
       onboarding_step: userData.onboarding_step,
+      gender: userData.gender || null,
       center_info: userData.center_info,
       date_joined: userData.date_joined,
       accessToken: accessToken

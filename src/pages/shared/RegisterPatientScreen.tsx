@@ -42,6 +42,7 @@ const RegisterPatientScreen: React.FC<RegisterPatientScreenProps> = ({
     email: '',
     phone: '',
     age: undefined,
+    gender: undefined,
     notes: '',
   });
   
@@ -56,6 +57,10 @@ const RegisterPatientScreen: React.FC<RegisterPatientScreenProps> = ({
     
     if (!formData.email && !formData.phone) {
       newErrors.email = 'Email or phone is required';
+    }
+    
+    if (!formData.gender) {
+      newErrors.gender = 'Gender is required';
     }
     
     setErrors(newErrors);
@@ -189,6 +194,7 @@ const RegisterPatientScreen: React.FC<RegisterPatientScreenProps> = ({
                   email: '',
                   phone: '',
                   age: undefined,
+                  gender: undefined,
                   notes: '',
                 });
               }}
@@ -306,6 +312,31 @@ const RegisterPatientScreen: React.FC<RegisterPatientScreenProps> = ({
                   disabled={loading}
                 />
               </div>
+            </div>
+
+            {/* Gender */}
+            <div className="space-y-2">
+              <Label htmlFor="gender">
+                Gender <span className="text-red-500">*</span>
+              </Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <select
+                  id="gender"
+                  value={formData.gender || ''}
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, gender: e.target.value as 'male' | 'female' }));
+                    if (errors.gender) setErrors(prev => ({ ...prev, gender: '' }));
+                  }}
+                  className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.gender ? 'border-red-500' : 'border-input'}`}
+                  disabled={loading}
+                >
+                  <option value="">Select gender</option>
+                  <option value="female">Female</option>
+                  <option value="male">Male</option>
+                </select>
+              </div>
+              {errors.gender && <p className="text-sm text-red-500">{errors.gender}</p>}
             </div>
 
             {/* Notes */}

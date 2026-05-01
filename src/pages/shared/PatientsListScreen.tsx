@@ -24,6 +24,7 @@ interface Patient {
   email: string;
   full_name: string;
   phone?: string;
+  gender?: string;
   condition?: string;
   severity?: string;
   registered_at?: string;
@@ -61,6 +62,7 @@ const PatientsListScreen: React.FC<PatientsListScreenProps> = ({
         email: c.patient?.email || '',
         full_name: c.patient?.full_name || '',
         phone: c.patient?.phone || '',
+        gender: c.patient?.onboarding_profile?.gender || '',
         condition: c.condition || '',
         severity: c.severity || '',
         registered_at: c.opened_at ? c.opened_at.split('T')[0] : '',
@@ -148,6 +150,7 @@ const PatientsListScreen: React.FC<PatientsListScreenProps> = ({
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Patient</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Gender</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Contact</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Condition</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Severity</th>
@@ -161,6 +164,7 @@ const PatientsListScreen: React.FC<PatientsListScreenProps> = ({
                 [...Array(3)].map((_, i) => (
                   <tr key={i} className="animate-pulse">
                     <td className="px-4 py-3"><div className="h-10 bg-gray-200 rounded" /></td>
+                    <td className="px-4 py-3"><div className="h-6 w-12 bg-gray-200 rounded" /></td>
                     <td className="px-4 py-3"><div className="h-6 w-20 bg-gray-200 rounded" /></td>
                     <td className="px-4 py-3"><div className="h-6 w-16 bg-gray-200 rounded" /></td>
                     <td className="px-4 py-3"><div className="h-6 w-16 bg-gray-200 rounded" /></td>
@@ -168,7 +172,7 @@ const PatientsListScreen: React.FC<PatientsListScreenProps> = ({
                 ))
               ) : patients.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                     No patients found. Click "Register Patient" to add one.
                   </td>
                 </tr>
@@ -185,6 +189,13 @@ const PatientsListScreen: React.FC<PatientsListScreenProps> = ({
                       <p className="font-medium text-gray-900">{patient.full_name}</p>
                       <p className="text-sm text-gray-500">{patient.email}</p>
                     </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    {patient.gender ? (
+                      <Badge variant="outline">{patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1)}</Badge>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">
                     {patient.phone || '-'}
