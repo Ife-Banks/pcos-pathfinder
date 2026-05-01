@@ -13,6 +13,7 @@ export interface RegisterPatientData {
 
 export interface RegisterPatientResponse {
   patient_id: string;
+  unique_id: string | null;
   patient_email: string;
   patient_name: string;
   facility_name: string;

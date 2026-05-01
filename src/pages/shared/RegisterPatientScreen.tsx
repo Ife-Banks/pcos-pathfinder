@@ -35,7 +35,7 @@ const RegisterPatientScreen: React.FC<RegisterPatientScreenProps> = ({
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [registeredPatient, setRegisteredPatient] = useState<RegisterPatientData | null>(null);
   const [tempPassword, setTempPassword] = useState('');
-  const [registeredInfo, setRegisteredInfo] = useState<{ patient_id: string; patient_email: string; facility_name: string } | null>(null);
+  const [registeredInfo, setRegisteredInfo] = useState<{ patient_id: string; unique_id: string | null; patient_email: string; facility_name: string } | null>(null);
   
   const [formData, setFormData] = useState<RegisterPatientData>({
     full_name: '',
@@ -88,6 +88,7 @@ const RegisterPatientScreen: React.FC<RegisterPatientScreenProps> = ({
         setTempPassword(responseData.temp_password);
         setRegisteredInfo({
           patient_id: responseData.patient_id,
+          unique_id: responseData.unique_id,
           patient_email: responseData.patient_email,
           facility_name: responseData.facility_name,
         });
@@ -135,11 +136,17 @@ const RegisterPatientScreen: React.FC<RegisterPatientScreenProps> = ({
           <div className={`bg-${themeColor}-50 rounded-xl p-4 mb-6`}>
             <h3 className="font-semibold text-gray-900 mb-2">Patient Details</h3>
             <p className="text-gray-700 font-medium">{registeredPatient.full_name}</p>
+            {registeredInfo?.unique_id && (
+              <p className="text-gray-600 text-sm font-mono">ID: {registeredInfo.unique_id}</p>
+            )}
             {registeredPatient.email && (
               <p className="text-gray-600 text-sm">{registeredPatient.email}</p>
             )}
             {registeredPatient.phone && (
               <p className="text-gray-600 text-sm">{registeredPatient.phone}</p>
+            )}
+            {registeredPatient.gender && (
+              <p className="text-gray-600 text-sm">Gender: {registeredPatient.gender.charAt(0).toUpperCase() + registeredPatient.gender.slice(1)}</p>
             )}
           </div>
 
