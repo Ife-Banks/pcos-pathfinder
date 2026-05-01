@@ -45,7 +45,8 @@ const PrivateTeachingHospitalLoginScreen = () => {
         password,
       });
 
-      const { access, refresh, user } = response.data;
+      const responseData = response.data?.data || response.data;
+      const { access, refresh, user } = responseData;
 
       if (!['ptth_admin', 'ptth_staff'].includes(user.role)) {
         setError("Your account does not have Private Teaching Hospital access.");

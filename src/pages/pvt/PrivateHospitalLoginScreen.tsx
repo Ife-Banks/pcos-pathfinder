@@ -45,7 +45,8 @@ const PrivateHospitalLoginScreen = () => {
         password,
       });
 
-      const { access, refresh, user } = response.data;
+      const responseData = response.data?.data || response.data;
+      const { access, refresh, user } = responseData;
 
       if (!['pvt_admin', 'pvt_staff'].includes(user.role)) {
         setError("Your account does not have Private Hospital access.");

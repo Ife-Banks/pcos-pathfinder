@@ -63,6 +63,21 @@ const Step7aHealthCentre = () => {
         state: profile.state || '',
         lga: profile.lga || ''
       });
+      
+      // Pre-select the PHC if already registered during walk-in
+      if (profile.registered_hcc_detail) {
+        const phc = profile.registered_hcc_detail;
+        const centre: PHCCentre = {
+          id: phc.id,
+          name: phc.name,
+          code: phc.code ?? undefined,
+          state: phc.state,
+          lga: phc.lga,
+        };
+        setSelectedCentre(centre);
+        setShowResults(true);
+        setHealthCentres([centre]);
+      }
     }
   }, [accessToken, navigate, profile]);
 

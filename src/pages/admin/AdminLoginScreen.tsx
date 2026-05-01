@@ -35,13 +35,15 @@ const AdminLoginScreen = () => {
     try {
       const response = await adminAPI.login({ email: identifier, password });
       
-      if (response.data?.access && response.data?.refresh) {
+      const responseData = response.data?.data || response.data;
+      
+      if (responseData?.access && responseData?.refresh) {
         // Store tokens and user directly from login response
-        const userData = response.data.user || { email: identifier, is_staff: true, role: 'admin' };
-        localStorage.setItem('access_token', response.data.access);
-        localStorage.setItem('refresh_token', response.data.refresh);
+        const userData = responseData.user || { email: identifier, is_staff: true, role: 'admin' };
+        localStorage.setItem('access_token', responseData.access);
+        localStorage.setItem('refresh_token', responseData.refresh);
         localStorage.setItem('user', JSON.stringify(userData));
-        await loginWithTokens(userData, response.data.access, response.data.refresh);
+        await loginWithTokens(userData, responseData.access, responseData.refresh);
         navigate("/system-admin/dashboard", { replace: true });
       } else {
         setError("Invalid response from server");

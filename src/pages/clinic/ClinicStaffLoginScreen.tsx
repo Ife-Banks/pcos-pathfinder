@@ -45,7 +45,8 @@ const ClinicStaffLoginScreen = () => {
         password,
       });
 
-      const { access, refresh, user } = response.data;
+      const responseData = response.data?.data || response.data;
+      const { access, refresh, user } = responseData;
 
       if (!['clinic_admin', 'clinic_staff'].includes(user.role)) {
         setError("Your account does not have Clinic access.");

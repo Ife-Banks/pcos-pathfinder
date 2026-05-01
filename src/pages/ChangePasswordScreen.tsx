@@ -50,7 +50,9 @@ const ChangePasswordScreen = () => {
       });
       setSuccess(true);
       setTimeout(() => {
-        if (user?.role === 'fhc_staff' || user?.role === 'fhc_admin') {
+        if (user?.role === 'patient') {
+          navigate('/onboarding');
+        } else if (user?.role === 'fhc_staff' || user?.role === 'fhc_admin') {
           navigate('/fmc/dashboard');
         } else if (user?.role === 'hcc_staff' || user?.role === 'hcc_admin') {
           navigate('/phc/dashboard');

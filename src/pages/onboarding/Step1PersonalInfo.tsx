@@ -123,8 +123,8 @@ const Step1PersonalInfo = () => {
   ];
 
   const genderOptions = [
-    { value: 'MALE', label: 'Male' },
-    { value: 'FEMALE', label: 'Female' },
+    { value: 'male', label: 'Male' },
+    { value: 'female', label: 'Female' },
   ];
 
   return (

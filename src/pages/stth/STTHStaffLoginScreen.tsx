@@ -45,7 +45,8 @@ const STTHStaffLoginScreen = () => {
         password,
       });
 
-      const { access, refresh, user } = response.data;
+      const responseData = response.data?.data || response.data;
+      const { access, refresh, user } = responseData;
 
       if (!['stth_admin', 'stth_staff'].includes(user.role)) {
         setError("Your account does not have State Teaching Hospital access.");

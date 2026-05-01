@@ -7,7 +7,6 @@ import {
   Mail,
   Phone,
   Calendar,
-  Activity,
   AlertCircle,
   CheckCircle,
   Loader2,
@@ -26,22 +25,6 @@ interface RegisterPatientScreenProps {
   facilityName: string;  // Display name
 }
 
-const CONDITION_OPTIONS = [
-  { value: 'general', label: 'General Checkup' },
-  { value: 'pcos', label: 'PCOS' },
-  { value: 'maternal', label: 'Maternal Health' },
-  { value: 'diabetes', label: 'Diabetes' },
-  { value: 'cardiovascular', label: 'Cardiovascular' },
-  { value: 'other', label: 'Other' },
-];
-
-const SEVERITY_OPTIONS = [
-  { value: 'low', label: 'Low' },
-  { value: 'moderate', label: 'Moderate' },
-  { value: 'high', label: 'High' },
-  { value: 'severe', label: 'Severe' },
-];
-
 const RegisterPatientScreen: React.FC<RegisterPatientScreenProps> = ({
   facility,
   themeColor,
@@ -52,14 +35,13 @@ const RegisterPatientScreen: React.FC<RegisterPatientScreenProps> = ({
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [registeredPatient, setRegisteredPatient] = useState<RegisterPatientData | null>(null);
   const [tempPassword, setTempPassword] = useState('');
+  const [registeredInfo, setRegisteredInfo] = useState<{ patient_id: string; patient_email: string; facility_name: string } | null>(null);
   
   const [formData, setFormData] = useState<RegisterPatientData>({
     full_name: '',
     email: '',
     phone: '',
     age: undefined,
-    condition: 'general',
-    severity: 'moderate',
     notes: '',
   });
   
@@ -92,12 +74,18 @@ const RegisterPatientScreen: React.FC<RegisterPatientScreenProps> = ({
       const res = await registerAPI.registerPatient(facility, formData);
       
       if (res.data) {
+        const responseData = res.data?.data || res.data;
         setMessage({ 
           type: 'success', 
           text: 'Patient registered successfully!' 
         });
         setRegisteredPatient(formData);
-        setTempPassword(res.data.temp_password);
+        setTempPassword(responseData.temp_password);
+        setRegisteredInfo({
+          patient_id: responseData.patient_id,
+          patient_email: responseData.patient_email,
+          facility_name: responseData.facility_name,
+        });
       }
     } catch (err: any) {
       console.error('Registration error:', err);
@@ -141,7 +129,7 @@ const RegisterPatientScreen: React.FC<RegisterPatientScreenProps> = ({
 
           <div className={`bg-${themeColor}-50 rounded-xl p-4 mb-6`}>
             <h3 className="font-semibold text-gray-900 mb-2">Patient Details</h3>
-            <p className="text-gray-700">{registeredPatient.full_name}</p>
+            <p className="text-gray-700 font-medium">{registeredPatient.full_name}</p>
             {registeredPatient.email && (
               <p className="text-gray-600 text-sm">{registeredPatient.email}</p>
             )}
@@ -150,9 +138,20 @@ const RegisterPatientScreen: React.FC<RegisterPatientScreenProps> = ({
             )}
           </div>
 
+          {registeredInfo && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+              <p className="text-sm text-blue-800 font-medium mb-1">
+                Welcome email sent to {registeredInfo.patient_email}
+              </p>
+              <p className="text-xs text-blue-700">
+                Includes their Patient ID, temporary password, and link to complete onboarding.
+              </p>
+            </div>
+          )}
+
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
             <div className="flex items-start gap-2">
-              <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
               <div>
                 <p className="font-semibold text-amber-800">Share this password with the patient</p>
                 <p className="text-amber-900 font-mono text-lg font-bold mt-1 tracking-wider">
@@ -163,6 +162,13 @@ const RegisterPatientScreen: React.FC<RegisterPatientScreenProps> = ({
                 </p>
               </div>
             </div>
+          </div>
+
+          <div className="bg-gray-50 rounded-xl p-4 mb-6">
+            <p className="text-sm text-gray-600 mb-2">Patient login link:</p>
+            <p className="text-sm font-mono text-gray-800 bg-white border rounded px-3 py-2">
+              {window.location.origin}/login
+            </p>
           </div>
 
           <div className="flex gap-3">
@@ -177,13 +183,12 @@ const RegisterPatientScreen: React.FC<RegisterPatientScreenProps> = ({
               onClick={() => {
                 setRegisteredPatient(null);
                 setTempPassword('');
+                setRegisteredInfo(null);
                 setFormData({
                   full_name: '',
                   email: '',
                   phone: '',
                   age: undefined,
-                  condition: 'general',
-                  severity: 'moderate',
                   notes: '',
                 });
               }}
@@ -300,44 +305,6 @@ const RegisterPatientScreen: React.FC<RegisterPatientScreenProps> = ({
                   className="pl-10"
                   disabled={loading}
                 />
-              </div>
-            </div>
-
-            {/* Condition */}
-            <div className="space-y-2">
-              <Label htmlFor="condition">Condition</Label>
-              <div className="relative">
-                <Activity className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <select
-                  id="condition"
-                  value={formData.condition}
-                  onChange={handleChange('condition')}
-                  className="w-full h-10 pl-10 pr-3 rounded-md border border-input bg-background"
-                  disabled={loading}
-                >
-                  {CONDITION_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Severity */}
-            <div className="space-y-2">
-              <Label htmlFor="severity">Severity</Label>
-              <div className="relative">
-                <Activity className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <select
-                  id="severity"
-                  value={formData.severity}
-                  onChange={handleChange('severity')}
-                  className="w-full h-10 pl-10 pr-3 rounded-md border border-input bg-background"
-                  disabled={loading}
-                >
-                  {SEVERITY_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
               </div>
             </div>
 

@@ -46,9 +46,10 @@ const PHCStaffLoginScreen = () => {
         password,
       });
 
-      const accessToken = response.data?.access;
-      const refreshToken = response.data?.refresh;
-      const userData = response.data?.user;
+      const responseData = response.data?.data || response.data;
+      const accessToken = responseData?.access;
+      const refreshToken = responseData?.refresh;
+      const userData = responseData?.user;
 
       if (!userData || !['hcc_admin', 'hcc_staff', 'hcc_admin', 'admin'].includes(userData.role)) {
         setError("Your account does not have PHC staff access.");

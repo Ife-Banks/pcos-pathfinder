@@ -26,6 +26,19 @@ export interface OnboardingProfile {
   state:                  string | null;
   lga:                    string | null;
   registered_hcc:         string | null;
+  registered_hcc_detail:  {
+    id: string;
+    name: string;
+    code: string | null;
+    state: string;
+    lga: string;
+  } | null;
+  escalation_fmc_detail:  {
+    id: string;
+    name: string;
+    code: string | null;
+    state: string;
+  } | null;
   created_at:             string;
   updated_at:             string;
 }

@@ -64,8 +64,11 @@ const FMCLoginScreen = () => {
     try {
       const response = await fmcAPI.login(formData);
       
-      if (response.access && response.refresh) {
-        await loginWithTokens(response.access, response.refresh);
+      const responseData = response?.data || response;
+      
+      if (responseData.access && responseData.refresh) {
+        const userData = responseData.user || { email: formData.email, role: 'fhc_staff' };
+        await loginWithTokens(userData, responseData.access, responseData.refresh);
         navigate('/fmc/dashboard');
       } else {
         setErrors({ general: "Invalid credentials. Please try again." });
