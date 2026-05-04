@@ -325,22 +325,24 @@ const App = () => {
                     </Route>
                     {/* Patient Routes */}
                     <Route path="/onboarding" element={<OnboardingScreen />} />
-                    <Route path="/onboarding/step/1" element={<Step1PersonalInfo />} />
-                    {/* Female Onboarding Steps */}
-                    <Route path="/onboarding/step/2" element={<Step2PhysicalMeasurements />} />
-                    {/* Male Onboarding Steps */}
-                    <Route path="/onboarding/step/2a" element={<Step2aPhysicalMeasurements />} />
-                    <Route path="/onboarding/step/3a" element={<Step3aSkinChanges />} />
-                    <Route path="/onboarding/step/4a" element={<Step4aMentalHealth />} />
-                    <Route path="/onboarding/step/5a" element={<Step5aWearableSetup />} />
-                    <Route path="/onboarding/step/6a" element={<Step6arPPG />} />
-                    <Route path="/onboarding/step/7a" element={<Step7aHealthCentre />} />
-                    <Route path="/onboarding/step/3" element={<Step3SkinChanges />} />
-                    <Route path="/onboarding/step/4" element={<Step4MenstrualHistory />} />
-                    <Route path="/onboarding/step/5" element={<Step5WearableSetup />} />
-                    <Route path="/onboarding/step/6" element={<Step6rPPG />} />
-                    <Route path="/onboarding/step/7" element={<Step7HealthCentre />} />
-                    <Route path="/onboarding-complete" element={<OnboardingComplete />} />
+                    <Route element={<OnboardingProvider>}>
+                      <Route path="/onboarding/step/1" element={<Step1PersonalInfo />} />
+                      {/* Female Onboarding Steps */}
+                      <Route path="/onboarding/step/2" element={<Step2PhysicalMeasurements />} />
+                      {/* Male Onboarding Steps */}
+                      <Route path="/onboarding/step/2a" element={<Step2aPhysicalMeasurements />} />
+                      <Route path="/onboarding/step/3a" element={<Step3aSkinChanges />} />
+                      <Route path="/onboarding/step/4a" element={<Step4aMentalHealth />} />
+                      <Route path="/onboarding/step/5a" element={<Step5aWearableSetup />} />
+                      <Route path="/onboarding/step/6a" element={<Step6arPPG />} />
+                      <Route path="/onboarding/step/7a" element={<Step7aHealthCentre />} />
+                      <Route path="/onboarding/step/3" element={<Step3SkinChanges />} />
+                      <Route path="/onboarding/step/4" element={<Step4MenstrualHistory />} />
+                      <Route path="/onboarding/step/5" element={<Step5WearableSetup />} />
+                      <Route path="/onboarding/step/6" element={<Step6rPPG />} />
+                      <Route path="/onboarding/step/7" element={<Step7HealthCentre />} />
+                      <Route path="/onboarding-complete" element={<OnboardingComplete />} />
+                    </Route>
                     <Route path="/dashboard" element={<DashboardScreen />} />
                     <Route path="/checkin/morning" element={<MorningCheckIn />} />
                     <Route path="/checkin/evening" element={<EveningCheckIn />} />
