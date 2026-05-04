@@ -173,6 +173,18 @@ interface MenstrualSummary {
 const DashboardScreen = () => {
   const navigate = useNavigate();
   const { unreadCount } = useNotifications();
+  const { user } = useAuth();
+
+  // Redirect patients with incomplete onboarding back to onboarding
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    if (user.role === 'patient' && !user.onboarding_completed) {
+      navigate('/onboarding');
+    }
+  }, [user, navigate]);
 
   const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
   const [loading, setLoading] = useState(true);
