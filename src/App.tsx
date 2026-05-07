@@ -325,8 +325,8 @@ const App = () => {
                     </Route>
                     {/* Patient Routes */}
                     <Route path="/onboarding" element={<OnboardingScreen />} />
-                    <Route element={<OnboardingProvider>}>
-                      <Route path="/onboarding/step/1" element={<Step1PersonalInfo />} />
+                    <Route element={<OnboardingProvider><Outlet /></OnboardingProvider>}>
+                       <Route path="/onboarding/step/1" element={<Step1PersonalInfo />} />
                       {/* Female Onboarding Steps */}
                       <Route path="/onboarding/step/2" element={<Step2PhysicalMeasurements />} />
                       {/* Male Onboarding Steps */}

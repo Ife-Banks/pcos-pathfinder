@@ -30,6 +30,7 @@ export interface OnboardingProfile {
     id: string;
     name: string;
     code: string | null;
+    address: string | null;
     state: string;
     lga: string;
   } | null;
