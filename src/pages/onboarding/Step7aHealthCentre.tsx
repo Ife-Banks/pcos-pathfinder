@@ -18,6 +18,7 @@ interface PHCCentre {
   address?: string;
   state: string;
   lga: string;
+  facility_type?: string;
   phone?: string;
 }
 
@@ -57,13 +58,13 @@ const Step7aHealthCentre = () => {
       navigate('/login');
       return;
     }
-    
+
     if (profile) {
       setFormData({
         state: profile.state || '',
         lga: profile.lga || ''
       });
-      
+
       // Pre-select the PHC if already registered during walk-in
       if (profile.registered_hcc_detail) {
         const phc = profile.registered_hcc_detail;
@@ -71,6 +72,8 @@ const Step7aHealthCentre = () => {
           id: phc.id,
           name: phc.name,
           code: phc.code ?? undefined,
+          address: (phc as any).address ?? undefined,
+          facility_type: (phc as any).facility_type ?? undefined,
           state: phc.state,
           lga: phc.lga,
         };
@@ -80,6 +83,17 @@ const Step7aHealthCentre = () => {
       }
     }
   }, [accessToken, navigate, profile]);
+
+  // Show banner if we have a selected centre (either from profile or search)
+  const displayCentre = selectedCentre || (profile?.registered_hcc_detail ? {
+    id: profile.registered_hcc_detail.id,
+    name: profile.registered_hcc_detail.name,
+    code: profile.registered_hcc_detail.code || undefined,
+    address: (profile.registered_hcc_detail as any).address || undefined,
+    facility_type: (profile.registered_hcc_detail as any).facility_type || undefined,
+    state: profile.registered_hcc_detail.state,
+    lga: profile.registered_hcc_detail.lga,
+  } : null);
 
   const handleInputChange = (field: 'state' | 'lga', value: string) => {
     setFormData(prev => ({
@@ -242,6 +256,33 @@ const Step7aHealthCentre = () => {
             </p>
           </div>
 
+          {displayCentre && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h3 className="text-sm font-semibold text-blue-900 mb-3">Registered Centre</h3>
+              <div className="space-y-1 text-sm text-blue-800">
+                <div className="font-medium text-base text-blue-900">{displayCentre.name}</div>
+                {displayCentre.facility_type && (
+                  <div className="inline-block mt-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">{displayCentre.facility_type}</div>
+                )}
+                {displayCentre.code && (
+                  <div className="text-xs text-blue-600">Code: {displayCentre.code}</div>
+                )}
+                <div className="text-sm">{displayCentre.lga}, {displayCentre.state}</div>
+                {displayCentre.address && (
+                  <div className="text-xs text-blue-700">{displayCentre.address}</div>
+                )}
+              </div>
+
+              {profile?.escalation_fmc_detail && (
+                <div className="mt-3 pt-3 border-t border-blue-200">
+                  <div className="text-xs font-medium text-blue-900 mb-1">Escalation Centre</div>
+                  <div className="text-sm font-medium text-blue-800">{profile.escalation_fmc_detail.name}</div>
+                  <div className="text-xs text-blue-600">{profile.escalation_fmc_detail.state}</div>
+                </div>
+              )}
+            </div>
+          )}
+
           {error && (
             <Alert variant="destructive" className="mb-4">
               <AlertDescription className="flex flex-col gap-3">
@@ -328,12 +369,18 @@ const Step7aHealthCentre = () => {
                   }`}
                 >
                   <div className="font-medium text-gray-900">{centre.name}</div>
+                  {centre.facility_type && (
+                    <div className="inline-block text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded mt-0.5">{centre.facility_type}</div>
+                  )}
                   {centre.code && (
-                    <div className="text-xs text-gray-500">{centre.code}</div>
+                    <div className="text-xs text-gray-500">Code: {centre.code}</div>
                   )}
                   <div className="text-xs text-gray-500">
                     {centre.lga}, {centre.state}
                   </div>
+                  {centre.address && (
+                    <div className="text-xs text-gray-400 mt-1">{centre.address}</div>
+                  )}
                 </div>
               ))}
             </div>

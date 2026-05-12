@@ -31,6 +31,7 @@ export interface OnboardingProfile {
     name: string;
     code: string | null;
     address: string | null;
+    facility_type: string | null;
     state: string;
     lga: string;
   } | null;

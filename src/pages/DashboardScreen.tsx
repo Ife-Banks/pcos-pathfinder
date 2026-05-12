@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/context/NotificationContext";
+import { useAuth } from "@/context/AuthContext";
 import { NotificationPanel } from "@/components/NotificationPanel";
 import { dashboardService, UserProfile, PredictionData } from "@/services/dashboardService";
 import { checkinService } from "@/services/checkinService";
