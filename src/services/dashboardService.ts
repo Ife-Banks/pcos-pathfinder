@@ -157,7 +157,7 @@ export const dashboardService = {
 
       const combinedData: PredictionData = {
         id: pcosData.id,
-        risk_score: pcosData.risk_score * 100, // Convert to percentage
+        risk_score: pcosData.risk_score, // 0-1 scale
         risk_tier: pcosData.risk_tier,
         computed_at: pcosData.computed_at,
         data_completeness_pct: pcosData.data_completeness_pct || 85,
