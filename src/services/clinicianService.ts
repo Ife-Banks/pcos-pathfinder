@@ -372,3 +372,10 @@ export const clinicianAPI = {
     ];
   },
 };
+
+createPrescription: async (prescription: any) => {
+  const res = await apiClient.post('/centers/clinician/prescriptions/', prescription);
+  const body = res.data;
+  ensureSuccess(body);
+  return body;
+};
