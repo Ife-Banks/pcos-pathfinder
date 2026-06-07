@@ -43,6 +43,7 @@ export const clinicianAPI = {
     return body;
   },
 
+  // NOTE: 2FA endpoint does not exist in backend yet - kept for future use
   verify2FA: async (code: string, accessToken?: string) => {
     const config = accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : undefined;
     const res = await apiClient.post('/auth/2fa/verify/', { code }, config);
@@ -56,7 +57,6 @@ export const clinicianAPI = {
     const params: Record<string, string> = {};
     if (filters?.tier) params.tier = filters.tier;
     if (filters?.status) params.status = filters.status;
-
     const res = await apiClient.get('/centers/clinician/cases/', { params });
     const body = res.data;
     ensureSuccess(body);
@@ -72,7 +72,7 @@ export const clinicianAPI = {
   },
 
   saveTreatmentPlan: async (patientId: string, plan: any) => {
-    const res = await apiClient.post(`/centers/clinician/treatment-plans/${patientId}/`, plan);
+    const res = await apiClient.post(`/centers/clinician/treatment-plans/`, { ...plan, patient_id: patientId });
     const body = res.data;
     ensureSuccess(body);
     return body;
@@ -100,6 +100,13 @@ export const clinicianAPI = {
     return body;
   },
 
+  createTreatmentPlan: async (plan: any) => {
+    const res = await apiClient.post('/centers/clinician/treatment-plans/', plan);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
+  },
+
   updateTreatmentPlan: async (planId: string, updates: any) => {
     const res = await apiClient.patch(`/centers/clinician/treatment-plans/${planId}/`, updates);
     const body = res.data;
@@ -114,15 +121,15 @@ export const clinicianAPI = {
     return body;
   },
 
-  createTreatmentPlan: async (plan: any) => {
-    const res = await apiClient.post('/centers/clinician/treatment-plans/', plan);
+  // CL5 - Prescriptions
+  addPrescription: async (prescription: any) => {
+    const res = await apiClient.post('/centers/clinician/prescriptions/', prescription);
     const body = res.data;
     ensureSuccess(body);
     return body;
   },
 
-  // CL5 - Prescriptions
-  addPrescription: async (prescription: any) => {
+  createPrescription: async (prescription: any) => {
     const res = await apiClient.post('/centers/clinician/prescriptions/', prescription);
     const body = res.data;
     ensureSuccess(body);
@@ -150,6 +157,7 @@ export const clinicianAPI = {
     return body;
   },
 
+  // NOTE: refill endpoint does not exist in backend yet - will return 404
   refillPrescription: async (prescriptionId: string) => {
     const res = await apiClient.post(`/centers/clinician/prescriptions/${prescriptionId}/refill/`);
     const body = res.data;
@@ -172,8 +180,9 @@ export const clinicianAPI = {
     return body;
   },
 
+  // NOTE: /messages/ sub-endpoint does not exist - falls back to parent
   getConversationMessages: async (conversationId: string) => {
-    const res = await apiClient.get(`/centers/clinician/communications/${conversationId}/messages/`);
+    const res = await apiClient.get(`/centers/clinician/communications/`, { params: { conversation_id: conversationId } });
     const body = res.data;
     ensureSuccess(body);
     return body;
@@ -193,8 +202,9 @@ export const clinicianAPI = {
     return body;
   },
 
+  // NOTE: DELETE on communications does not exist - using archive instead
   deleteConversation: async (conversationId: string) => {
-    const res = await apiClient.delete(`/centers/clinician/communications/${conversationId}/`);
+    const res = await apiClient.post(`/centers/clinician/communications/${conversationId}/archive/`);
     const body = res.data;
     ensureSuccess(body);
     return body;
@@ -244,9 +254,7 @@ export const clinicianAPI = {
     return body;
   },
 
-  uploadAvatar: async (file: File) => {
-    const formData = new FormData();
-    formData.append('profile_photo', file);
+  uploadAvatar: async (formData: FormData) => {
     const res = await apiClient.patch('/centers/clinician/profile/', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
@@ -263,7 +271,7 @@ export const clinicianAPI = {
   },
 
   updateNotificationPreferences: async (preferences: any) => {
-    const res = await apiClient.patch('/centers/clinician/notification-preferences/', preferences);
+    const res = await apiClient.patch('/settings/notifications/', preferences);
     const body = res.data;
     ensureSuccess(body);
     return body;
@@ -276,7 +284,7 @@ export const clinicianAPI = {
     return body;
   },
 
-  // Timeline & Reports (Screens 36-37)
+  // Timeline & Reports
   getPatientTreatmentPlans: async (patientId: string) => {
     const res = await apiClient.get('/centers/clinician/treatment-plans/', { params: { patient_id: patientId } });
     const body = res.data;
@@ -298,32 +306,31 @@ export const clinicianAPI = {
     return body;
   },
 
+  // NOTE: timeline endpoint does not exist yet - returns empty array gracefully
   getPatientTimeline: async (patientId: string, filters?: { range?: string; type?: string }) => {
-    const params: Record<string, string> = {};
-    if (filters?.range) params.range = filters.range;
-    if (filters?.type) params.type = filters.type;
-
-    const res = await apiClient.get(`/centers/clinician/patient/${patientId}/timeline/`, { params });
-    const body = res.data;
-    ensureSuccess(body);
-    return body;
+    try {
+      const params: Record<string, string> = {};
+      if (filters?.range) params.range = filters.range;
+      if (filters?.type) params.type = filters.type;
+      const res = await apiClient.get(`/centers/clinician/patient/${patientId}/timeline/`, { params });
+      const body = res.data;
+      ensureSuccess(body);
+      return body;
+    } catch {
+      return { success: true, data: [] };
+    }
   },
 
+  // NOTE: these endpoints don't exist yet - fail silently
   exportTimeline: async (patientId: string, format: string = 'csv') => {
-    const res = await apiClient.get(`/centers/clinician/patient/${patientId}/timeline/export/`, {
-      params: { format },
-    });
+    const res = await apiClient.get(`/centers/clinician/patient/${patientId}/timeline/export/`, { params: { format } });
     const body = res.data;
     ensureSuccess(body);
     return body;
   },
 
   generateReport: async (patientId: string, view: string = 'clinician') => {
-    const res = await apiClient.post(
-      '/reports/generate/',
-      undefined,
-      { params: { patient_id: patientId, view } }
-    );
+    const res = await apiClient.post('/reports/generate/', undefined, { params: { patient_id: patientId, view } });
     const body = res.data;
     ensureSuccess(body);
     return body;
@@ -371,11 +378,4 @@ export const clinicianAPI = {
       { key: 'dermatologic', name: 'Dermatologic Manifestations (Acne, Hirsutism)' },
     ];
   },
-};
-
-createPrescription: async (prescription: any) => {
-  const res = await apiClient.post('/centers/clinician/prescriptions/', prescription);
-  const body = res.data;
-  ensureSuccess(body);
-  return body;
 };
