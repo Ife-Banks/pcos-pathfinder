@@ -17,6 +17,28 @@ import { apiClient } from "@/services/apiClient";
 import { isToolCompleteThisWeek, getCurrentWeekKey } from "@/utils/weekUtils";
 import logo from "@/assets/logo.png";
 
+const TrialBanner = () => {
+  const { subscription } = useAuth();
+  const navigate = useNavigate();
+  if (!subscription?.is_trial || !subscription?.is_active) return null;
+  const days = subscription.days_remaining;
+  if (days > 14) return null;
+  const urgent = days <= 3;
+  return (
+    <div className={`mx-6 mt-3 rounded-xl px-4 py-3 flex items-center justify-between gap-3 ${urgent ? 'bg-red-50 border border-red-200' : 'bg-amber-50 border border-amber-200'}`}>
+      <p className={`text-sm font-medium ${urgent ? 'text-red-700' : 'text-amber-700'}`}>
+        {days === 0 ? 'Your trial expires today' : `${days} day${days === 1 ? '' : 's'} left in your free trial`}
+      </p>
+      <button
+        onClick={() => navigate('/subscription/upgrade')}
+        className={`text-xs font-semibold shrink-0 px-3 py-1 rounded-lg ${urgent ? 'bg-red-600 text-white' : 'bg-amber-500 text-white'}`}
+      >
+        Upgrade
+      </button>
+    </div>
+  );
+};
+
 const TEAL_PRIMARY = '#00897B';
 
 const getRiskTier = (score: number) => {
@@ -586,7 +608,7 @@ const DashboardScreen = () => {
           </div>
         </div>
       </motion.header>
-
+      <TrialBanner />
       <div className="flex-1 px-6 py-6 max-w-md mx-auto w-full space-y-6">
         {refreshing && (
           <div className="flex items-center justify-center py-2">
@@ -832,7 +854,7 @@ const DashboardScreen = () => {
                 transition={{ delay: 0.4 + i * 0.08 }}
                 onClick={() => {
                   if (action.locked) {
-                    toast("Evening check-in opens at 12:00 PM");
+                    toast({ title: "Evening check-in opens at 12:00 PM" });
                     return;
                   }
                   navigate(action.route);

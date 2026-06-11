@@ -129,7 +129,7 @@ export const phcAPI = {
     hypoglycemia_symptoms?: string[];
     consent_given?: boolean;
   }) => {
-    const res = await apiClient.post('/centers/phc/walk-in/comprehensive/', walkInData);
+    const res = await apiClient.post('/centers/phc/walk-in/comprehensive/', walkInData, { timeout: 60000 });
     const body = res.data;
     if (body?.status && body.status !== 'success') {
       throw new Error(body.message || 'Registration failed');
@@ -191,6 +191,11 @@ export const phcAPI = {
     const res = await apiClient.patch('/notifications/mark-all-read/', {});
     return res.data;
   },
+
+  deleteNotification: async (notificationId: string) => {
+  const res = await apiClient.delete(`/notifications/${notificationId}/`);
+  return res.data;
+},
 
   // PHC9 - Settings & Management
   getPHCProfile: async () => {
@@ -271,6 +276,22 @@ export const phcAPI = {
     const res = await apiClient.get('/centers/fmc/');
     return res.data;
   },
+
+  // PHC Chat
+getPHCConversations: async () => {
+  const res = await apiClient.get('/chat/phc-conversations/');
+  return res.data;
+},
+
+getPHCMessages: async (conversationId: string) => {
+  const res = await apiClient.get(`/chat/conversations/${conversationId}/messages/`);
+  return res.data;
+},
+
+sendPHCMessage: async (conversationId: string, body: string) => {
+  const res = await apiClient.post(`/chat/phc-conversations/${conversationId}/send/`, { body });
+  return res.data;
+},
 };
 
 export const fmcAPI = {

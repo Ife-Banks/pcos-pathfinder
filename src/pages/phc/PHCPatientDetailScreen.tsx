@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, User, Activity, Stethoscope, MessageCircle, AlertTriangle,
@@ -78,6 +78,8 @@ const ensureResponseSuccess = (body: any) => {
 export default function PHCPatientDetailScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = (location.state as any)?.returnTo || '/phc/dashboard';
 
   const [record, setRecord] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -187,7 +189,7 @@ export default function PHCPatientDetailScreen() {
       setEscalatedFmc((body.data?.fmc_name as string) || 'FMC');
       showToast(body.message || 'Patient escalated successfully.', 'success');
       await fetchRecord();
-      setTimeout(() => navigate('/phc/dashboard'), 2000);
+      setTimeout(() => navigate(returnTo), 2000);
     } catch (err: any) {
       showToast(err?.message || 'Escalation failed.', 'error');
     } finally {
@@ -208,7 +210,7 @@ export default function PHCPatientDetailScreen() {
       setDischargeOpen(false);
       showToast('Patient discharged.', 'success');
       await fetchRecord();
-      setTimeout(() => navigate('/phc/dashboard'), 1500);
+      setTimeout(() => navigate(returnTo), 1500);
     } catch (err: any) {
       showToast(err?.message || 'Discharge failed.', 'error');
     } finally {
@@ -241,7 +243,7 @@ export default function PHCPatientDetailScreen() {
     return (
       <PHCLayout>
         <div className="max-w-5xl mx-auto px-4 py-6">
-          <Button variant="ghost" onClick={() => navigate('/phc/dashboard')} className="mb-4">
+          <Button variant="ghost" onClick={() => navigate(returnTo)} className="mb-4">
             <ArrowLeft className="w-4 h-4 mr-2" /> Back to Dashboard
           </Button>
           <Card className="bg-red-50 border-red-200">
@@ -289,7 +291,7 @@ export default function PHCPatientDetailScreen() {
           </motion.div>
         )}
 
-        <Button variant="ghost" onClick={() => navigate('/phc/dashboard')} className="mb-4 text-gray-600">
+        <Button variant="ghost" onClick={() => navigate(returnTo)} className="mb-4 text-gray-600">
           <ArrowLeft className="w-4 h-4 mr-2" /> Back to Dashboard
         </Button>
 

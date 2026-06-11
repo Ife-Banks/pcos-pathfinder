@@ -80,8 +80,9 @@ const PHCAnalyticsScreen = () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await phcAPI.getAnalytics(dateRange);
-        if (data?.status === 'success' || data?.total_patients !== undefined) { setAnalytics(data); } else { setAnalytics(null); }
+        const res = await phcAPI.getAnalytics(dateRange);
+        const data = res?.data ?? res;
+        if (data?.total_patients !== undefined) { setAnalytics(data); } else { setAnalytics(null); }
       } catch { setAnalytics(null); } finally { setLoading(false); }
     };
     fetchAnalytics();
@@ -103,7 +104,7 @@ const PHCAnalyticsScreen = () => {
   ];
 
   const escalationData = data.escalations_timeline.map((item) => ({
-    week: new Date(item.week).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    week: item.week,
     count: item.count,
   }));
 

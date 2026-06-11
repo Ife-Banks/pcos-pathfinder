@@ -6,6 +6,7 @@ const ensureSuccess = (body: any) => {
     body?.status === 'success' ||
     body?.status === 200 ||
     body?.status === 201;
+  // Don't throw on null data — backend returns data: null for action endpoints
   if (!isSuccess) throw body;
   return body;
 };

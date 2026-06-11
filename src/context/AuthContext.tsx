@@ -3,6 +3,7 @@ import axios from 'axios';
 import { saveTokens } from '../utils/tokenStorage';
 import { authAPI } from '../services/authService';
 import apiClient from '../services/apiClient';
+import { subscriptionAPI, SubscriptionData } from '../services/subscriptionService';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ai-mshm-backend.onrender.com/api/v1';
 
@@ -26,11 +27,13 @@ interface User {
 interface AuthContextType {
   user: User | null;
   accessToken: string | null;
+  subscription: SubscriptionData | null;
   isLoading: boolean;
   login: (credentials: { email: string; password: string }) => Promise<any>;
   logout: () => Promise<void>;
   loginWithTokens: (userData: any, accessToken: string, refreshToken?: string) => void;
   routeAfterLogin: (user: any) => string;
+  refreshSubscription: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,6 +41,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -55,6 +59,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const payload = response.data.data ?? response.data;
         setUser(payload);
         setAccessToken(token);
+        if (payload.role === 'patient') {
+          try { setSubscription(await subscriptionAPI.getStatus()); } catch {}
+        }
       } catch (error) {
         try {
           const { data } = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, { refresh });
@@ -68,6 +75,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const restoredUser = meResponse.data.data ?? meResponse.data;
           setUser(restoredUser);
           setAccessToken(newAccess);
+          if (restoredUser.role === 'patient') {
+            try { setSubscription(await subscriptionAPI.getStatus()); } catch {}
+          }
         } catch {
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
@@ -109,6 +119,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       role: user.role,
       avatar_url: user.avatar_url,
       is_email_verified: user.is_email_verified,
+      must_change_password: user.must_change_password || false,
       onboarding_completed: user.onboarding_completed,
       onboarding_step: user.onboarding_step,
       gender: user.gender || null,
@@ -116,6 +127,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       date_joined: user.date_joined,
       accessToken: data.data.access
     });
+    if (user.role === 'patient') {
+      try { setSubscription(await subscriptionAPI.getStatus()); } catch {}
+    }
     return data;
   };
 
@@ -163,7 +177,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const refresh = localStorage.getItem('refresh_token');
     const access = localStorage.getItem('access_token') || user?.accessToken;
     if (refresh && access) {
-      await authAPI.logout(refresh, access);
+      await authAPI.logout(refresh);
     }
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
@@ -218,8 +232,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const refreshSubscription = async () => {
+    try { setSubscription(await subscriptionAPI.getStatus()); } catch {}
+  };
+
   return (
-    <AuthContext.Provider value={{ user, accessToken, isLoading, login, logout, loginWithTokens, routeAfterLogin }}>
+    <AuthContext.Provider value={{ user, accessToken, subscription, isLoading, login, logout, loginWithTokens, routeAfterLogin, refreshSubscription }}>
       {children}
     </AuthContext.Provider>
   );

@@ -18,7 +18,7 @@ interface FormData {
   date_of_birth: string;
   phone: string;
   email: string;
-  gender: 'female' | 'male' | 'other';
+  gender: 'female' | 'male' | 'intersex' | 'prefer_not_to_say';
   height_cm: number | null;
   weight_kg: number | null;
   waist_cm: number | null;
@@ -143,14 +143,19 @@ export default function PHCWalkInRegistrationScreen() {
         });
       }
     } catch (e: unknown) {
-      const err = e as { message?: string; response?: { data?: { message?: string } } };
-      setSubmitError(err.response?.data?.message || err.message || 'Registration failed. Please try again.');
+      const err = e as { message?: string; response?: { data?: unknown; status?: number } };
+      console.error('Registration error status:', err.response?.status);
+      console.error('Registration error data:', JSON.stringify(err.response?.data, null, 2));
+      const data = err.response?.data as Record<string, unknown> | undefined;
+      const msg = (data?.message || data?.detail || err.message || 'Registration failed. Please try again.') as string;
+      setSubmitError(`Error ${err.response?.status || ''}: ${msg}`);
     } finally {
       setLoading(false);
     }
   };
 
   const copyPassword = () => {
+    if (!success) return;
     navigator.clipboard.writeText(success.temp_password);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -220,8 +225,8 @@ export default function PHCWalkInRegistrationScreen() {
       <div>
         <Label>Gender *</Label>
         <div className="flex gap-2 mt-2">
-          {(['female', 'male', 'other'] as const).map(g => (
-            <PillButton key={g} label={g.charAt(0).toUpperCase() + g.slice(1)} selected={form.gender === g} onClick={() => updateField('gender', g)} />
+          {(['female', 'male', 'intersex', 'prefer_not_to_say'] as const).map(g => (
+            <PillButton key={g} label={g === 'prefer_not_to_say' ? 'Prefer not to say' : g.charAt(0).toUpperCase() + g.slice(1)} selected={form.gender === g} onClick={() => updateField('gender', g)} />
           ))}
         </div>
       </div>
@@ -299,14 +304,14 @@ export default function PHCWalkInRegistrationScreen() {
           </div>
         </>
       )}
-      <div>
-        <Label>Bleeding Intensity *</Label>
+      {form.gender === 'female' && <div>
+        <Label>Bleeding Intensity</Label>
         <div className="flex gap-2 mt-2 flex-wrap">
           {[1, 2, 3, 4].map((val, i) => (
             <PillButton key={val} label={['Spotting', 'Light', 'Medium', 'Heavy'][i]} selected={form.bleeding_intensity === val} onClick={() => updateField('bleeding_intensity', val)} />
           ))}
         </div>
-      </div>
+      </div>}
       <div>
         <Label>Night Sweats *</Label>
         <div className="flex gap-2 mt-2">
@@ -420,7 +425,7 @@ export default function PHCWalkInRegistrationScreen() {
     <PHCLayout>
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Register Walk-In Patient</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Register PHC/Walk-In Patient</h1>
           <p className="text-gray-500">Create a new patient record for a walk-in visit</p>
         </div>
         {renderStepIndicator()}
@@ -447,7 +452,7 @@ export default function PHCWalkInRegistrationScreen() {
             </Button>
           ) : (
             <Button onClick={handleSubmit} disabled={!form.consent || loading} className="bg-[#2E8B57] hover:bg-[#247049]">
-              {loading ? 'Creating...' : 'Create Patient Record & Run Assessment'}
+              {loading ? 'Creating patient record, please wait...' : 'Create Patient Record & Run Assessment'}
             </Button>
           )}
         </div>

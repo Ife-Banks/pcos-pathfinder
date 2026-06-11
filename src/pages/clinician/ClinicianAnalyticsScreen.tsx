@@ -1,113 +1,78 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-  ArrowLeft, 
-  TrendingUp, 
-  TrendingDown, 
-  Users, 
-  Activity, 
-  Calendar, 
-  Download,
-  Filter,
-  BarChart3,
-  PieChart,
-  LineChart,
-  Target,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Heart,
-  Pill,
-  MessageSquare,
-  FileText,
-  Stethoscope
+import {
+  Users, Activity, Calendar, BarChart3, Target,
+  AlertTriangle, CheckCircle, Clock, Stethoscope, TrendingUp
 } from "lucide-react";
 import { clinicianAPI } from "@/services/clinicianService";
-import { ClinicianAnalytics } from "@/types/clinician";
+
+interface AnalyticsData {
+  total_assigned: number;
+  active_cases: number;
+  resolved_cases: number;
+  avg_treatment_duration_days: number;
+  condition_distribution: { pcos: number; hormonal: number; metabolic: number };
+  outcomes: { resolved: number; under_treatment: number; referred_on: number };
+}
 
 const ClinicianAnalyticsScreen = () => {
-  const navigate = useNavigate();
-  const [analytics, setAnalytics] = useState<ClinicianAnalytics | null>(null);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState('30d');
-  const [selectedMetric, setSelectedMetric] = useState('overview');
 
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await clinicianAPI.getAnalytics(dateRange);
-      setAnalytics(response.data);
-      
-    } catch (error: any) {
-      console.error('Error fetching analytics:', error);
-      setError('Failed to load analytics data. Please try again.');
+      const res = await clinicianAPI.getAnalytics(dateRange);
+      setAnalytics(res.data);
+    } catch {
+      setError('Failed to load analytics data.');
     } finally {
       setLoading(false);
     }
   };
 
-  const getTrendIcon = (trend: number) => {
-    if (trend > 0) return <TrendingUp className="h-4 w-4 text-green-600" />;
-    if (trend < 0) return <TrendingDown className="h-4 w-4 text-red-600" />;
-    return <Activity className="h-4 w-4 text-gray-600" />;
-  };
+  useEffect(() => { fetchAnalytics(); }, [dateRange]);
 
-  const getTrendColor = (trend: number) => {
-    if (trend > 0) return 'text-green-600';
-    if (trend < 0) return 'text-red-600';
-    return 'text-gray-600';
-  };
+  if (loading) return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+    </div>
+  );
 
-  const getRiskLevelColor = (level: string) => {
-    switch (level) {
-      case 'high': return 'bg-red-500';
-      case 'moderate': return 'bg-amber-500';
-      case 'low': return 'bg-green-500';
-      default: return 'bg-gray-500';
-    }
-  };
+  if (error || !analytics) return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <Alert variant="destructive" className="max-w-md">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription>{error || 'Analytics data not available'}</AlertDescription>
+      </Alert>
+    </div>
+  );
 
-  const formatDateRange = (range: string) => {
-    switch (range) {
-      case '7d': return 'Last 7 days';
-      case '30d': return 'Last 30 days';
-      case '90d': return 'Last 3 months';
-      case '1y': return 'Last year';
-      default: return 'Last 30 days';
-    }
-  };
+  const total = analytics.total_assigned || 1; // avoid div/0
+  const condTotal = (analytics.condition_distribution.pcos +
+    analytics.condition_distribution.hormonal +
+    analytics.condition_distribution.metabolic) || 1;
+  const outcomeTotal = (analytics.outcomes.resolved +
+    analytics.outcomes.under_treatment +
+    analytics.outcomes.referred_on) || 1;
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, [dateRange]);
+  const conditionBars = [
+    { label: 'PCOS', value: analytics.condition_distribution.pcos, color: 'bg-purple-500' },
+    { label: 'Hormonal', value: analytics.condition_distribution.hormonal, color: 'bg-pink-500' },
+    { label: 'Metabolic', value: analytics.condition_distribution.metabolic, color: 'bg-orange-500' },
+  ];
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (error || !analytics) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Alert variant="destructive" className="max-w-md">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>{error || 'Analytics data not available'}</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
+  const outcomeBars = [
+    { label: 'Resolved', value: analytics.outcomes.resolved, color: 'bg-green-500' },
+    { label: 'Under Treatment', value: analytics.outcomes.under_treatment, color: 'bg-blue-500' },
+    { label: 'Referred On', value: analytics.outcomes.referred_on, color: 'bg-amber-500' },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -116,302 +81,163 @@ const ClinicianAnalyticsScreen = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-4">
             <div>
-                <h1 className="text-2xl font-bold text-gray-900">Analytics Dashboard</h1>
-                <p className="text-gray-600">Patient population insights and trends</p>
-              </div>
-            <div className="flex items-center gap-2">
-              <Select value={dateRange} onValueChange={setDateRange}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="7d">Last 7 days</SelectItem>
-                  <SelectItem value="30d">Last 30 days</SelectItem>
-                  <SelectItem value="90d">Last 3 months</SelectItem>
-                  <SelectItem value="1y">Last year</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" className="flex items-center gap-2">
-                <Download className="h-4 w-4" />
-                Export
-              </Button>
+              <h1 className="text-2xl font-bold text-gray-900">Analytics Dashboard</h1>
+              <p className="text-sm text-gray-500">Patient population insights</p>
             </div>
+            <Select value={dateRange} onValueChange={setDateRange}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7d">Last 7 days</SelectItem>
+                <SelectItem value="30d">Last 30 days</SelectItem>
+                <SelectItem value="90d">Last 3 months</SelectItem>
+                <SelectItem value="1y">Last year</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Date Range Badge */}
-        <div className="mb-6">
-          <Badge variant="outline" className="text-sm">
-            <Calendar className="h-4 w-4 mr-2" />
-            {formatDateRange(dateRange)}
-          </Badge>
-        </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-        {/* Overview KPIs */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Users className="h-6 w-6 text-blue-600" />
-                </div>
-                <div className="flex items-center gap-1">
-                  {getTrendIcon(analytics.patient_growth)}
-                  <span className={`text-sm font-medium ${getTrendColor(analytics.patient_growth)}`}>
-                    {analytics.patient_growth > 0 ? '+' : ''}{analytics.patient_growth}%
-                  </span>
-                </div>
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="border-l-4 border-l-blue-500">
+            <CardContent className="p-5 flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500">Total Assigned</p>
+                <p className="text-3xl font-bold text-blue-600">{analytics.total_assigned}</p>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900">{analytics.total_patients}</h3>
-              <p className="text-sm text-gray-600">Total Patients</p>
+              <Users className="h-8 w-8 text-blue-300" />
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                  <Heart className="h-6 w-6 text-red-600" />
-                </div>
-                <div className="flex items-center gap-1">
-                  {getTrendIcon(analytics.avg_risk_score_change)}
-                  <span className={`text-sm font-medium ${getTrendColor(analytics.avg_risk_score_change)}`}>
-                    {analytics.avg_risk_score_change > 0 ? '+' : ''}{analytics.avg_risk_score_change}
-                  </span>
-                </div>
+          <Card className="border-l-4 border-l-amber-500">
+            <CardContent className="p-5 flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500">Active Cases</p>
+                <p className="text-3xl font-bold text-amber-600">{analytics.active_cases}</p>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900">{analytics.avg_risk_score}</h3>
-              <p className="text-sm text-gray-600">Average Risk Score</p>
+              <Activity className="h-8 w-8 text-amber-300" />
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <Activity className="h-6 w-6 text-green-600" />
-                </div>
-                <div className="flex items-center gap-1">
-                  {getTrendIcon(analytics.engagement_rate_change)}
-                  <span className={`text-sm font-medium ${getTrendColor(analytics.engagement_rate_change)}`}>
-                    {analytics.engagement_rate_change > 0 ? '+' : ''}{analytics.engagement_rate_change}%
-                  </span>
-                </div>
+          <Card className="border-l-4 border-l-green-500">
+            <CardContent className="p-5 flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500">Resolved Cases</p>
+                <p className="text-3xl font-bold text-green-600">{analytics.resolved_cases}</p>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900">{analytics.engagement_rate}%</h3>
-              <p className="text-sm text-gray-600">Engagement Rate</p>
+              <CheckCircle className="h-8 w-8 text-green-300" />
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
-                  <Target className="h-6 w-6 text-amber-600" />
-                </div>
-                <div className="flex items-center gap-1">
-                  {getTrendIcon(analytics.treatment_adherence_change)}
-                  <span className={`text-sm font-medium ${getTrendColor(analytics.treatment_adherence_change)}`}>
-                    {analytics.treatment_adherence_change > 0 ? '+' : ''}{analytics.treatment_adherence_change}%
-                  </span>
-                </div>
+          <Card className="border-l-4 border-l-purple-500">
+            <CardContent className="p-5 flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500">Avg Treatment Duration</p>
+                <p className="text-3xl font-bold text-purple-600">{analytics.avg_treatment_duration_days}d</p>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900">{analytics.treatment_adherence}%</h3>
-              <p className="text-sm text-gray-600">Treatment Adherence</p>
+              <Clock className="h-8 w-8 text-purple-300" />
             </CardContent>
           </Card>
         </div>
 
-        {/* Risk Distribution */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Charts Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          {/* Condition Distribution */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PieChart className="h-5 w-5" />
-                Risk Level Distribution
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Stethoscope className="h-5 w-5 text-gray-500" />
+                Condition Distribution
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {(analytics.risk_distribution || []).map((risk, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-3 h-3 rounded-full ${getRiskLevelColor(risk.level)}`} />
-                      <span className="font-medium capitalize">{risk.level}</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="w-32 bg-gray-200 rounded-full h-2">
-                        <div
-                          className={`h-2 rounded-full ${getRiskLevelColor(risk.level)}`}
-                          style={{ width: `${risk.percentage}%` }}
-                        />
-                      </div>
-                      <span className="text-sm font-medium w-12 text-right">{risk.percentage}%</span>
-                      <span className="text-sm text-gray-600 w-8 text-right">{risk.count}</span>
-                    </div>
+            <CardContent className="space-y-4">
+              {conditionBars.map(c => (
+                <div key={c.label}>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="font-medium text-gray-700">{c.label}</span>
+                    <span className="text-gray-500">{c.value} patients ({Math.round(c.value / condTotal * 100)}%)</span>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Age Group Distribution
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {(analytics.age_distribution || []).map((age, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <span className="font-medium">{age.range}</span>
-                    <div className="flex items-center gap-4">
-                      <div className="w-32 bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-blue-600 h-2 rounded-full"
-                          style={{ width: `${age.percentage}%` }}
-                        />
-                      </div>
-                      <span className="text-sm font-medium w-12 text-right">{age.percentage}%</span>
-                      <span className="text-sm text-gray-600 w-8 text-right">{age.count}</span>
-                    </div>
+                  <div className="w-full bg-gray-100 rounded-full h-2.5">
+                    <div
+                      className={`${c.color} h-2.5 rounded-full transition-all`}
+                      style={{ width: `${Math.round(c.value / condTotal * 100)}%` }}
+                    />
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
+              {condTotal === 1 && (
+                <p className="text-xs text-gray-400 text-center pt-2">No condition data yet</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Outcomes */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Target className="h-5 w-5 text-gray-500" />
+                Patient Outcomes
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {outcomeBars.map(o => (
+                <div key={o.label}>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="font-medium text-gray-700">{o.label}</span>
+                    <span className="text-gray-500">{o.value} ({Math.round(o.value / outcomeTotal * 100)}%)</span>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-2.5">
+                    <div
+                      className={`${o.color} h-2.5 rounded-full transition-all`}
+                      style={{ width: `${Math.round(o.value / outcomeTotal * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+              {outcomeTotal === 1 && (
+                <p className="text-xs text-gray-400 text-center pt-2">No outcome data yet</p>
+              )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Treatment and Communication Stats */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Treatment Plans
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Active Plans</span>
-                  <span className="font-semibold">{(analytics.treatment_plans || {}).active || 0}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Completed</span>
-                  <span className="font-semibold">{(analytics.treatment_plans || {}).completed || 0}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Success Rate</span>
-                  <span className="font-semibold text-green-600">{(analytics.treatment_plans || {}).success_rate || 0}%</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Pill className="h-5 w-5" />
-                Prescriptions
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Active Prescriptions</span>
-                  <span className="font-semibold">{(analytics.prescriptions || {}).active || 0}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Refills This Month</span>
-                  <span className="font-semibold">{(analytics.prescriptions || {}).refills || 0}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Adherence Rate</span>
-                  <span className="font-semibold text-green-600">{(analytics.prescriptions || {}).adherence_rate || 0}%</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
-                Communication
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Messages Sent</span>
-                  <span className="font-semibold">{(analytics.communication || {}).messages_sent || 0}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Response Time</span>
-                  <span className="font-semibold">{(analytics.communication || {}).avg_response_time || 0}h</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Patient Satisfaction</span>
-                  <span className="font-semibold text-green-600">{(analytics.communication || {}).satisfaction || 0}%</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Trending Metrics */}
+        {/* Summary Table */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <LineChart className="h-5 w-5" />
-              Key Trends
+            <CardTitle className="flex items-center gap-2 text-base">
+              <BarChart3 className="h-5 w-5 text-gray-500" />
+              Summary
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <Users className="h-8 w-8 text-blue-600" />
-                </div>
-                <h4 className="font-semibold text-gray-900">New Patients</h4>
-                <p className="text-2xl font-bold text-blue-600">{(analytics.trends || {}).new_patients || 0}</p>
-                <p className="text-sm text-gray-600">This period</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">Resolution Rate</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {total > 0 ? Math.round(analytics.resolved_cases / total * 100) : 0}%
+                </p>
               </div>
-              
-              <div className="text-center">
-                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <AlertTriangle className="h-8 w-8 text-red-600" />
-                </div>
-                <h4 className="font-semibold text-gray-900">High Risk Cases</h4>
-                <p className="text-2xl font-bold text-red-600">{(analytics.trends || {}).high_risk_cases || 0}</p>
-                <p className="text-sm text-gray-600">Requiring attention</p>
+              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">Active Case Load</p>
+                <p className="text-2xl font-bold text-amber-600">
+                  {total > 0 ? Math.round(analytics.active_cases / total * 100) : 0}%
+                </p>
               </div>
-              
-              <div className="text-center">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <CheckCircle className="h-8 w-8 text-green-600" />
-                </div>
-                <h4 className="font-semibold text-gray-900">Improved Patients</h4>
-                <p className="text-2xl font-bold text-green-600">{(analytics.trends || {}).improved_patients || 0}</p>
-                <p className="text-sm text-gray-600">Risk score decreased</p>
-              </div>
-              
-              <div className="text-center">
-                <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <Clock className="h-8 w-8 text-amber-600" />
-                </div>
-                <h4 className="font-semibold text-gray-900">Avg Follow-up</h4>
-                <p className="text-2xl font-bold text-amber-600">{(analytics.trends || {}).avg_follow_up_days || 0}d</p>
-                <p className="text-sm text-gray-600">Between visits</p>
+              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">Referral Rate</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {total > 0 ? Math.round(analytics.outcomes.referred_on / total * 100) : 0}%
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
+
       </div>
     </div>
   );

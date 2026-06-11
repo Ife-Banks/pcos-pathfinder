@@ -8,23 +8,18 @@ import {
 import { phcAPI } from '@/services/phcService';
 
 const navItems = [
-  { label: 'Dashboard', icon: Home, path: '/phc/dashboard' },
-  { label: 'Register', icon: UserPlus, path: '/phc/register' },
-  { label: 'Advice', icon: MessageCircle, path: '/phc/advice' },
-  { label: 'Escalation', icon: ArrowUpRight, path: '/phc/escalation' },
-  { label: 'Analytics', icon: BarChart3, path: '/phc/analytics' },
-  { label: 'Alerts', icon: Bell, path: '/phc/alerts' },
-  { label: 'Settings', icon: Settings, path: '/phc/settings' },
+  { label: 'Dashboard',  icon: Home,          path: '/phc/dashboard' },
+  { label: 'Add PHC Patient',   icon: UserPlus,       path: '/phc/register' },
+  { label: 'Advice',     icon: MessageCircle,  path: '/phc/advice' },
+  { label: 'Escalation', icon: ArrowUpRight,   path: '/phc/escalation' },
+  { label: 'Staff',      icon: Users,          path: '/phc/staff', adminOnly: true },
+  { label: 'Analytics',  icon: BarChart3,      path: '/phc/analytics' },
+  { label: 'Alerts',     icon: Bell,           path: '/phc/alerts' },
+  { label: 'Settings',   icon: Settings,       path: '/phc/settings' },
 ];
 
-const getInitials = (name?: string) => {
-  return name
-    ?.split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2) || 'AI';
-};
+const getInitials = (name?: string) =>
+  name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'AI';
 
 export default function PHCLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
@@ -32,6 +27,11 @@ export default function PHCLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  const isAdmin = user?.role === 'hcc_admin';
+
+  // Filter nav: adminOnly items only show for admins
+  const visibleNav = navItems.filter(item => !item.adminOnly || isAdmin);
 
   useEffect(() => {
     fetchUnreadCount();
@@ -42,7 +42,7 @@ export default function PHCLayout({ children }: { children: ReactNode }) {
   async function fetchUnreadCount() {
     try {
       const data = await phcAPI.getUnreadCount();
-      const count = typeof data === 'number' ? data : (data?.unread_count ?? 0);
+      const count = typeof data === 'number' ? data : (data?.data?.unread_count ?? data?.unread_count ?? 0);
       setUnreadCount(count);
     } catch {
       setUnreadCount(0);
@@ -50,31 +50,44 @@ export default function PHCLayout({ children }: { children: ReactNode }) {
   }
 
   const facilityName = user?.center_info?.center_name;
-  const facilityDisplayName = facilityName || 'Primary Health Centre';
   const logoSubtitle = facilityName || 'PHC Portal';
   const userFullName = user?.full_name || 'PHC Staff';
   const userInitials = getInitials(user?.full_name || '');
 
-  const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
+  const isActive = (path: string) =>
+    location.pathname === path || location.pathname.startsWith(path + '/');
 
   const handleLogout = async () => {
     const refresh = localStorage.getItem('refresh_token');
     const access = localStorage.getItem('access_token');
     try {
       await phcAPI.logout(refresh!, access || '');
-    } catch (e) {
-      console.error('Logout error:', e);
-    } finally {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      logout();
-      navigate('/phc/login');
-    }
+    } catch { }
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    logout();
+    navigate('/phc/login');
   };
+
+  const NavLink = ({ item, onClick }: { item: typeof navItems[0]; onClick?: () => void }) => (
+    <Link
+      to={item.path}
+      onClick={onClick}
+      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+        isActive(item.path)
+          ? 'bg-[#E8F5E9] text-[#2E8B57] font-medium'
+          : 'text-gray-600 hover:bg-gray-50'
+      }`}
+    >
+      <item.icon size={18} />
+      <span>{item.label}</span>
+    </Link>
+  );
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] font-['Inter',sans-serif]">
-      {/* Desktop Sidebar */}
+
+      {/* ── Desktop Sidebar ──────────────────────────────────────────────── */}
       <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-gray-100 flex-col z-40">
         <div className="p-5 border-b border-gray-100">
           <div className="flex items-center gap-2 mb-1">
@@ -86,20 +99,9 @@ export default function PHCLayout({ children }: { children: ReactNode }) {
           <p className="text-xs text-gray-500 mt-1">{logoSubtitle}</p>
         </div>
 
-        <nav className="flex-1 py-4 px-3 space-y-1">
-          {navItems.map(item => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                isActive(item.path)
-                  ? 'bg-[#E8F5E9] text-[#2E8B57] font-medium'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <item.icon size={18} />
-              <span>{item.label}</span>
-            </Link>
+        <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
+          {visibleNav.map(item => (
+            <NavLink key={item.path} item={item} />
           ))}
         </nav>
 
@@ -126,7 +128,7 @@ export default function PHCLayout({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      {/* Mobile Header */}
+      {/* ── Mobile Header ────────────────────────────────────────────────── */}
       <header className="md:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-100 z-40 px-4 h-14 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1">
@@ -141,50 +143,39 @@ export default function PHCLayout({ children }: { children: ReactNode }) {
           <Bell size={20} className="text-gray-600" />
           {unreadCount > 0 && (
             <span className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-semibold">
-              {unreadCount}
+              {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}
         </button>
       </header>
 
-      {/* Mobile Sidebar Overlay */}
+      {/* ── Mobile Sidebar Overlay ───────────────────────────────────────── */}
       {sidebarOpen && (
         <div className="md:hidden fixed inset-0 z-50 bg-black/40" onClick={() => setSidebarOpen(false)}>
-          <div className="w-64 bg-white h-full" onClick={e => e.stopPropagation()}>
+          <div className="w-64 bg-white h-full flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="p-5 border-b border-gray-100">
               <p className="font-semibold text-[#1E1E2E] text-sm">AI-MSHM</p>
-              <p className="text-xs text-gray-500">{facilityDisplayName}</p>
+              <p className="text-xs text-gray-500">{facilityName || 'Primary Health Centre'}</p>
             </div>
-            <nav className="py-4 px-3 space-y-1">
-              {navItems.map(item => (
-                <Link
-                  key={item.label}
-                  to={item.path}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                    isActive(item.path) ? 'bg-[#E8F5E9] text-[#2E8B57] font-medium' : 'text-gray-600'
-                  }`}
-                >
-                  <item.icon size={18} />
-                  <span>{item.label}</span>
-                </Link>
+            <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
+              {visibleNav.map(item => (
+                <NavLink key={item.path} item={item} onClick={() => setSidebarOpen(false)} />
               ))}
+            </nav>
+            <div className="p-4 border-t border-gray-100">
               <button
-                onClick={() => {
-                  handleLogout();
-                  setSidebarOpen(false);
-                }}
+                onClick={() => { handleLogout(); setSidebarOpen(false); }}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors w-full"
               >
                 <LogOut size={18} />
                 <span>Logout</span>
               </button>
-            </nav>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Desktop Header */}
+      {/* ── Desktop Top Bar ──────────────────────────────────────────────── */}
       <div className="hidden md:flex fixed top-0 left-64 right-0 bg-white border-b border-gray-100 z-30 h-14 items-center px-6 justify-between">
         <div />
         <div className="flex items-center gap-4">
@@ -203,31 +194,31 @@ export default function PHCLayout({ children }: { children: ReactNode }) {
             <Bell size={20} className="text-gray-600" />
             {unreadCount > 0 && (
               <span className="absolute top-0 right-0 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-semibold">
-                {unreadCount}
+                {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
           </button>
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* ── Main Content ─────────────────────────────────────────────────── */}
       <main className="md:ml-64 pt-14 pb-20 md:pb-6 min-h-screen">
         <div className="p-4 md:p-6 max-w-7xl mx-auto">
           {children}
         </div>
       </main>
 
-      {/* Mobile Bottom Tab Bar */}
+      {/* ── Mobile Bottom Tab Bar ────────────────────────────────────────── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-40 flex justify-around items-center h-16 px-1">
-        {navItems.map(item => (
+        {visibleNav.map(item => (
           <Link
             key={item.path}
             to={item.path}
-            className={`flex flex-col items-center justify-center py-1 px-1.5 rounded-lg text-[10px] min-w-0 ${
+            className={`flex flex-col items-center justify-center py-1 px-1 rounded-lg text-[10px] min-w-0 flex-1 ${
               isActive(item.path) ? 'text-[#2E8B57] font-semibold' : 'text-gray-400'
             }`}
           >
-            <item.icon size={18} />
+            <item.icon size={17} />
             <span className="mt-0.5 truncate">{item.label}</span>
           </Link>
         ))}

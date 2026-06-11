@@ -161,7 +161,7 @@ const ClinicianCommunicationScreen = () => {
 
     ws.onerror = () => {
       setWsStatus('disconnected');
-      setError('WebSocket connection failed. Messages may be delayed.');
+      // Silently fall back to polling — no error shown to user
     };
   }, []);
 
@@ -171,6 +171,15 @@ const ClinicianCommunicationScreen = () => {
       wsRef.current?.close();
     };
   }, []);
+
+  // Poll every 5s when WebSocket is disconnected
+  useEffect(() => {
+    if (!selectedConv || wsStatus === 'connected') return;
+    const interval = setInterval(() => {
+      fetchMessages(selectedConv.id);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [selectedConv?.id, wsStatus]);
 
   const handleSelectConversation = (conv: Conversation) => {
     setSelectedConv(conv);
@@ -184,16 +193,36 @@ const ClinicianCommunicationScreen = () => {
     );
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const body = input.trim();
-    if (!body || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      if (wsRef.current?.readyState !== WebSocket.OPEN) {
-        setError('Not connected. Please wait or reselect the conversation.');
-      }
+    if (!body) return;
+
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ action: 'send_message', body }));
+      setInput('');
       return;
     }
-    wsRef.current.send(JSON.stringify({ action: 'send_message', body }));
-    setInput('');
+
+    // HTTP fallback when WebSocket is unavailable
+    if (!selectedConv) return;
+    try {
+      await clinicianAPI.sendPatientMessage(selectedConv.other_user.id, body);
+      setError(null);
+      setInput('');
+      const optimistic: Message = {
+        id: `temp-${Date.now()}`,
+        sender_id: currentUserId.current || '',
+        sender_name: 'You',
+        body,
+        is_read: false,
+        created_at: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, optimistic]);
+      setTimeout(() => fetchMessages(selectedConv.id), 1500);
+    } catch (err: any) {
+      console.error('Send failed:', err?.response?.status, err?.response?.data, err);
+      setError('Failed to send message.');
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -395,19 +424,18 @@ const ClinicianCommunicationScreen = () => {
                       onChange={e => setInput(e.target.value)}
                       onKeyDown={handleKeyDown}
                       className="flex-1"
-                      disabled={wsStatus !== 'connected'}
                     />
                     <Button
                       className="bg-blue-600 hover:bg-blue-700 shrink-0"
                       onClick={handleSend}
-                      disabled={!input.trim() || wsStatus !== 'connected'}
+                      disabled={!input.trim()}
                     >
                       <Send className="h-4 w-4" />
                     </Button>
                   </div>
                   {wsStatus !== 'connected' && (
                     <p className="text-xs text-gray-400 mt-1.5 text-center">
-                      {wsStatus === 'connecting' ? 'Connecting to chat...' : 'Disconnected — select a conversation to reconnect'}
+                      {wsStatus === 'connecting' ? 'Connecting...' : 'Offline — messages sent via HTTP, updates every 5s'}
                     </p>
                   )}
                 </div>

@@ -1,20 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Bell,
   BellOff,
   Users,
   TrendingUp,
   Clock,
-  AlertCircle,
   CheckCircle,
-  XCircle,
   ArrowRight,
   BellRing,
-  Filter,
   AlertTriangle,
   Heart,
+  Trash2,
+  RefreshCw,
+  ChevronDown,
 } from "lucide-react";
 import PHCLayout from "@/components/phc/PHCLayout";
 import { Button } from "@/components/ui/button";
@@ -22,10 +22,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { phcAPI } from "@/services/phcService";
 
-type NotificationType = 
-  | "new_referral" 
-  | "score_change" 
-  | "overdue_followup" 
+type NotificationType =
+  | "new_referral"
+  | "score_change"
+  | "overdue_followup"
   | "missed_checkin"
   | "risk_update"
   | "system"
@@ -36,34 +36,50 @@ type NotificationType =
   | "wearable_sync"
   | "clinician_msg";
 
+type Priority = "low" | "medium" | "high" | "urgent";
+
 interface Notification {
   id: string;
   notification_type: NotificationType;
+  priority: Priority;
   title: string;
   body: string;
   is_read: boolean;
+  read_at: string | null;
   created_at: string;
   data: {
     action?: string;
     patient_id?: string;
     queue_record_id?: string;
     record_id?: string;
+    case_id?: string;
     severity?: string;
     score?: number;
     disease?: string;
     condition?: string;
+    fmc_name?: string;
+    hcc_name?: string;
   };
+}
+
+interface PaginationMeta {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  total_pages: number;
+  current_page: number;
 }
 
 const FILTERS: { label: string; value: NotificationType | "all" }[] = [
   { label: "All", value: "all" },
   { label: "Risk Alerts", value: "risk_update" },
-  { label: "New Referrals", value: "new_referral" },
+  { label: "Referrals", value: "new_referral" },
   { label: "Score Changes", value: "score_change" },
+  { label: "Follow-ups", value: "overdue_followup" },
   { label: "System", value: "system" },
 ];
 
-const ACCENT_COLOR = "#2E8B57";
+const ACCENT = "#2E8B57";
 
 function formatTimestamp(isoString: string): string {
   const date = new Date(isoString);
@@ -72,127 +88,131 @@ function formatTimestamp(isoString: string): string {
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
-
   if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins} min ago`;
-  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays === 1) return "Yesterday";
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
-function getNotificationIcon(type: NotificationType, className = "h-5 w-5") {
-  const iconProps = { className, strokeWidth: 2 };
+function getIconConfig(type: NotificationType): { icon: React.ReactNode; bg: string } {
+  const cls = "h-5 w-5";
   switch (type) {
     case "new_referral":
-      return <Users {...iconProps} />;
+      return { icon: <Users className={cls} />, bg: "bg-red-100 text-red-600" };
     case "score_change":
-      return <TrendingUp {...iconProps} />;
+      return { icon: <TrendingUp className={cls} />, bg: "bg-orange-100 text-orange-600" };
     case "overdue_followup":
-      return <Clock {...iconProps} />;
+      return { icon: <Clock className={cls} />, bg: "bg-amber-100 text-amber-600" };
     case "missed_checkin":
-      return <BellOff {...iconProps} />;
+      return { icon: <BellOff className={cls} />, bg: "bg-gray-100 text-gray-500" };
     case "risk_update":
-      return <AlertTriangle {...iconProps} />;
-    case "system":
-      return <Bell {...iconProps} />;
+      return { icon: <AlertTriangle className={cls} />, bg: "bg-purple-100 text-purple-600" };
     case "period_alert":
-      return <Heart {...iconProps} />;
+      return { icon: <Heart className={cls} />, bg: "bg-pink-100 text-pink-600" };
+    case "system":
     default:
-      return <Bell {...iconProps} />;
+      return { icon: <Bell className={cls} />, bg: "bg-blue-100 text-blue-600" };
   }
 }
 
-function getIconBgColor(type: NotificationType): string {
-  switch (type) {
-    case "new_referral":
-      return "bg-red-100 text-red-600";
-    case "score_change":
-      return "bg-orange-100 text-orange-600";
-    case "overdue_followup":
-      return "bg-amber-100 text-amber-600";
-    case "missed_checkin":
-      return "bg-gray-100 text-gray-500";
-    case "risk_update":
-      return "bg-purple-100 text-purple-600";
-    case "system":
-      return "bg-blue-100 text-blue-600";
-    case "period_alert":
-      return "bg-pink-100 text-pink-600";
-    default:
-      return "bg-gray-100 text-gray-600";
-  }
+function PriorityBadge({ priority }: { priority: Priority }) {
+  if (priority === "low" || priority === "medium") return null;
+  const config =
+    priority === "urgent"
+      ? { label: "Urgent", cls: "bg-red-100 text-red-700 border-red-200" }
+      : { label: "High", cls: "bg-orange-100 text-orange-700 border-orange-200" };
+  return (
+    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${config.cls}`}>
+      {config.label}
+    </span>
+  );
 }
 
-function getActionButton(type: NotificationType) {
-  const baseClass = "text-xs font-medium flex items-center gap-1 px-3 py-1.5 rounded-md transition-colors";
+function ActionButton({ type }: { type: NotificationType }) {
+  const base =
+    "text-xs font-medium flex items-center gap-1 px-2.5 py-1.5 rounded-md transition-colors whitespace-nowrap";
   switch (type) {
     case "new_referral":
       return (
-        <Button variant="ghost" className={`${baseClass} bg-emerald-50 text-emerald-700 hover:bg-emerald-100`} size="sm">
-          Review Patient <ArrowRight className="h-3 w-3" />
-        </Button>
+        <span className={`${base} bg-emerald-50 text-emerald-700 hover:bg-emerald-100`}>
+          Review <ArrowRight className="h-3 w-3" />
+        </span>
       );
     case "score_change":
     case "risk_update":
       return (
-        <Button variant="ghost" className={`${baseClass} bg-purple-50 text-purple-700 hover:bg-purple-100`} size="sm">
-          View Patient <ArrowRight className="h-3 w-3" />
-        </Button>
-      );
-    case "overdue_followup":
-      return (
-        <Button variant="outline" className={`${baseClass} border-amber-300 text-amber-700 hover:bg-amber-50`} size="sm">
-          View Patient <ArrowRight className="h-3 w-3" />
-        </Button>
-      );
-    case "missed_checkin":
-      return (
-        <Button variant="outline" className={`${baseClass} border-gray-300 text-gray-600 hover:bg-gray-50`} size="sm">
-          Send Reminder <ArrowRight className="h-3 w-3" />
-        </Button>
-      );
-    default:
-      return (
-        <Button variant="ghost" className={`${baseClass} bg-gray-50 text-gray-700 hover:bg-gray-100`} size="sm">
+        <span className={`${base} bg-purple-50 text-purple-700 hover:bg-purple-100`}>
           View <ArrowRight className="h-3 w-3" />
-        </Button>
+        </span>
       );
+    case "overdue_followup":
+      return (
+        <span className={`${base} border border-amber-300 text-amber-700 hover:bg-amber-50`}>
+          View <ArrowRight className="h-3 w-3" />
+        </span>
+      );
+    case "missed_checkin":
+      return (
+        <span className={`${base} border border-gray-300 text-gray-600 hover:bg-gray-50`}>
+          Remind <ArrowRight className="h-3 w-3" />
+        </span>
+      );
+    default:
+      return null;
   }
 }
 
 export default function PHCNotificationsScreen() {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeFilter, setActiveFilter] = useState<NotificationType | "all">("all");
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchNotifications();
-    fetchUnreadCount();
-  }, []);
-
-  async function fetchNotifications() {
+  const fetchNotifications = useCallback(async (pageNum = 1, append = false) => {
     try {
-      const data = await phcAPI.getNotifications();
-      const results = Array.isArray(data) ? data : (data?.data?.results || data?.data || []);
-      setNotifications(results);
+      if (!append) setLoading(true);
+      else setLoadingMore(true);
+
+      // The paginated response shape: { status, message, data: [...], meta: {...} }
+      const res = await phcAPI.getNotifications();
+      const items: Notification[] = Array.isArray(res?.data) ? res.data : [];
+      const pageMeta: PaginationMeta | null = res?.meta ?? null;
+
+      setNotifications((prev) => {
+  if (!append) return items;
+  const existingIds = new Set(prev.map((n) => n.id));
+  return [...prev, ...items.filter((n) => !existingIds.has(n.id))];
+});
+      setMeta(pageMeta);
     } catch {
-      setNotifications([]);
+      if (!append) setNotifications([]);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }
+  }, []);
 
-  async function fetchUnreadCount() {
+  const fetchUnreadCount = useCallback(async () => {
     try {
-      const data = await phcAPI.getUnreadCount();
-      const count = typeof data === 'number' ? data : (data?.unread_count ?? 0);
+      const res = await phcAPI.getUnreadCount();
+      // success_response wraps: { status, message, data: { unread_count: N } }
+      const count = res?.data?.unread_count ?? res?.unread_count ?? 0;
       setUnreadCount(count);
     } catch {
       setUnreadCount(0);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications(1);
+    fetchUnreadCount();
+  }, [fetchNotifications, fetchUnreadCount]);
 
   async function handleNotificationClick(notification: Notification) {
     if (!notification.is_read) {
@@ -203,15 +223,34 @@ export default function PHCNotificationsScreen() {
         );
         setUnreadCount((prev) => Math.max(0, prev - 1));
       } catch {
-        // continue anyway
+        // continue
       }
     }
-    
-    // For PHC: use record_id (PHCPatientRecord) for navigation
-    // For severe cases: use case_id for FMC navigation
-    const recordId = notification.data?.record_id || notification.data?.case_id;
+    const recordId =
+      notification.data?.record_id || notification.data?.case_id;
     if (recordId) {
-      navigate(`/phc/patients/${recordId}`);
+      navigate(`/phc/patients/${recordId}`, { state: { returnTo: '/phc/alerts' } });
+    }
+  }
+
+  async function handleDelete(e: React.MouseEvent, id: string) {
+    e.stopPropagation();
+    setDeletingId(id);
+    try {
+      await phcAPI.markNotificationRead(id); // mark read first so count is correct
+      // Use the delete endpoint
+      await (phcAPI as any).deleteNotification?.(id);
+      setNotifications((prev) => {
+        const removed = prev.find((n) => n.id === id);
+        if (removed && !removed.is_read) {
+          setUnreadCount((c) => Math.max(0, c - 1));
+        }
+        return prev.filter((n) => n.id !== id);
+      });
+    } catch {
+      // silent
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -221,42 +260,61 @@ export default function PHCNotificationsScreen() {
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
       setUnreadCount(0);
     } catch {
-      // silent fail
+      // silent
     }
   }
 
-  const filteredNotifications = notifications
+  async function handleLoadMore() {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    await fetchNotifications(nextPage, true);
+  }
+
+  const filtered = notifications
     .filter((n) => activeFilter === "all" || n.notification_type === activeFilter)
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  const hasMore = meta ? meta.current_page < meta.total_pages : false;
 
   return (
     <PHCLayout>
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-2xl mx-auto px-4 py-6">
+          {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <BellRing className="h-6 w-6 text-emerald-600" />
-              <h1 className="text-2xl font-bold text-gray-900">Alerts & Notifications</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Alerts</h1>
               {unreadCount > 0 && (
                 <Badge
                   className="h-6 min-w-6 px-1.5 flex items-center justify-center text-xs font-semibold"
-                  style={{ backgroundColor: ACCENT_COLOR, color: "white" }}
+                  style={{ backgroundColor: ACCENT, color: "white" }}
                 >
                   {unreadCount}
                 </Badge>
               )}
             </div>
-            {unreadCount > 0 && (
+            <div className="flex items-center gap-2">
               <button
-                onClick={handleMarkAllRead}
-                className="text-sm text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-emerald-50 transition-colors"
+                onClick={() => { fetchNotifications(1); fetchUnreadCount(); }}
+                className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                title="Refresh"
               >
-                <CheckCircle className="h-4 w-4" />
-                Mark All Read
+                <RefreshCw className="h-4 w-4" />
               </button>
-            )}
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllRead}
+                  className="text-sm text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-emerald-50 transition-colors"
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  Mark all read
+                </button>
+              )}
+            </div>
           </div>
 
+          {/* Filters */}
           <div className="flex flex-wrap gap-2 mb-6">
             {FILTERS.map((filter) => (
               <button
@@ -267,87 +325,153 @@ export default function PHCNotificationsScreen() {
                     ? "text-white shadow-sm"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
-                style={activeFilter === filter.value ? { backgroundColor: ACCENT_COLOR } : {}}
+                style={activeFilter === filter.value ? { backgroundColor: ACCENT } : {}}
               >
                 {filter.label}
               </button>
             ))}
           </div>
 
+          {/* List */}
           {loading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
                 <Card key={i} className="animate-pulse">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 bg-gray-200 rounded-full" />
+                      <div className="w-10 h-10 bg-gray-200 rounded-full flex-shrink-0" />
                       <div className="flex-1 space-y-2">
                         <div className="h-4 bg-gray-200 rounded w-3/4" />
-                        <div className="h-3 bg-gray-200 rounded w-1/2" />
+                        <div className="h-3 bg-gray-200 rounded w-full" />
+                        <div className="h-3 bg-gray-200 rounded w-1/3" />
                       </div>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
-          ) : filteredNotifications.length === 0 ? (
+          ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16">
-              <div className="w-24 h-24 bg-gray-100 rounded-xl flex items-center justify-center mb-4">
-                <CheckCircle className="h-12 w-12 text-gray-300" />
+              <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
+                <CheckCircle className="h-10 w-10 text-gray-300" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-1">You're all caught up!</h3>
-              <p className="text-sm text-gray-500">No new alerts at this time.</p>
+              <h3 className="text-base font-semibold text-gray-700 mb-1">All caught up</h3>
+              <p className="text-sm text-gray-400">No alerts for this filter.</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {filteredNotifications.map((notification, index) => (
-                <motion.div
-                  key={notification.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <Card
-                    className={`cursor-pointer transition-colors hover:bg-gray-50 ${
-                      !notification.is_read ? "bg-blue-50/50" : "bg-white"
-                    }`}
-                    onClick={() => handleNotificationClick(notification)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <div className={`mt-0.5 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${getIconBgColor(notification.notification_type)}`}>
-                          {getNotificationIcon(notification.notification_type)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <p className={`text-sm font-semibold text-gray-900 truncate ${!notification.is_read ? "font-bold" : ""}`}>
-                                  {notification.title}
-                                </p>
-                                {!notification.is_read && (
-                                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: ACCENT_COLOR }} />
-                                )}
+            <>
+              <AnimatePresence initial={false}>
+                <div className="space-y-2">
+                  {filtered.map((notification, index) => {
+                    const { icon, bg } = getIconConfig(notification.notification_type);
+                    return (
+                      <motion.div
+                        key={notification.id}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{ delay: index * 0.03, duration: 0.2 }}
+                      >
+                        <Card
+                          className={`cursor-pointer transition-all hover:shadow-sm group ${
+                            !notification.is_read
+                              ? "bg-emerald-50/40 border-emerald-100"
+                              : "bg-white"
+                          }`}
+                          onClick={() => handleNotificationClick(notification)}
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-start gap-3">
+                              {/* Icon */}
+                              <div
+                                className={`mt-0.5 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${bg}`}
+                              >
+                                {icon}
                               </div>
-                              <p className="text-sm text-gray-600 mt-0.5 line-clamp-2">
-                                {notification.body || notification.data?.disease ? 
-                                  `${notification.data?.disease || ''} risk - Score: ${notification.data?.score || 'N/A'}/100` : 
-                                  'New notification'
-                                }
-                              </p>
-                              <p className="text-xs text-gray-400 mt-1">{formatTimestamp(notification.created_at)}</p>
+
+                              {/* Content */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <p
+                                        className={`text-sm text-gray-900 truncate ${
+                                          !notification.is_read ? "font-bold" : "font-semibold"
+                                        }`}
+                                      >
+                                        {notification.title}
+                                      </p>
+                                      <PriorityBadge priority={notification.priority} />
+                                      {!notification.is_read && (
+                                        <span
+                                          className="w-2 h-2 rounded-full flex-shrink-0"
+                                          style={{ backgroundColor: ACCENT }}
+                                        />
+                                      )}
+                                    </div>
+                                    <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">
+                                      {notification.body || "New notification"}
+                                    </p>
+                                    <p className="text-xs text-gray-400 mt-1">
+                                      {formatTimestamp(notification.created_at)}
+                                    </p>
+                                  </div>
+
+                                  {/* Actions */}
+                                  <div
+                                    className="flex-shrink-0 flex items-center gap-1"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <div onClick={() => handleNotificationClick(notification)}>
+                                      <ActionButton type={notification.notification_type} />
+                                    </div>
+                                    <button
+                                      onClick={(e) => handleDelete(e, notification.id)}
+                                      disabled={deletingId === notification.id}
+                                      className="p-1.5 rounded-md text-gray-300 hover:text-red-400 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+                                      title="Dismiss"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                              {getActionButton(notification.notification_type)}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </AnimatePresence>
+
+              {/* Load more */}
+              {hasMore && (
+                <div className="mt-4 flex justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleLoadMore}
+                    disabled={loadingMore}
+                    className="gap-2 text-gray-600"
+                  >
+                    {loadingMore ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                    Load more
+                  </Button>
+                </div>
+              )}
+
+              {/* Count summary */}
+              {meta && (
+                <p className="text-center text-xs text-gray-400 mt-3">
+                  Showing {notifications.length} of {meta.count} notifications
+                </p>
+              )}
+            </>
           )}
         </div>
       </div>
