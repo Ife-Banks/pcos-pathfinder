@@ -6,7 +6,8 @@ import { notificationAPI } from '@/services/notificationService';
 import { AppNotification, WSMessage } from '@/types/notifications';
 
 const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL || 'wss://ai-mshm-backend-d47t.onrender.com/ws/notifications';
-const WS_ENABLED = import.meta.env.VITE_WS_ENABLED !== 'false'; // WebSockets enabled by default
+// const WS_ENABLED = import.meta.env.VITE_WS_ENABLED !== 'false'; // WebSockets enabled by default
+const WS_ENABLED = import.meta.env.VITE_WS_ENABLED === 'true'; // Only enable when explicitly set to 'true'
 
 // Render wake-up and retry management
 const RECONNECT_DELAYS = [3000, 6000, 12000, 24000, 48000]; // 3s, 6s, 12s, 24s, 48s
@@ -280,7 +281,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
         wsRef.current.close(1000); // Normal closure
       }
     };
-  }, [token, user, wakeUpRender, connectWebSocket, fetchUnreadCountFallback]);
+  }, [token, user?.role]);
 
   const value: NotificationContextType = {
     notifications,

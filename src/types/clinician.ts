@@ -25,6 +25,7 @@ export type TierLevel = 'low' | 'moderate' | 'high' | 'critical';
 export interface PatientSummary {
   id: string;
   name: string;
+  full_name: string;
   age: number;
   bmi: number;
   assignment_date: string;
@@ -37,47 +38,68 @@ export interface PatientSummary {
 
 export interface Prescription {
   id: string;
-  drug_name: string;
-  dose: number;
-  dose_unit: 'mg' | 'mcg' | 'IU' | 'mL';
-  route: 'oral' | 'topical' | 'injection' | 'vaginal' | 'other';
-  frequency: 'once_daily' | 'twice_daily' | 'three_times_daily' | 'weekly' | 'custom';
-  duration: string;
-  instructions: string | null;
-  start_date: string;
-  status: 'active' | 'completed' | 'discontinued';
+  clinician: string;
+  patient: string;
+  medications: Array<{ name?: string; dosage?: string; [key: string]: any }> | any;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  // legacy fields (kept for form compatibility)
+  drug_name?: string;
+  dose?: number;
+  dose_unit?: 'mg' | 'mcg' | 'IU' | 'mL';
+  route?: 'oral' | 'topical' | 'injection' | 'vaginal' | 'other';
+  frequency?: 'once_daily' | 'twice_daily' | 'three_times_daily' | 'weekly' | 'custom';
+  duration?: string;
+  instructions?: string | null;
+  start_date?: string;
+  status?: 'active' | 'completed' | 'discontinued';
 }
 
 export interface TreatmentPlan {
   id: string;
-  patient_id: string;
-  diagnosis: {
-    conditions: string[];
-    icd10_codes: string[];
-    severity: 'mild' | 'moderate' | 'severe';
-  };
-  prescriptions: Prescription[];
-  investigations: string[];
-  lifestyle_recommendations: string;
-  followup_date: string;
-  followup_frequency: string;
-  referral: any;
-  status: TreatmentPlanStatus;
+  case: string;
+  clinician: string;
+  clinician_name: string;
+  patient_name: string;
+  title: string;
+  description: string;
+  medications: any;
+  lifestyle: any;
+  follow_up_days: number;
+  is_active: boolean;
+  status: 'active' | 'inactive' | 'completed' | 'cancelled' | 'pending';
+  progress?: number;
+  start_date?: string;
+  duration?: number;
   created_at: string;
   updated_at: string;
 }
 
-export interface PatientDetail extends PatientSummary {
+ export interface PatientDetail extends PatientSummary {
   full_name: string;
   email: string;
   phone: string;
-  blood_type: string;
-  fmc_case_id: string;
-  medical_history: any;
-  current_medications: Prescription[];
-  lab_results: any[];
-  imaging_results: any[];
-  notes: any[];
+  gender: string;
+  location: string;
+  date_joined: string;
+  risk_score: number;
+  risk_level: string;
+  last_checkin: string | null;
+  conditions: string[];
+  clinical_data: {
+    weight?: number;
+    height?: number;
+    bmi?: number;
+    glucose?: number;
+  };
+  blood_type?: string;
+  fmc_case_id?: string;
+  medical_history?: any;
+  current_medications?: Prescription[];
+  lab_results?: any[];
+  imaging_results?: any[];
+  notes?: any[];
 }
 
 export interface ClinicianAnalytics {
@@ -149,11 +171,15 @@ export interface ClinicianOnboardingForm {
 
 export interface TimelineEvent {
   id: string;
-  patient_id: string;
-  event_type: 'inference' | 'lab_upload' | 'checkin' | 'score_change' | 'referral' | 'wearable_sync';
-  timestamp: string;
-  data: any;
+  patient_id?: string;
+  type: string;
+  event_type?: string;
+  title: string;
+  date: string;
+  timestamp?: string;
   description: string;
+  data?: any;
+  metadata?: Record<string, any>;
 }
 
 export interface Message {
@@ -164,6 +190,7 @@ export interface Message {
   body: string;
   timestamp: string;
   read_status: boolean;
+  is_read: boolean;
 }
 
 export interface Appointment {

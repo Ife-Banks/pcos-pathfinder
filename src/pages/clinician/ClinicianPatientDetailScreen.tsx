@@ -48,13 +48,50 @@ const ClinicianPatientDetailScreen = () => {
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
 
+  const handleUpdatePlan = async (planId: string, updates: any) => {
+    try {
+      await clinicianAPI.updateTreatmentPlan(planId, updates);
+      const plansRes = await clinicianAPI.getPatientTreatmentPlans(id!);
+      setTreatmentPlans(plansRes.data);
+    } catch (error) {
+      console.error('Failed to update plan:', error);
+    }
+  };
+
   const fetchPatientDetail = async () => {
     try {
       setLoading(true);
       setError(null);
       
       const response = await clinicianAPI.getPatient(id!);
-      setPatient(response.data);
+      const c = response.data;
+      setPatient({
+        id: c.id,
+        full_name: c.patient?.full_name || 'Unknown',
+        name: c.patient?.full_name || 'Unknown',
+        email: c.patient?.email || '',
+        phone: c.patient?.phone_number || '',
+        age: c.patient?.age || 0,
+        gender: c.patient?.gender || '',
+        location: c.fhc || c.hcc?.name || '',
+        date_joined: c.opened_at,
+        risk_score: c.opening_score || 0,
+        risk_level: c.severity || 'moderate',
+        last_checkin: c.assigned_at || null,
+        conditions: [c.condition_label || c.condition],
+        clinical_data: {
+          weight: c.patient?.weight_kg,
+          height: c.patient?.height_cm,
+          bmi: c.patient?.bmi,
+        },
+        bmi: 0,
+        tier: c.severity,
+        risk_scores: undefined,
+        treatment_plan_status: 'not_started',
+        assignment_date: c.assigned_at || c.opened_at,
+        next_followup: null,
+        is_new_assignment: false,
+      });
       
       // Fetch related data
       const [timelineRes, plansRes, prescriptionsRes, messagesRes] = await Promise.all([
@@ -217,11 +254,11 @@ const ClinicianPatientDetailScreen = () => {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Active Plans</span>
-                  <span className="font-medium">{treatmentPlans.filter(p => p.status === 'active').length}</span>
+                  <span className="font-medium">{treatmentPlans.filter((p: any) => p.is_active).length}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Prescriptions</span>
-                  <span className="font-medium">{prescriptions.filter(p => p.status === 'active').length}</span>
+                  <span className="font-medium">{prescriptions.filter((p: any) => p.is_active).length}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Unread Messages</span>
@@ -369,7 +406,7 @@ const ClinicianPatientDetailScreen = () => {
           <TabsContent value="treatment" className="space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold">Treatment Plans</h3>
-              <Button className="bg-blue-600 hover:bg-blue-700">
+              <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => navigate('/clinician/treatment-plans')}>
                 <Plus className="h-4 w-4 mr-2" />
                 New Treatment Plan
               </Button>
@@ -381,31 +418,31 @@ const ClinicianPatientDetailScreen = () => {
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="font-semibold">{plan.title}</h4>
-                      <div className={`w-2 h-2 rounded-full ${getStatusColor(plan.status)}`} />
+                      <div className={`w-2 h-2 rounded-full ${getStatusColor((plan as any).is_active ? 'active' : 'inactive')}`} />
                     </div>
                     <p className="text-sm text-gray-600 mb-4">{plan.description}</p>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Start Date:</span>
-                        <span>{new Date(plan.start_date).toLocaleDateString()}</span>
+                        <span>{new Date(plan.created_at).toLocaleDateString()}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Duration:</span>
-                        <span>{plan.duration} weeks</span>
+                        <span className="text-gray-600">Follow-up:</span>
+                        <span>{plan.follow_up_days ? `${plan.follow_up_days} days` : 'N/A'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Status:</span>
-                        <Badge className={getStatusColor(plan.status)}>
-                          {plan.status}
+                        <Badge className={getStatusColor((plan as any).is_active ? 'active' : 'inactive')}>
+                          {(plan as any).is_active ? 'Active' : 'Inactive'}
                         </Badge>
                       </div>
                     </div>
                     <div className="mt-4 flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1">
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate(`/clinician/treatment-plans`)}>
                         <Eye className="h-4 w-4 mr-2" />
                         View
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => navigate('/clinician/treatment-plans')}>
                         <Edit className="h-4 w-4" />
                       </Button>
                     </div>
@@ -443,28 +480,24 @@ const ClinicianPatientDetailScreen = () => {
                 <Card key={index}>
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-semibold">{prescription.medication}</h4>
-                      <div className={`w-2 h-2 rounded-full ${getStatusColor(prescription.status)}`} />
+                      <h4 className="font-semibold">{prescription.medications?.[0]?.name || 'Prescription'}</h4>
+                      <div className={`w-2 h-2 rounded-full ${getStatusColor(prescription.is_active ? 'active' : 'inactive')}`} />
                     </div>
-                    <p className="text-sm text-gray-600 mb-4">{prescription.dosage}</p>
+                    <p className="text-sm text-gray-600 mb-4">{prescription.medications?.[0]?.dosage || ''}</p>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Prescribed:</span>
-                        <span>{new Date(prescription.date_prescribed).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Duration:</span>
-                        <span>{prescription.duration}</span>
+                        <span>{new Date(prescription.created_at).toLocaleDateString()}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Status:</span>
-                        <Badge className={getStatusColor(prescription.status)}>
-                          {prescription.status}
+                        <Badge className={getStatusColor(prescription.is_active ? 'active' : 'inactive')}>
+                          {prescription.is_active ? 'Active' : 'Inactive'}
                         </Badge>
                       </div>
                     </div>
                     <div className="mt-4 flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1">
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate(`/clinician/prescriptions`)}>
                         <Eye className="h-4 w-4 mr-2" />
                         View
                       </Button>

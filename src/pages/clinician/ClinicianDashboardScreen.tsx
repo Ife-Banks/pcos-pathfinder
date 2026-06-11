@@ -62,7 +62,24 @@ const ClinicianDashboardScreen = () => {
       }
       
       const response = await clinicianAPI.getMyCases(filters);
-      setPatients(response.data);
+      const mapped = (response.data || []).map((c: any) => ({
+        id: c.id,
+        name: c.patient?.full_name || 'Unknown',
+        full_name: c.patient?.full_name || 'Unknown',
+        age: c.patient?.age || 0,
+        bmi: c.patient?.bmi || 0,
+        assignment_date: c.assigned_at || c.opened_at,
+        tier: c.severity === 'very_severe' ? 'critical'
+            : c.severity === 'severe' ? 'high'
+            : c.severity === 'moderate' ? 'moderate' : 'low',
+        risk_scores: c.opening_score
+          ? { pcos: c.opening_score, hormonal: c.opening_score * 0.8, metabolic: c.opening_score * 0.9 }
+          : undefined,
+        treatment_plan_status: c.status === 'assigned' ? 'not_started' : 'active',
+        next_followup: null,
+        is_new_assignment: !c.assigned_at,
+      }));
+      setPatients(mapped);
       
       // Check for new assignments
       const newAssignments = response.data.filter((p: PatientSummary) => p.is_new_assignment);
@@ -112,12 +129,14 @@ const ClinicianDashboardScreen = () => {
     }
   };
 
-  const formatRiskScore = (scores: { pcos: number; hormonal: number; metabolic: number }) => {
+  const formatRiskScore = (scores?: { pcos: number; hormonal: number; metabolic: number }) => {
+    if (!scores) return 0;
     const maxScore = Math.max(scores.pcos, scores.hormonal, scores.metabolic);
     return Math.round(maxScore);
   };
 
-  const getConditionBadges = (scores: { pcos: number; hormonal: number; metabolic: number }) => {
+  const getConditionBadges = (scores?: { pcos: number; hormonal: number; metabolic: number }) => {
+    if (!scores) return [];
     const badges = [];
     if (scores.pcos > 60) badges.push({ label: 'PCOS', color: 'bg-purple-100 text-purple-800' });
     if (scores.hormonal > 60) badges.push({ label: 'Hormonal', color: 'bg-pink-100 text-pink-800' });

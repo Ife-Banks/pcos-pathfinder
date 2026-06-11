@@ -57,11 +57,32 @@ const ClinicianTreatmentPlansScreen = () => {
       setError(null);
       
       const response = await clinicianAPI.getTreatmentPlans();
-      setPlans(response.data);
+      const mapped = (response.data || []).map((p: any) => ({
+        ...p,
+        patient_name: p.patient_name || p.clinician_name || 'Unknown',
+        status: p.is_active ? 'active' : 'inactive',
+        duration: p.follow_up_days,
+        start_date: p.created_at,
+        progress: p.is_active ? 50 : 0,
+      }));
+      setPlans(mapped);
       
       // Fetch patients for dropdown
       const patientsResponse = await clinicianAPI.getMyCases();
-      setPatients(patientsResponse.data);
+      const mappedPatients = (patientsResponse.data || []).map((c: any) => ({
+        id: c.id,
+        name: c.patient?.full_name || 'Unknown',
+        full_name: c.patient?.full_name || 'Unknown',
+        age: c.patient?.age || 0,
+        bmi: c.patient?.bmi || 0,
+        assignment_date: c.assigned_at || c.opened_at,
+        tier: 'moderate',
+        risk_scores: undefined,
+        treatment_plan_status: 'not_started',
+        next_followup: null,
+        is_new_assignment: false,
+      }));
+      setPatients(mappedPatients);
       
     } catch (error: any) {
       console.error('Error fetching treatment plans:', error);
@@ -74,9 +95,12 @@ const ClinicianTreatmentPlansScreen = () => {
   const handleCreatePlan = async () => {
     try {
       const planData = {
-        ...formData,
-        start_date: new Date(formData.start_date).toISOString(),
-        duration: parseInt(formData.duration),
+        case: formData.patient_id,           // backend requires "case", not "patient_id"
+        title: formData.title,
+        description: formData.description,
+        follow_up_days: formData.duration ? parseInt(formData.duration) : undefined,
+        medications: formData.medications || undefined,
+        lifestyle: formData.lifestyle_recommendations || undefined,
       };
       
       await clinicianAPI.createTreatmentPlan(planData);
@@ -198,7 +222,7 @@ const ClinicianTreatmentPlansScreen = () => {
                         <SelectContent>
                           {patients.map((patient) => (
                             <SelectItem key={patient.id} value={patient.id}>
-                              {patient.full_name}
+                              {patient.full_name || patient.name || 'Unknown'}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -385,12 +409,11 @@ const ClinicianTreatmentPlansScreen = () => {
                         </Badge>
                       </div>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm">
+                         
+                        <Button variant="ghost" size="sm" onClick={() => handleUpdatePlan(plan.id, { is_active: !plan.is_active })}>
                           <Edit className="h-4 w-4" />
                         </Button>
+
                         <Button 
                           variant="ghost" 
                           size="sm"
@@ -402,10 +425,12 @@ const ClinicianTreatmentPlansScreen = () => {
                     </div>
 
                     {/* Title and Patient */}
-                    <h3 className="font-semibold text-gray-900 mb-2">{plan.title}</h3>
-                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-                      <User className="h-4 w-4" />
-                      <span>{plan.patient_name}</span>
+                    <div className="mb-4">
+                      <div className="flex items-center gap-2 text-sm text-gray-900 mb-1">
+                        <User className="h-4 w-4" />
+                        <span className="font-bold">{plan.patient_name}</span>
+                      </div>
+                      <h3 className="font-bold text-gray-900">{plan.title}</h3>
                     </div>
 
                     {/* Description */}
@@ -443,7 +468,7 @@ const ClinicianTreatmentPlansScreen = () => {
 
                     {/* Action Buttons */}
                     <div className="mt-4 flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1">
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate(`/clinician/patient/${plan.case}`)}>
                         <Eye className="h-4 w-4 mr-2" />
                         View Details
                       </Button>
@@ -451,7 +476,7 @@ const ClinicianTreatmentPlansScreen = () => {
                         <Button 
                           size="sm" 
                           className="bg-green-600 hover:bg-green-700"
-                          onClick={() => handleUpdatePlan(plan.id, { status: 'active' })}
+                          onClick={() => handleUpdatePlan(plan.id, { is_active: true })}
                         >
                           Activate
                         </Button>

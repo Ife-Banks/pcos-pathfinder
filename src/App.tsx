@@ -24,6 +24,7 @@ import ClinicianDashboardScreen from "./pages/clinician/ClinicianDashboardScreen
 import ClinicianPatientDetailScreen from "./pages/clinician/ClinicianPatientDetailScreen";
 import ClinicianTreatmentPlansScreen from "./pages/clinician/ClinicianTreatmentPlansScreen";
 import ClinicianPrescriptionsScreen from "./pages/clinician/ClinicianPrescriptionsScreen";
+import ClinicianPatientPrescriptionsScreen from "./pages/clinician/ClinicianPatientPrescriptionsScreen";
 import ClinicianCommunicationScreen from "./pages/clinician/ClinicianCommunicationScreen";
 import ClinicianAnalyticsScreen from "./pages/clinician/ClinicianAnalyticsScreen";
 import ClinicianProfileSettingsScreen from "./pages/clinician/ClinicianProfileSettingsScreen";
@@ -36,6 +37,7 @@ import FMCProfileSettingsScreen from "./pages/fmc/FMCProfileSettingsScreen";
 import FMCAnalyticsScreen from "./pages/fmc/FMCAnalyticsScreen";
 import FMCAlertsScreen from "./pages/fmc/FMCAlertsScreen";
 import FMCDischargeScreen from "./pages/fmc/FMCDischargeScreen";
+import PHCStaffManagementScreen from "./pages/phc/PHCStaffManagementScreen";
 // PHC screens
 import PHCStaffLoginScreen from "./pages/phc/PHCStaffLoginScreen";
 // STH screens
@@ -162,6 +164,11 @@ import FMCClinicianManagementScreen from "./pages/fmc/FMCClinicianManagementScre
 import FMCNetworkPHCScreen from "./pages/fmc/FMCNetworkPHCScreen";
 import RppgCaptureScreen from "./pages/RppgCaptureScreen";
 
+// subcription
+import SubscriptionUpgradeScreen from './pages/SubscriptionUpgradeScreen';
+import { SubscriptionGate } from './components/SubscriptionGate';
+import SubscriptionVerifyScreen from './pages/SubscriptionVerifyScreen';
+
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -206,6 +213,7 @@ const App = () => {
                       <Route path="patient/:id" element={<ClinicianPatientDetailScreen />} />
                       <Route path="treatment-plans" element={<ClinicianTreatmentPlansScreen />} />
                       <Route path="prescriptions" element={<ClinicianPrescriptionsScreen />} />
+                      <Route path="prescriptions/patient/:patientId" element={<ClinicianPatientPrescriptionsScreen />} />
                       <Route path="communication" element={<ClinicianCommunicationScreen />} />
                       <Route path="analytics" element={<ClinicianAnalyticsScreen />} />
                       <Route path="profile" element={<ClinicianProfileSettingsScreen />} />
@@ -242,6 +250,7 @@ const App = () => {
                     <Route path="/phc/analytics" element={<PHCAnalyticsScreen />} />
                     <Route path="/phc/alerts" element={<PHCNotificationsScreen />} />
                     <Route path="/phc/settings" element={<PHCProfileSettingsScreen />} />
+                    <Route path="/phc/staff" element={<PHCStaffManagementScreen />} />
                     {/* STH Routes */}
                     <Route path="/sth/login" element={<STHStaffLoginScreen />} />
                     <Route path="/sth/patients" element={<PatientsListScreen facility="sth" facilityName="State Hospital" themeColor="teal" />} />
@@ -343,26 +352,28 @@ const App = () => {
                       <Route path="/onboarding/step/7" element={<Step7HealthCentre />} />
                       <Route path="/onboarding-complete" element={<OnboardingComplete />} />
                     </Route>
-                    <Route path="/dashboard" element={<DashboardScreen />} />
+                    <Route path="/subscription/upgrade" element={<SubscriptionUpgradeScreen />} />
+                    <Route path="/subscription/verify" element={<SubscriptionVerifyScreen />} />
+                    <Route path="/dashboard" element={<SubscriptionGate require="active"><DashboardScreen /></SubscriptionGate>} />
                     <Route path="/checkin/morning" element={<MorningCheckIn />} />
                     <Route path="/checkin/evening" element={<EveningCheckIn />} />
                     <Route path="/period-logging" element={<PeriodLogging />} />
                     <Route path="/cycle-history" element={<CycleHistory />} />
-                    <Route path="/weekly-tools/hirsutism" element={<HirsutismScoring />} />
+                    <Route path="/weekly-tools/hirsutism" element={<SubscriptionGate require="premium"><HirsutismScoring /></SubscriptionGate>} />
                     <Route path="/phq4" element={<PHQ4Assessment />} />
-                    <Route path="/weekly-tools" element={<WeeklyToolsScreen />} />
+                    <Route path="/weekly-tools" element={<SubscriptionGate require="premium"><WeeklyToolsScreen /></SubscriptionGate>} />
                     <Route path="/weekly-tools/mental-wellness" element={<MentalWellness />} />
                     <Route path="/weekly-tools/mood-check" element={<MoodCheck />} />
                     <Route path="/weekly-tools/focus-memory" element={<FocusMemory />} />
                     <Route path="/weekly-tools/sleep-quality" element={<SleepQuality />} />
                     <Route path="/weekly-tools/results" element={<CombinedResults />} />
-                    <Route path="/lab-results" element={<LabResultsUpload />} />
-                    <Route path="/ultrasound-upload" element={<UltrasoundUpload />} />
-                    <Route path="/clinical-status" element={<ClinicalDataStatus />} />
-                    <Route path="/risk-score" element={<PCOSRiskScore />} />
-                    <Route path="/risk-trend" element={<RiskScoreTrend />} />
-                    <Route path="/shap-detail" element={<SHAPExplanationDetail />} />
-                    <Route path="/triage-no-labs" element={<TriageWithoutLabs />} />
+                    <Route path="/lab-results" element={<SubscriptionGate require="premium"><LabResultsUpload /></SubscriptionGate>} />
+                    <Route path="/ultrasound-upload" element={<SubscriptionGate require="premium"><UltrasoundUpload /></SubscriptionGate>} />
+                    <Route path="/clinical-status" element={<SubscriptionGate require="premium"><ClinicalDataStatus /></SubscriptionGate>} />
+                    <Route path="/risk-score" element={<SubscriptionGate require="premium"><PCOSRiskScore /></SubscriptionGate>} />
+                    <Route path="/risk-trend" element={<SubscriptionGate require="premium"><RiskScoreTrend /></SubscriptionGate>} />
+                    <Route path="/shap-detail" element={<SubscriptionGate require="premium"><SHAPExplanationDetail /></SubscriptionGate>} />
+                    <Route path="/triage-no-labs" element={<SubscriptionGate require="premium"><TriageWithoutLabs /></SubscriptionGate>} />
                     {/* Profile & Settings */}
                     <Route path="/profile" element={<MyProfileScreen />} />
                     <Route path="/settings/notifications" element={<NotificationSettingsScreen />} />
