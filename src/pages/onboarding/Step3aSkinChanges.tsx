@@ -9,7 +9,7 @@ import { useOnboarding } from '@/context/OnboardingContext';
 
 const Step3aSkinChanges = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { profile, refreshProfile } = useOnboarding();
   
   const [hasSkinChanges, setHasSkinChanges] = useState<boolean | null>(null);
@@ -38,7 +38,7 @@ const Step3aSkinChanges = () => {
         has_skin_changes: hasSkinChanges,
         has_hair_loss: hasHairLoss,
       });
-      await refreshProfile();
+      await Promise.all([refreshProfile(), refreshUser()]);
       navigate('/onboarding/step/4a');
     } catch (err: any) {
       setErrors({ general: err.message });

@@ -11,7 +11,7 @@ import { useOnboarding } from '@/context/OnboardingContext';
 
 const Step2PhysicalMeasurements = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { profile, refreshProfile } = useOnboarding();
   
   const [form, setForm] = useState({
@@ -100,7 +100,7 @@ const Step2PhysicalMeasurements = () => {
       setDisplayBMI(result.data.bmi);
       
       // Refresh profile data
-      await refreshProfile();
+      await Promise.all([refreshProfile(), refreshUser()]);
       
       navigate('/onboarding/step/3');
     } catch (err: any) {
@@ -236,3 +236,4 @@ const Step2PhysicalMeasurements = () => {
 };
 
 export default Step2PhysicalMeasurements;
+

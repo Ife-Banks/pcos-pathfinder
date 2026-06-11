@@ -9,7 +9,7 @@ import { useOnboarding } from '@/context/OnboardingContext';
 
 const Step5WearableSetup = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { profile, refreshProfile } = useOnboarding();
   
   const [selectedWearable, setSelectedWearable] = useState('');
@@ -32,7 +32,7 @@ const Step5WearableSetup = () => {
       });
       
       // Refresh profile data
-      await refreshProfile();
+      await Promise.all([refreshProfile(), refreshUser()]);
       
       navigate('/onboarding/step/6');
     } catch (err: any) {
@@ -148,3 +148,4 @@ const Step5WearableSetup = () => {
 };
 
 export default Step5WearableSetup;
+

@@ -19,7 +19,7 @@ const getSeverityFromScore = (score: number): string => {
 
 const Step6rPPG = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { refreshProfile } = useOnboarding();
   
   const [isCapturing, setIsCapturing] = useState(false);
@@ -39,7 +39,7 @@ const Step6rPPG = () => {
       
       await rppgService.logSession(metrics);
       await onboardingAPI.saveStep6rPPG();
-      await refreshProfile();
+      await Promise.all([refreshProfile(), refreshUser()]);
 
       try {
         const [metabolicCardio, stressReproductive] = await Promise.allSettled([
@@ -211,3 +211,4 @@ const Step6rPPG = () => {
 };
 
 export default Step6rPPG;
+

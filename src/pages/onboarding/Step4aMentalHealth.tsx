@@ -11,7 +11,7 @@ import { useOnboarding } from '@/context/OnboardingContext';
 
 const Step4aMentalHealth = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { profile, refreshProfile } = useOnboarding();
   
   const [form, setForm] = useState({
@@ -46,7 +46,7 @@ const Step4aMentalHealth = () => {
         mood_swings: form.mood_swings,
         sleep_quality: form.sleep_quality,
       });
-      await refreshProfile();
+      await Promise.all([refreshProfile(), refreshUser()]);
       navigate('/onboarding/step/5');
     } catch (err: any) {
       setErrors({ general: err.message });

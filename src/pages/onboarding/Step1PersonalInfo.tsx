@@ -12,7 +12,7 @@ import { useOnboarding } from '@/context/OnboardingContext';
 
 const Step1PersonalInfo = () => {
   const navigate = useNavigate();
-  const { user, accessToken } = useAuth();
+  const { user, accessToken, refreshUser } = useAuth();
   const { profile, refreshProfile } = useOnboarding();
   
   const [form, setForm] = useState({
@@ -87,8 +87,8 @@ const Step1PersonalInfo = () => {
         phone_number: form.phone_number,
       });
       
-      // Refresh profile data
-      await refreshProfile();
+      // Refresh profile and user so onboarding_step is up to date
+      await Promise.all([refreshProfile(), refreshUser()]);
       
       // Route based on gender - different path for males vs females
       const nextStep = form.gender === 'male' ? '/onboarding/step/2a' : '/onboarding/step/2';

@@ -11,7 +11,7 @@ import { useOnboarding } from '@/context/OnboardingContext';
 
 const Step4MenstrualHistory = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { profile, refreshProfile } = useOnboarding();
   
   const [form, setForm] = useState({
@@ -68,7 +68,7 @@ const Step4MenstrualHistory = () => {
       });
       
       // Refresh profile data
-      await refreshProfile();
+      await Promise.all([refreshProfile(), refreshUser()]);
       
       navigate('/onboarding/step/5');
     } catch (err: any) {
@@ -213,3 +213,4 @@ const Step4MenstrualHistory = () => {
 };
 
 export default Step4MenstrualHistory;
+

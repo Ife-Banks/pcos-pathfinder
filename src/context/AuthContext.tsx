@@ -34,6 +34,7 @@ interface AuthContextType {
   loginWithTokens: (userData: any, accessToken: string, refreshToken?: string) => void;
   routeAfterLogin: (user: any) => string;
   refreshSubscription: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -236,8 +237,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try { setSubscription(await subscriptionAPI.getStatus()); } catch {}
   };
 
+  const refreshUser = async () => {
+    try {
+      const response = await apiClient.get('/auth/me/');
+      const payload = response.data.data ?? response.data;
+      setUser(payload);
+    } catch {}
+  };
+
+
   return (
-    <AuthContext.Provider value={{ user, accessToken, subscription, isLoading, login, logout, loginWithTokens, routeAfterLogin, refreshSubscription }}>
+    <AuthContext.Provider value={{ user, accessToken, subscription, isLoading, login, logout, loginWithTokens, routeAfterLogin, refreshSubscription, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -11,7 +11,7 @@ import { useOnboarding } from '@/context/OnboardingContext';
 
 const Step2aPhysicalMeasurements = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { profile, refreshProfile } = useOnboarding();
   
   const [form, setForm] = useState({
@@ -81,7 +81,7 @@ const Step2aPhysicalMeasurements = () => {
         height_unit: form.height_unit,
         weight_unit: form.weight_unit,
       });
-      await refreshProfile();
+      await Promise.all([refreshProfile(), refreshUser()]);
       navigate('/onboarding/step/3a');
     } catch (err: any) {
       const backendErrors: Record<string, string> = {};
