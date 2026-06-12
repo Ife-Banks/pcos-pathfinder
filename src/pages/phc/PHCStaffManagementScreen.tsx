@@ -35,6 +35,8 @@ const getInitials = (name: string) =>
   name?.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2) || '??';
 
 const ROLE_CONFIG: Record<string, { label: string; color: string }> = {
+  nurse:          { label: 'Nurse',    color: 'bg-green-100 text-green-800' },
+  doctor:        { label: 'Doctor',   color: 'bg-red-100 text-red-800' },
   cho:           { label: 'CHO',          color: 'bg-blue-100 text-blue-800' },
   assistant:     { label: 'Assistant',    color: 'bg-amber-100 text-amber-800' },
   receptionist:  { label: 'Receptionist', color: 'bg-purple-100 text-purple-800' },
@@ -287,7 +289,9 @@ export default function PHCStaffManagementScreen() {
                 onChange={(e) => setNewStaffForm({ ...newStaffForm, staff_role: e.target.value })}
                 className="w-full h-10 px-3 border rounded-md text-sm mt-1"
               >
+                <option value="nurse">Nurse</option>
                 <option value="cho">CHO</option>
+                <option value="doctor">Doctor / Medical Officer</option>
                 <option value="assistant">Assistant</option>
                 <option value="receptionist">Receptionist</option>
                 <option value="other">Other</option>
