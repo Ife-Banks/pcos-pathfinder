@@ -53,7 +53,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
       const result = await notificationAPI.getNotifications({
         unread_only: unreadOnly,
       });
-      setNotifications(result.results);
+      setNotifications(result.results ?? []);
     } catch (err) {
       console.error('Failed to load notifications:', err);
     } finally {
