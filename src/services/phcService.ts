@@ -171,6 +171,20 @@ export const phcAPI = {
     return res.data;
   },
 
+  // PHC-Chat - Conversations
+  getPHCConversations: async () => {
+    const res = await apiClient.get(`/chat/phc-conversations/`);
+    return res.data;
+  },
+  getPHCMessages: async (conversationId: string) => {
+    const res = await apiClient.get(`/chat/conversations/${conversationId}/messages/`);
+    return res.data;
+  },
+  sendPHCMessage: async (conversationId: string, body: string) => {
+    const res = await apiClient.post(`/chat/phc-conversations/${conversationId}/send/`, { body });
+    return res.data;
+  },
+
   // PHC8 - Notifications
   getNotifications: async () => {
     const res = await apiClient.get('/notifications/');
@@ -276,22 +290,6 @@ export const phcAPI = {
     const res = await apiClient.get('/centers/fmc/');
     return res.data;
   },
-
-  // PHC Chat
-getPHCConversations: async () => {
-  const res = await apiClient.get('/chat/phc-conversations/');
-  return res.data;
-},
-
-getPHCMessages: async (conversationId: string) => {
-  const res = await apiClient.get(`/chat/conversations/${conversationId}/messages/`);
-  return res.data;
-},
-
-sendPHCMessage: async (conversationId: string, body: string) => {
-  const res = await apiClient.post(`/chat/phc-conversations/${conversationId}/send/`, { body });
-  return res.data;
-},
 };
 
 export const fmcAPI = {
@@ -332,3 +330,4 @@ export const fmcAPI = {
     return res.data;
   },
 };
+
