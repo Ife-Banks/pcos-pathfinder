@@ -76,7 +76,7 @@ const CONDITION_BADGE_COLORS: Record<string, string> = {
   Metabolic: "bg-green-500",
 };
 
-const WS_BASE = (import.meta as any).env?.VITE_WS_URL || "wss://ai-mshm-backend-d47t.onrender.com";
+const WS_BASE = (import.meta as any).env?.VITE_WS_URL || "ws://127.0.0.1:8000";
 const POLL_INTERVAL = 5000;
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -195,7 +195,7 @@ function ChatTab() {
     try {
       const ws = new WebSocket(`${WS_BASE}/ws/chat/${convId}/?token=${token}`);
       wsRef.current = ws;
-      ws.onopen = () => setWsStatus("live");
+      ws.onopen = () => { setWsStatus("live"); if (pollRef.current) clearInterval(pollRef.current); pollRef.current = setInterval(async () => { if (currentConvIdRef.current !== convId) return; try { const res = await phcAPI.getPHCMessages(convId); const data: Message[] = Array.isArray(res) ? res : (res?.data || []); setMessages(data); } catch {} }, POLL_INTERVAL); };
       ws.onmessage = (e) => {
         try {
           const data = JSON.parse(e.data);
@@ -244,7 +244,7 @@ function ChatTab() {
     setMessages(prev => [...prev, optimistic]);
 
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ message: body }));
+      wsRef.current.send(JSON.stringify({ action: "send_message", body: body }));
       setMessages(prev => prev.map(m => m.id === tempId ? { ...m, pending: false } : m));
       setConversations(prev => prev.map(c =>
         c.id === selectedConv.id ? { ...c, last_message: body, last_message_at: new Date().toISOString() } : c
@@ -822,3 +822,5 @@ function AdviceTab() {
     </div>
   );
 }
+
+

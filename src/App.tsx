@@ -104,6 +104,7 @@ import PHCProfileSettingsScreen from "./pages/phc/PHCProfileSettingsScreen";
 import OnboardingScreen from "./pages/OnboardingScreen";
 import OnboardingComplete from "./pages/OnboardingComplete";
 import DashboardScreen from "./pages/DashboardScreen";
+import PatientMessagesScreen from "./pages/PatientMessagesScreen";
 // Onboarding step screens
 import Step1PersonalInfo from "./pages/onboarding/Step1PersonalInfo";
 import Step2PhysicalMeasurements from "./pages/onboarding/Step2PhysicalMeasurements";
@@ -354,6 +355,7 @@ const App = () => {
                     </Route>
                     <Route path="/subscription/upgrade" element={<SubscriptionUpgradeScreen />} />
                     <Route path="/subscription/verify" element={<SubscriptionVerifyScreen />} />
+                    <Route path="/messages" element={<PatientMessagesScreen />} />
                     <Route path="/dashboard" element={<SubscriptionGate require="active"><DashboardScreen /></SubscriptionGate>} />
                     <Route path="/checkin/morning" element={<MorningCheckIn />} />
                     <Route path="/checkin/evening" element={<EveningCheckIn />} />

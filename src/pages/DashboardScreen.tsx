@@ -3,7 +3,7 @@ import { toast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
-  Sun, Moon, Activity, TrendingUp, Calendar, AlertCircle,
+  Sun, Moon, Activity, TrendingUp, Calendar, AlertCircle, MessageCircle,
   ChevronRight, Bell, User, Heart, BarChart3, ClipboardCheck, Loader2, Check, Camera
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -555,6 +555,7 @@ const DashboardScreen = () => {
     { icon: Activity, label: "Home", route: "/dashboard", active: true },
     ...(isFemale ? [{ icon: Calendar, label: "Cycle", route: "/cycle-history", active: false }] : []),
     { icon: BarChart3, label: "Results", route: "/risk-score", active: false },
+    { icon: MessageCircle, label: "Messages", route: "/messages", active: false },
     { icon: User, label: "Profile", route: "/profile", active: false },
   ];
 
