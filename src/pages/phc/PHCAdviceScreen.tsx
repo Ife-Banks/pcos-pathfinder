@@ -581,7 +581,7 @@ function AdviceTab() {
     try {
       const body = await phcAPI.sendAdvice({
         queue_record_id: selectedPatient.id,
-        condition: activeCondition,
+        condition: activeCondition.toLowerCase(),
         message: message.trim(),
         followup_date: followupDate || null,
       });
@@ -822,5 +822,6 @@ function AdviceTab() {
     </div>
   );
 }
+
 
 
