@@ -98,6 +98,18 @@ export const adminAPI = {
     const res = await apiClient.get('/auth/users/', { params });
     return res.data;
   },
+  deleteUser: async (userId: string): Promise<any> => {
+    const res = await apiClient.delete(`/auth/users/${userId}/`);
+    return res.data;
+  },
+  getDatabaseStats: async (): Promise<any> => {
+    const res = await apiClient.get(`/auth/db-stats/`);
+    return res.data;
+  },
+  updateUser: async (userId: string, data: Record<string, any>): Promise<any> => {
+    const res = await apiClient.patch(`/auth/users/${userId}/`, data);
+    return res.data;
+  },
   getUserById: async (userId: string): Promise<any> => {
     const res = await apiClient.get(`/auth/users/${userId}/`);
     return res.data;
@@ -153,3 +165,5 @@ export const adminAPI = {
     return res.data;
   },
 };
+
+

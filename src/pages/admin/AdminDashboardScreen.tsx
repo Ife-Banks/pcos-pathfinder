@@ -14,11 +14,13 @@ import {
   FileText
 } from 'lucide-react';
 import { adminAPI, AdminStats, ActivityLog } from '@/services/adminService';
+import { useNavigate } from 'react-router-dom';
 
 const AdminDashboardScreen = () => {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [recentActivity, setRecentActivity] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -115,7 +117,7 @@ const AdminDashboardScreen = () => {
               </div>
               <span className={`text-xs font-medium ${
                 typeof stat.change === 'string' && stat.change.startsWith('+') ? 'text-green-600' : 
-                stat.change === 0 ? 'text-gray-500' : 'text-green-600'
+                stat.change === '0' ? 'text-gray-500' : 'text-green-600'
               }`}>
                 {typeof stat.change === 'string' ? stat.change : (stat.change > 0 ? '+' + stat.change : stat.change)}
               </span>
@@ -131,7 +133,7 @@ const AdminDashboardScreen = () => {
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-gray-900">Recent Activity</h2>
-            <button className="text-sm text-blue-600 hover:underline">View All</button>
+            <button className="text-sm text-blue-600 hover:underline" onClick={() => navigate('/system-admin/logs')}>View All</button>
           </div>
           <div className="space-y-3">
             {loading ? (
@@ -199,19 +201,20 @@ const AdminDashboardScreen = () => {
       <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
         <h2 className="font-semibold text-gray-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <button className="p-4 bg-blue-50 rounded-lg text-center hover:bg-blue-100 transition-colors">
+          <button className="p-4 bg-blue-50 rounded-lg text-center hover:bg-blue-100 transition-colors" onClick={() => navigate('/system-admin/users')}>
+
             <Users className="h-6 w-6 text-blue-600 mx-auto mb-2" />
             <span className="text-sm font-medium text-blue-700">Manage Users</span>
           </button>
-          <button className="p-4 bg-green-50 rounded-lg text-center hover:bg-green-100 transition-colors">
+          <button className="p-4 bg-green-50 rounded-lg text-center hover:bg-green-100 transition-colors" onClick={() => navigate('/system-admin/facilities')}>
             <Building2 className="h-6 w-6 text-green-600 mx-auto mb-2" />
             <span className="text-sm font-medium text-green-700">Add Facility</span>
           </button>
-          <button className="p-4 bg-purple-50 rounded-lg text-center hover:bg-purple-100 transition-colors">
+          <button className="p-4 bg-purple-50 rounded-lg text-center hover:bg-purple-100 transition-colors" onClick={() => navigate('/system-admin/security')}>
             <Shield className="h-6 w-6 text-purple-600 mx-auto mb-2" />
             <span className="text-sm font-medium text-purple-700">Security Logs</span>
           </button>
-          <button className="p-4 bg-amber-50 rounded-lg text-center hover:bg-amber-100 transition-colors">
+          <button className="p-4 bg-amber-50 rounded-lg text-center hover:bg-amber-100 transition-colors" onClick={() => navigate('/system-admin/database')}>
             <Database className="h-6 w-6 text-amber-600 mx-auto mb-2" />
             <span className="text-sm font-medium text-amber-700">Backup Data</span>
           </button>

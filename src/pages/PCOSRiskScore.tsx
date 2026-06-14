@@ -86,7 +86,9 @@ const PCOSRiskScore = () => {
       localStorage.setItem('latest_risk_tier', data.risk_tier);
       localStorage.setItem('latest_risk_score', String(data.final_risk_score));
     } catch (err: any) {
-      console.error('Error fetching comprehensive prediction:', err);
+      if (err?.status !== 404 && err?.response?.status !== 404) {
+        console.error('Error fetching comprehensive prediction:', err);
+      }
       // Fallback to legacy endpoint
       try {
         const res = await predictionService.getPCOSRiskScore();
@@ -331,7 +333,7 @@ const PCOSRiskScore = () => {
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center justify-between">
             <span className="text-sm text-red-700">{error}</span>
-            <Button size="sm" variant="outline" onClick={fetchPrediction}>Retry</Button>
+            <Button size="sm" variant="outline" onClick={fetchComprehensive}>Retry</Button>
           </div>
         )}
 

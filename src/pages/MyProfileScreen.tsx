@@ -125,7 +125,7 @@ const MyProfileScreen = () => {
       const refresh = localStorage.getItem('refresh_token');
       const access = localStorage.getItem('access_token');
       if (refresh && access) {
-        await authAPI.logout(refresh, access);
+        await authAPI.logout(refresh);
       }
     } catch { /* ignore */ }
     localStorage.removeItem('access_token');

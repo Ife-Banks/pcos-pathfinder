@@ -36,6 +36,9 @@ const AdminFacilitiesScreen = () => {
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
+  const [tierFilter, setTierFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [stateFilter, setStateFilter] = useState('all');
 
   useEffect(() => {
     let cancelled = false;
@@ -96,12 +99,20 @@ const AdminFacilitiesScreen = () => {
     return <Badge className={`${info.bg} ${info.text}`}>{info.label}</Badge>;
   };
 
-  const filteredFacilities = facilities.filter(f => 
-    f.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    f.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    f.state?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    f.code?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const uniqueTiers = [...new Set(facilities.map(f => f.tier).filter(Boolean))];
+  const uniqueStates = [...new Set(facilities.map(f => f.state).filter(Boolean))];
+
+  const filteredFacilities = facilities.filter(f => {
+    const matchesSearch = !searchQuery ||
+      f.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      f.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      f.state?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      f.code?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesTier = tierFilter === 'all' || f.tier?.toLowerCase() === tierFilter.toLowerCase();
+    const matchesStatus = statusFilter === 'all' || f.status === statusFilter;
+    const matchesState = stateFilter === 'all' || f.state === stateFilter;
+    return matchesSearch && matchesTier && matchesStatus && matchesState;
+  });
 
   return (
     <div className="p-6 space-y-6">
@@ -139,15 +150,65 @@ const AdminFacilitiesScreen = () => {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <Input
-          placeholder="Search by name, code, state, or address..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
-        />
+      {/* Search & Filters */}
+      <div className="space-y-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search by name, code, state, or address..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <div className="flex flex-wrap gap-2 items-center">
+          {/* Tier filter */}
+          <div className="flex gap-1 items-center">
+            <span className="text-xs text-gray-500 mr-1">Tier:</span>
+            <Button size="sm" variant={tierFilter === 'all' ? 'default' : 'outline'}
+              onClick={() => setTierFilter('all')}>All</Button>
+            {uniqueTiers.map(tier => (
+              <Button key={tier} size="sm"
+                variant={tierFilter === tier ? 'default' : 'outline'}
+                onClick={() => setTierFilter(tier)}>
+                {tier.toUpperCase()}
+              </Button>
+            ))}
+          </div>
+          <div className="w-px h-6 bg-gray-200 mx-1" />
+          {/* Status filter */}
+          <div className="flex gap-1 items-center">
+            <span className="text-xs text-gray-500 mr-1">Status:</span>
+            <Button size="sm" variant={statusFilter === 'all' ? 'default' : 'outline'}
+              onClick={() => setStatusFilter('all')}>All</Button>
+            <Button size="sm" variant={statusFilter === 'active' ? 'default' : 'outline'}
+              className={statusFilter === 'active' ? '' : 'text-green-600'}
+              onClick={() => setStatusFilter('active')}>Active</Button>
+            <Button size="sm" variant={statusFilter === 'inactive' ? 'default' : 'outline'}
+              className={statusFilter === 'inactive' ? '' : 'text-red-600'}
+              onClick={() => setStatusFilter('inactive')}>Inactive</Button>
+          </div>
+          <div className="w-px h-6 bg-gray-200 mx-1" />
+          {/* State filter */}
+          <div className="flex gap-1 items-center">
+            <span className="text-xs text-gray-500 mr-1">State:</span>
+            <Button size="sm" variant={stateFilter === 'all' ? 'default' : 'outline'}
+              onClick={() => setStateFilter('all')}>All</Button>
+            {uniqueStates.map(state => (
+              <Button key={state} size="sm"
+                variant={stateFilter === state ? 'default' : 'outline'}
+                onClick={() => setStateFilter(state)}>
+                {state}
+              </Button>
+            ))}
+          </div>
+          {(tierFilter !== 'all' || statusFilter !== 'all' || stateFilter !== 'all' || searchQuery) && (
+            <Button size="sm" variant="ghost" className="text-gray-400 ml-auto"
+              onClick={() => { setTierFilter('all'); setStatusFilter('all'); setStateFilter('all'); setSearchQuery(''); }}>
+              Clear filters
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Grid */}
