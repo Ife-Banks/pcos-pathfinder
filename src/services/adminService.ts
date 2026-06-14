@@ -73,6 +73,37 @@ export interface Facility {
   license_number?: string;
 }
 
+export interface AdminAnalytics {
+  total_users: number;
+  active_users: number;
+  verified_users: number;
+  users_by_role: Record<string, number>;
+  monthly_growth: Array<{ month: string; users: number }>;
+  facilities: {
+    total: number;
+    by_type: Record<string, number>;
+  };
+  predictions: {
+    total: number;
+    last_30_days: number;
+  };
+  checkins: {
+    total: number;
+    last_30_days: number;
+  };
+  onboardings: {
+    completed: number;
+    pending: number;
+    completed_last_30_days: number;
+  };
+  risk_distribution: {
+    low: number;
+    moderate: number;
+    high: number;
+    critical: number;
+  };
+}
+
 export const adminAPI = {
   login: async (credentials: { email: string; password: string }) => {
     const res = await apiClient.post('/auth/login/', credentials);
@@ -150,6 +181,10 @@ export const adminAPI = {
   },
   getActivityLogs: async (params?: { action?: string; page?: number; page_size?: number }): Promise<{ data: { logs: ActivityLog[]; total: number } }> => {
     const res = await apiClient.get('/auth/logs/', { params });
+    return res.data;
+  },
+  getAnalytics: async (): Promise<{ data: AdminAnalytics }> => {
+    const res = await apiClient.get('/auth/analytics/');
     return res.data;
   },
 };
