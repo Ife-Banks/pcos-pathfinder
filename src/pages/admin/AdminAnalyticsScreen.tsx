@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   TrendingUp,
-  TrendingDown,
   Users,
   Building2,
   Activity,
@@ -13,6 +12,15 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { adminAPI, AdminAnalytics } from '@/services/adminService';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid
+} from 'recharts';
 
 const AdminAnalyticsScreen = () => {
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
@@ -42,8 +50,6 @@ const AdminAnalyticsScreen = () => {
     { label: 'Facilities', value: analytics.facilities.total.toString(), icon: Building2, color: 'text-purple-600', bg: 'bg-purple-50' },
     { label: 'Completed Onboardings', value: analytics.onboardings.completed.toLocaleString(), icon: CheckCircle, color: 'text-amber-600', bg: 'bg-amber-50' },
   ] : [];
-
-  const maxMonthlyUsers = analytics?.monthly_growth.reduce((max, item) => Math.max(max, item.users), 1) || 1;
 
   return (
     <div className="p-6 space-y-6">
@@ -95,44 +101,63 @@ const AdminAnalyticsScreen = () => {
 
       {/* User Growth Chart */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h2 className="font-semibold text-gray-900 mb-4">User Growth (Last 6 Months)</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-gray-900">User Growth (Last 6 Months)</h2>
+          <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-blue-500 rounded-full" />
+              <span className="text-gray-600">New Users</span>
+            </div>
+          </div>
+        </div>
         {loading ? (
-          <div className="h-64 flex items-center justify-center">
+          <div className="h-72 flex items-center justify-center">
             <div className="animate-pulse flex space-x-4">
-              <div className="h-48 w-8 bg-gray-200 rounded" />
-              <div className="h-48 w-8 bg-gray-200 rounded" />
-              <div className="h-48 w-8 bg-gray-200 rounded" />
-              <div className="h-48 w-8 bg-gray-200 rounded" />
-              <div className="h-48 w-8 bg-gray-200 rounded" />
-              <div className="h-48 w-8 bg-gray-200 rounded" />
+              <div className="h-48 w-full bg-gray-200 rounded" />
             </div>
           </div>
         ) : analytics?.monthly_growth && analytics.monthly_growth.length > 0 ? (
-          <div className="h-64 flex items-end gap-4">
-            {analytics.monthly_growth.map((item, i) => (
-              <div key={item.month} className="flex-1 flex flex-col items-center gap-2">
-                <motion.div
-                  initial={{ height: 0 }}
-                  animate={{ height: `${(item.users / maxMonthlyUsers) * 100}%` }}
-                  transition={{ delay: i * 0.1, duration: 0.5 }}
-                  className="w-full bg-blue-500 rounded-t"
-                />
-                <span className="text-xs text-gray-500">{item.month}</span>
-              </div>
-            ))}
-          </div>
+          <ResponsiveContainer width="100%" height={288}>
+            <LineChart data={analytics.monthly_growth} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis
+                dataKey="month"
+                tick={{ fontSize: 12, fill: '#6b7280' }}
+                tickLine={false}
+                axisLine={{ stroke: '#e5e7eb' }}
+              />
+              <YAxis
+                tick={{ fontSize: 12, fill: '#6b7280' }}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(value) => value.toLocaleString()}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#fff',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                }}
+                formatter={(value: number) => [value.toLocaleString(), 'Users']}
+              />
+              <Line
+                type="monotone"
+                dataKey="users"
+                stroke="#3b82f6"
+                strokeWidth={2}
+                dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, fill: '#3b82f6' }}
+                animationDuration={1000}
+              />
+            </LineChart>
+          </ResponsiveContainer>
         ) : (
-          <div className="h-64 flex items-center justify-center text-gray-400">
+          <div className="h-72 flex items-center justify-center text-gray-400">
             <Clock className="h-8 w-8 mr-2" />
             <span>No growth data available</span>
           </div>
         )}
-        <div className="flex items-center justify-center gap-6 mt-4">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-blue-500 rounded" />
-            <span className="text-sm text-gray-600">New Users</span>
-          </div>
-        </div>
       </div>
 
       {/* Risk Distribution */}

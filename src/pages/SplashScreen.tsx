@@ -11,8 +11,8 @@ const SplashScreen = () => {
 
   const taglines = useMemo(
     () => [
-      "Clinical-grade PCOS detection with explainable AI",
-      "Personalized metabolic insights for every cycle",
+      "Clinical-grade PMOS & MAMH detection with explainable AI",
+      "Personalized metabolic insights for hormonal balance",
       "Secure, scalable care pathways for patients and clinicians",
     ],
     []

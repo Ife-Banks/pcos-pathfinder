@@ -312,6 +312,7 @@ const App = () => {
                       <Route path="/ptth/dashboard" element={<PTTHDashboardScreen />} />
                     </Route>
                     {/* Admin Routes */}
+                    <Route path="/admin/login" element={<AdminLoginScreen />} />
                     <Route path="/system-admin/login" element={<AdminLoginScreen />} />
                     <Route path="/system-admin" element={<AdminLayout />}>
                       <Route index element={<AdminDashboardScreen />} />

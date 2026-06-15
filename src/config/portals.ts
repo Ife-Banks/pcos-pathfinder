@@ -1,6 +1,7 @@
 export interface PortalOption {
   sector: string;
   sectorKey: string;
+  description: string;
   subSectors: SubSector[];
 }
 
@@ -9,48 +10,55 @@ export interface SubSector {
   key: string;
   path: string;
   color: string;
+  description: string;
 }
 
 export const PORTAL_OPTIONS: PortalOption[] = [
   {
     sector: "System Administration",
     sectorKey: "admin",
+    description: "Manage system-wide settings, users, analytics, and security policies",
     subSectors: [
-      { name: "System Admin Portal", key: "admin", path: "/system-admin/login", color: "bg-slate-700" },
+      { name: "System Admin Portal", key: "admin", path: "/system-admin/login", color: "bg-slate-700", description: "Full system administration and oversight" },
     ],
   },
   {
     sector: "Government & Public Health",
     sectorKey: "government",
+    description: "Primary, State, and Federal healthcare facilities serving communities nationwide",
     subSectors: [
-      { name: "Primary Health Centre (PHC)", key: "phc", path: "/phc/login", color: "bg-green-600" },
-      { name: "State General Hospital", key: "sth", path: "/sth/login", color: "bg-teal-600" },
-      { name: "State Teaching Hospital", key: "stth", path: "/stth/login", color: "bg-cyan-600" },
-      { name: "Federal Medical Centre (FMC)", key: "fmc", path: "/fmc/login", color: "bg-red-600" },
-      { name: "Federal Teaching Hospital", key: "fth", path: "/fth/login", color: "bg-purple-600" },
+      { name: "Primary Health Centre (PHC)", key: "phc", path: "/phc/login", color: "bg-green-600", description: "State-run community healthcare centers" },
+      { name: "State General Hospital", key: "sth", path: "/sth/login", color: "bg-teal-600", description: "Secondary care state-run hospitals" },
+      { name: "State Teaching Hospital", key: "stth", path: "/stth/login", color: "bg-cyan-600", description: "Teaching hospitals affiliated with state universities" },
+      { name: "Federal Medical Centre (FMC)", key: "fmc", path: "/fmc/login", color: "bg-red-600", description: "Federal tertiary healthcare facilities" },
+      { name: "Federal Teaching Hospital", key: "fth", path: "/fth/login", color: "bg-purple-600", description: "Teaching hospitals affiliated with federal universities" },
     ],
   },
   {
     sector: "Health Insurance & HMOs",
     sectorKey: "hmo",
+    description: "Health Management Organizations and Insurance providers for healthcare coverage",
     subSectors: [
-      { name: "Health Maintenance Organization", key: "hmo", path: "/hmo/login", color: "bg-blue-600" },
+      { name: "Health Management Organization (HMO)", key: "hmo", path: "/hmo/login", color: "bg-blue-600", description: "Managed care organizations coordinating healthcare" },
+      { name: "Health Insurance", key: "insurance", path: "/hmo/login", color: "bg-indigo-600", description: "Health insurance providers and schemes" },
     ],
   },
   {
     sector: "Private Healthcare",
     sectorKey: "private",
+    description: "Private clinics, hospitals, and teaching hospitals serving patients directly",
     subSectors: [
-      { name: "Clinic", key: "clinic", path: "/clinic/login", color: "bg-orange-600" },
-      { name: "Private Hospital", key: "pvt", path: "/pvt/login", color: "bg-amber-600" },
-      { name: "Private Teaching Hospital", key: "ptth", path: "/ptth/login", color: "bg-yellow-600" },
+      { name: "Specialist Clinic", key: "clinic", path: "/clinic/login", color: "bg-orange-600", description: "Private specialist outpatient clinics" },
+      { name: "Private Hospital", key: "pvt", path: "/pvt/login", color: "bg-amber-600", description: "Privately operated medical facilities" },
+      { name: "Private Teaching Hospital", key: "ptth", path: "/ptth/login", color: "bg-yellow-600", description: "Teaching hospitals under private management" },
     ],
   },
   {
-    sector: "Direct to Consumer (Patients)",
+    sector: "Direct Patient",
     sectorKey: "patient",
+    description: "For individuals seeking health tracking, risk assessment, and wellness monitoring",
     subSectors: [
-      { name: "Patient Portal", key: "patient", path: "/login", color: "bg-teal-600" },
+      { name: "Patient Portal", key: "patient", path: "/login", color: "bg-teal-600", description: "Personal health dashboard and risk tracking" },
     ],
   },
 ];

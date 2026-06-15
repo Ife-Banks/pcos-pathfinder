@@ -86,7 +86,9 @@ const PCOSRiskScore = () => {
       localStorage.setItem('latest_risk_tier', data.risk_tier);
       localStorage.setItem('latest_risk_score', String(data.final_risk_score));
     } catch (err: any) {
-      console.error('Error fetching comprehensive prediction:', err);
+      if (err?.status !== 404 && err?.response?.status !== 404) {
+        console.error('Error fetching comprehensive prediction:', err);
+      }
       // Fallback to legacy endpoint
       try {
         const res = await predictionService.getPCOSRiskScore();
@@ -142,7 +144,7 @@ const PCOSRiskScore = () => {
             <ArrowLeft className="w-5 h-5 text-gray-700" />
           </button>
           <div>
-            <h1 className="font-display text-lg font-bold text-gray-900">PCOS Risk Score</h1>
+            <h1 className="font-display text-lg font-bold text-gray-900">PMOS Risk Score</h1>
             <p className="text-xs text-gray-500">AI-powered assessment</p>
           </div>
         </header>
@@ -166,7 +168,7 @@ const PCOSRiskScore = () => {
             <ArrowLeft className="w-5 h-5 text-gray-700" />
           </button>
           <div>
-            <h1 className="font-display text-lg font-bold text-gray-900">PCOS Risk Score</h1>
+            <h1 className="font-display text-lg font-bold text-gray-900">PMOS Risk Score</h1>
             <p className="text-xs text-gray-500">AI-powered assessment</p>
           </div>
         </header>
@@ -174,7 +176,7 @@ const PCOSRiskScore = () => {
           <div className="text-6xl mb-4">📊</div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">No Score Yet</h2>
           <p className="text-sm text-gray-500 max-w-xs">
-            Complete your daily check-ins to generate your first PCOS risk score.
+            Complete your daily check-ins to generate your first PMOS risk score.
           </p>
           <Button
             onClick={() => navigate('/dashboard')}
@@ -247,7 +249,7 @@ const PCOSRiskScore = () => {
           <ArrowLeft className="w-5 h-5 text-gray-700" />
         </button>
         <div className="flex-1">
-          <h1 className="font-display text-lg font-bold text-gray-900">PCOS Risk Score</h1>
+          <h1 className="font-display text-lg font-bold text-gray-900">PMOS Risk Score</h1>
           <p className="text-xs text-gray-500">AI-powered assessment</p>
         </div>
         <button onClick={handleRefresh} disabled={refreshing} className="p-1.5 rounded-lg hover:bg-gray-100">
@@ -331,7 +333,7 @@ const PCOSRiskScore = () => {
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center justify-between">
             <span className="text-sm text-red-700">{error}</span>
-            <Button size="sm" variant="outline" onClick={fetchPrediction}>Retry</Button>
+            <Button size="sm" variant="outline" onClick={fetchComprehensive}>Retry</Button>
           </div>
         )}
 
@@ -382,7 +384,7 @@ const PCOSRiskScore = () => {
               <CardContent className="pt-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-semibold text-teal-800">PCOS-Specific Score</h3>
+                    <h3 className="text-sm font-semibold text-teal-800">PMOS-Specific Score</h3>
                     <p className="text-xs text-teal-600">Weighted ensemble with clinical adjustments</p>
                   </div>
                   <div className="text-right">

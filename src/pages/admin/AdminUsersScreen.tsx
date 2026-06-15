@@ -11,7 +11,11 @@ import {
   AlertTriangle,
   CheckCircle,
   XCircle,
-  RefreshCw
+  RefreshCw,
+  Eye,
+  Trash2,
+  UserX,
+  UserCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +29,8 @@ const AdminUsersScreen = () => {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -50,6 +56,35 @@ const AdminUsersScreen = () => {
     };
     fetchUsers();
   }, [filter, searchQuery]);
+
+  const toggleSelect = (id: string) =>
+    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+
+  const toggleAll = () =>
+    setSelected(prev => prev.length === users.length ? [] : users.map(u => u.id));
+
+  const bulkAction = async (action: 'activate' | 'deactivate' | 'delete') => {
+    if (!selected.length) return;
+    const label = action === 'delete' ? 'delete' : action;
+    if (!window.confirm(`${label.charAt(0).toUpperCase() + label.slice(1)} ${selected.length} user(s)?`)) return;
+    setBulkLoading(true);
+    try {
+      await Promise.all(selected.map(id => {
+        if (action === 'delete') return adminAPI.deleteUser(id);
+        return adminAPI.updateUser(id, { is_active: action === 'activate' });
+      }));
+      if (action === 'delete') {
+        setUsers(prev => prev.filter(u => !selected.includes(u.id)));
+      } else {
+        setUsers(prev => prev.map(u => selected.includes(u.id) ? { ...u, is_active: action === 'activate' } : u));
+      }
+      setSelected([]);
+    } catch (e: any) {
+      alert(e?.response?.data?.message || 'Bulk action failed');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
 
   const getRoleBadge = (role: string, isSuperuser?: boolean) => {
     if (isSuperuser) return <Badge className="bg-purple-100 text-purple-700">Admin</Badge>;
@@ -140,12 +175,43 @@ const AdminUsersScreen = () => {
         </div>
       </div>
 
+      {/* Bulk Actions Bar */}
+      {selected.length > 0 && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl">
+          <span className="text-sm font-medium text-blue-700">{selected.length} selected</span>
+          <div className="flex gap-2 ml-auto">
+            <Button size="sm" variant="outline" disabled={bulkLoading}
+              onClick={() => bulkAction('activate')}
+              className="text-green-600 border-green-300 hover:bg-green-50">
+              <UserCheck className="h-4 w-4 mr-1" /> Activate
+            </Button>
+            <Button size="sm" variant="outline" disabled={bulkLoading}
+              onClick={() => bulkAction('deactivate')}
+              className="text-amber-600 border-amber-300 hover:bg-amber-50">
+              <UserX className="h-4 w-4 mr-1" /> Deactivate
+            </Button>
+            <Button size="sm" variant="outline" disabled={bulkLoading}
+              onClick={() => bulkAction('delete')}
+              className="text-red-600 border-red-300 hover:bg-red-50">
+              <Trash2 className="h-4 w-4 mr-1" /> Delete
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSelected([])}>Cancel</Button>
+          </div>
+        </div>
+      )}
+
       {/* Users Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
+                <th className="px-4 py-3 w-10">
+                  <input type="checkbox"
+                    checked={selected.length === users.length && users.length > 0}
+                    onChange={toggleAll}
+                    className="rounded border-gray-300 cursor-pointer" />
+                </th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">User</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Role</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Facility</th>
@@ -173,9 +239,14 @@ const AdminUsersScreen = () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: i * 0.05 }}
-                  className="hover:bg-gray-50 cursor-pointer"
+                  className={`hover:bg-gray-50 cursor-pointer ${selected.includes(user.id) ? 'bg-blue-50' : ''}`}
                   onClick={() => navigate(`/system-admin/users/${user.id}`)}
                 >
+                  <td className="px-4 py-3 w-10" onClick={e => { e.stopPropagation(); toggleSelect(user.id); }}>
+                    <input type="checkbox" checked={selected.includes(user.id)}
+                      onChange={() => toggleSelect(user.id)}
+                      className="rounded border-gray-300 cursor-pointer" />
+                  </td>
                   <td className="px-4 py-3">
                     <div>
                       <p className="font-medium text-gray-900">{user.full_name}</p>
@@ -196,13 +267,43 @@ const AdminUsersScreen = () => {
                   </td>
                   <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-2">
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="sm"
-                        onClick={() => window.location.href = `mailto:${user.email}`}
-                        title="Send email"
+                        onClick={() => navigate(`/system-admin/users/${user.id}`)}
+                        title="View details"
                       >
-                        <Mail className="h-4 w-4" />
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        title={user.is_active ? 'Deactivate user' : 'Activate user'}
+                        className={user.is_active ? 'text-amber-500 hover:text-amber-700 hover:bg-amber-50' : 'text-green-500 hover:text-green-700 hover:bg-green-50'}
+                        onClick={() => {
+                          if (window.confirm(`${user.is_active ? 'Deactivate' : 'Activate'} ${user.full_name}?`)) {
+                            adminAPI.updateUser(user.id, { is_active: !user.is_active })
+                              .then(() => setUsers(prev => prev.map(u => u.id === user.id ? { ...u, is_active: !u.is_active } : u)))
+                              .catch(e => alert(e?.response?.data?.message || 'Failed to update user'));
+                          }
+                        }}
+                      >
+                        {user.is_active ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        title="Delete user"
+                        onClick={() => {
+                          if (window.confirm(`Delete ${user.full_name}? This cannot be undone.`)) {
+                            adminAPI.deleteUser(user.id)
+                              .then(() => setUsers(prev => prev.filter(u => u.id !== user.id)))
+                              .catch(e => alert(e?.response?.data?.message || 'Failed to delete'));
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </td>

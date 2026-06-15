@@ -14,9 +14,9 @@ export default defineConfig(({ mode }) => {
       hmr: {
         overlay: false,
       },
-      proxy: isProduction ? {} : {
+      proxy: isProduction ? undefined : {
         '/api': {
-          target: process.env.API_TARGET || 'https://ai-mshm-backend.onrender.com',
+          target: 'http://127.0.0.1:8000',
           changeOrigin: true,
           secure: true,
         },
@@ -25,6 +25,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       VitePWA({
+        disable: mode === 'development',
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'favicon-32x32.png', 'favicon-16x16.png'],
         manifest: {

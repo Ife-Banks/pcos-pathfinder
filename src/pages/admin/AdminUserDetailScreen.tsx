@@ -168,7 +168,8 @@ const AdminUserDetailScreen = () => {
               </Button>
             </>
           )}
-          <Button variant="outline" className="text-red-600 border-red-300 hover:bg-red-50">
+          <Button variant="outline" className="text-red-600 border-red-300 hover:bg-red-50"
+            onClick={(e) => { e.stopPropagation(); if (window.confirm(`Are you sure you want to delete ${user?.full_name}? This cannot be undone.`)) { adminAPI.deleteUser(user?.id).then(() => navigate('/system-admin/users')).catch(e => alert(e?.response?.data?.message || 'Failed to delete user')); } }}>
             <Trash2 className="h-4 w-4 mr-2" />Delete
           </Button>
         </div>
