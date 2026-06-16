@@ -78,13 +78,19 @@ const FMCDiagnosticsScreen = () => {
         status: c.status,
       }));
       setCases(casesData);
-      
-      // For now, we'll use mock pending requests since there's no dedicated endpoint
-      // In production, this would come from a /fmc/diagnostics/requests/ endpoint
-      setPendingRequests([
-        { id: '1', patient_name: 'Sarah Johnson', tests: ['LH/FSH', 'AMH'], urgency: 'urgent', status: 'pending', requested_at: '2024-03-14T10:00:00Z' },
-        { id: '2', patient_name: 'Amina Yusuf', tests: ['HbA1c', 'Lipid Panel'], urgency: 'routine', status: 'pending', requested_at: '2024-03-13T14:30:00Z' },
-      ]);
+
+      // Fetch pending diagnostic requests from backend
+      const requestsResponse = await fmcAPI.getDiagnosticsRequests();
+      const requestsData = requestsResponse?.data || {};
+      const pending = (requestsData.pending_requests || []).map((r: any) => ({
+        id: r.id,
+        patient_name: r.patient_name || 'Unknown',
+        tests: r.tests || [],
+        urgency: r.urgency || 'routine',
+        status: r.status || 'pending',
+        requested_at: r.requested_at || new Date().toISOString(),
+      }));
+      setPendingRequests(pending);
     } catch (error: any) {
       console.log('Error:', error?.message);
       setCases([

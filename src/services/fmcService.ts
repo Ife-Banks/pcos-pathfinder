@@ -196,6 +196,13 @@ export const fmcAPI = {
     return body;
   },
 
+  getDiagnosticsRequests: async () => {
+    const res = await apiClient.get('/centers/fmc/diagnostics/requests/');
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
+  },
+
   // FMC8 - Discharge
   fullDischarge: async (patientId: string, dischargeData: {
     condition_confirmed: string;
