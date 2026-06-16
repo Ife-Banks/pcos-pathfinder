@@ -143,7 +143,7 @@ Please change your password immediately after login.
 
   const handleReactivateStaff = async (staffId: string) => {
     try {
-      await fmcAPI.updateStaff(staffId, { staff_role: staff.find(s => s.id === staffId)?.staff_role });
+      await fmcAPI.activateStaff(staffId);
       setStaff(staff.map(s => s.id === staffId ? { ...s, is_active: true } : s));
       setSuccess('Staff account reactivated');
       setTimeout(() => setSuccess(null), 3000);

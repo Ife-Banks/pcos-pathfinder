@@ -55,8 +55,14 @@ const FMCAlertsScreen = () => {
 
   useEffect(() => { fetchAlerts(); }, []);
 
-  const handleMarkAsRead = (alertId: string) => {
-    setAlerts(alerts.map(a => a.id === alertId ? { ...a, is_read: true } : a));
+  const handleMarkAsRead = async (alertId: string) => {
+    try {
+      await fmcAPI.markAlertRead(alertId);
+      setAlerts(alerts.map(a => a.id === alertId ? { ...a, is_read: true } : a));
+    } catch (error: any) {
+      console.error('Error marking alert as read:', error);
+      setAlerts(alerts.map(a => a.id === alertId ? { ...a, is_read: true } : a));
+    }
   };
 
   const getSeverityIcon = (severity: string) => {

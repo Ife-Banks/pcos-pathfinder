@@ -143,7 +143,7 @@ const WelcomeScreen = () => {
             whileHover={{ scale: 1.02 }}
           >
             <img src={logoImage} alt="AIMHER" className="h-8 w-auto" />
-            <span className="font-bold text-lg text-primary">AIMHER</span>
+            <span className="font-bold text-lg text-primary">AIMHER Health</span>
           </motion.div>
 
           {/* Desktop Nav Links */}
@@ -405,7 +405,7 @@ const WelcomeScreen = () => {
                 Platform Capabilities
               </p>
               <h2 className="text-2xl lg:text-3xl font-bold font-display text-foreground mb-10 text-center">
-                Why AIMHER
+                Why AIMHER Health
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

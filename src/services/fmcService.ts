@@ -277,6 +277,13 @@ export const fmcAPI = {
     return body;
   },
 
+  activateStaff: async (staffId: string) => {
+    const res = await apiClient.post(`/centers/fmc/staff/${staffId}/activate/`);
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
+  },
+
   // Network - FMC PHC Network (FMC13)
   getNetworkPHCs: async () => {
     const res = await apiClient.get('/centers/fmc/network-phc/');
