@@ -58,7 +58,7 @@ export default function HeroHeartbeat({ compact = false }: HeroHeartbeatProps) {
 
     function resize() {
       canvas.width = canvas.offsetWidth * DPR;
-      canvas.height = (compact ? 120 : 200) * DPR;
+      canvas.height = (compact ? 120 : 160) * DPR;
       s.pixBuf = new Float32Array(Math.ceil(canvas.offsetWidth)).fill(NaN);
     }
     resize();
@@ -202,7 +202,7 @@ export default function HeroHeartbeat({ compact = false }: HeroHeartbeatProps) {
         </div>
       </div>
 
-      <canvas ref={canvasRef} style={{ display: "block", width: "100%", height: 200, background: "#060d09" }} />
+      <canvas ref={canvasRef} style={{ display: "block", width: "100%", height: 160, background: "#060d09" }} />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", borderTop: "1px solid #0f1f17" }}>
         {metrics.map(({ label, val, unit, sub }, i) => (

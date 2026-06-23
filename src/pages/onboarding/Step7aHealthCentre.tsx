@@ -24,7 +24,7 @@ interface PHCCentre {
 
 const Step7aHealthCentre = () => {
   const navigate = useNavigate();
-  const { accessToken } = useAuth();
+  const { accessToken, refreshUser } = useAuth();
   const { profile, refreshProfile } = useOnboarding();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -151,23 +151,26 @@ const Step7aHealthCentre = () => {
   };
 
   const handleBack = () => {
-    navigate('/onboarding/step/6');
+    navigate('/onboarding/step/6a');
   };
 
   const handleSkip = async () => {
+    console.log('[Step7a] Skip clicked');
+    setLoading(true);
     try {
-      setLoading(true);
-      await onboardingAPI.markComplete();
+      const result = await onboardingAPI.markComplete();
+      console.log('[Step7a] markComplete result:', result);
       refreshProfile();
-      navigate('/dashboard');
+      refreshUser();
     } catch (err: any) {
-      console.error('Error completing onboarding:', err);
-      // Navigate anyway
-      navigate('/dashboard');
+      console.error('[Step7a] markComplete error:', err);
     }
+    console.log('[Step7a] Navigating to dashboard');
+    navigate('/dashboard');
   };
 
   const handleContinue = async () => {
+    console.log('[Step7a] handleContinue called, state:', formData.state);
     if (!formData.state.trim()) {
       setError('Please select a state before continuing');
       return;
@@ -180,20 +183,23 @@ const Step7aHealthCentre = () => {
     setSuccessMessage(null);
     
     try {
+      console.log('[Step7a] Saving step 7...');
       await onboardingAPI.saveStep7HealthCentre({
         state: formData.state,
         lga: formData.lga,
         registered_hcc: hccId
       });
 
-      // Mark onboarding as complete
+      console.log('[Step7a] Marking onboarding complete...');
       await onboardingAPI.markComplete();
 
       refreshProfile();
+      refreshUser();
       
+      console.log('[Step7a] Navigating to dashboard');
       navigate('/dashboard');
     } catch (err: any) {
-      console.error('Error saving PHC selection:', err);
+      console.error('[Step7a] Error:', err);
       
       if (err?.status === 400 || err?.message?.includes('active case') || err?.message?.includes('assigned')) {
         const errorMessage = err?.message || 'Cannot change health centre while you have an active case.';
@@ -318,7 +324,7 @@ const Step7aHealthCentre = () => {
                 onChange={(e) => handleInputChange('state', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="">e.g. Lagos</option>
+                <option value="">Choose your state from the dropdown</option>
                 {nigerianStates.map(state => (
                   <option key={state} value={state}>{state}</option>
                 ))}
