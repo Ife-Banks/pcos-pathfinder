@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Eye, EyeOff, Mail, Lock, Shield, ArrowLeft } from "lucide-react";
 import logoImage from "@/assets/logo.png";
+import aimherLogo from "@/assets/AIMHER trademark  only.png";
+import healthLogo from "@/assets/Health  Trademark only-1.png";
 import { useAuth } from "@/context/AuthContext";
 import { adminAPI } from "@/services/adminService";
 
@@ -80,8 +82,12 @@ const AdminLoginScreen = () => {
         >
           {/* Logo & Title Section */}
           <div className="text-center mb-6">
-            <Link to="/welcome" className="inline-block">
-              <img src={logoImage} alt="AIMHER" className="w-28 h-auto mx-auto mb-3" />
+            <Link to="/welcome" className="inline-block mb-3">
+              <div className="flex items-center justify-center gap-2">
+                <img src={logoImage} alt="logo" className="h-8 w-auto" />
+                <img src={aimherLogo} alt="AIMHER" className="h-6 w-auto" />
+                <img src={healthLogo} alt="Health" className="h-6 w-auto" />
+              </div>
             </Link>
             <Badge className="bg-slate-700 text-white mb-3">
               <Shield className="w-3 h-3 mr-1" />

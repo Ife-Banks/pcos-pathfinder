@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import logo from "@/assets/logo.png";
+import aimherLogo from "@/assets/AIMHER trademark  only.png";
+import healthLogo from "@/assets/Health  Trademark only-1.png";
 import { authAPI } from "@/services/authService";
 import { useAuth } from "@/context/AuthContext";
 
@@ -122,7 +124,11 @@ const LoginScreen = () => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <img src={logo} alt="AI-MSHM" className="h-10 w-10 mb-4" />
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <img src={logo} alt="logo" className="h-10 w-auto" />
+            <img src={aimherLogo} alt="AIMHER" className="h-8 w-auto" />
+            <img src={healthLogo} alt="Health" className="h-8 w-auto" />
+          </div>
           <h1 className="text-2xl font-bold font-display text-foreground">Welcome back</h1>
           <p className="text-muted-foreground mt-1">Sign in to continue monitoring your health</p>
         </motion.div>

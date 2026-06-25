@@ -124,7 +124,7 @@ export const dashboardService = {
   // NEW: Get comprehensive ML predictions
   getMLPredictions: async (): Promise<PredictionResponse> => {
     try {
-      // Get unified PCOS risk score from Django (which combines all 4 models)
+      // Get unified PMOS risk score from Django (which combines all 4 models)
       const res = await apiClient.get('/predictions/pcos/');
       const body = res.data;
       

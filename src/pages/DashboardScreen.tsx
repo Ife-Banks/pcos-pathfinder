@@ -450,7 +450,7 @@ const DashboardScreen = () => {
     ? `Cycle ${Math.round(menstrualSummary.mean_cycle_len)} days · CLV ${menstrualSummary.CLV ?? '—'}`
     : "Log your cycle";
 
-  const riskScoreTitle = isMale ? "Cardiovascular Risk Score" : "PCOS Risk Score";
+  const riskScoreTitle = isMale ? "Cardiovascular Risk Score" : "PMOS Risk Score";
 
   const morningComplete = todayData?.morning_status === 'complete';
   const eveningComplete = todayData?.evening_status === 'complete';
@@ -705,7 +705,7 @@ const DashboardScreen = () => {
                 transition={{ delay: 0.3 }}
                 className="bg-white rounded-2xl border border-gray-200 p-4"
               >
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">ML Risk Predictions</h3>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Downstream Disease Risk prediction </h3>
                 
                 <div className="space-y-3">
                   {/* 1. Symptom Intensity */}
@@ -749,17 +749,17 @@ const DashboardScreen = () => {
                     <div>
                       <div className="flex items-center gap-1.5 mb-2">
                         <span className="text-xs">📷</span>
-                        <p className="text-xs text-gray-500 font-medium">rPPG Camera</p>
+                        <p className="text-xs text-gray-500 font-medium">rPPG/HRV</p>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div className="p-2 bg-blue-50 rounded">
                           <p className="text-xs font-semibold text-blue-900">Metabolic</p>
                           <div className="flex justify-between text-xs text-blue-700">
-                            <span>CVD:</span>
+                            <span>Cardiovascular vascular Disease:</span>
                             <span>{((prediction.rppg_risks.metabolic?.CVD || 0) * 100).toFixed(0)}%</span>
                           </div>
                           <div className="flex justify-between text-xs text-blue-700">
-                            <span>T2D:</span>
+                            <span>Type 2 Diabetes:</span>
                             <span>{((prediction.rppg_risks.metabolic?.T2D || 0) * 100).toFixed(0)}%</span>
                           </div>
                         </div>
@@ -770,7 +770,7 @@ const DashboardScreen = () => {
                             <span>{((prediction.rppg_risks.reproductive?.Stress || 0) * 100).toFixed(0)}%</span>
                           </div>
                           <div className="flex justify-between text-xs text-indigo-700">
-                            <span>Infert:</span>
+                            <span>Infertility:</span>
                             <span>{((prediction.rppg_risks.reproductive?.Infertility || 0) * 100).toFixed(0)}%</span>
                           </div>
                         </div>

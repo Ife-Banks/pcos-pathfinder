@@ -139,10 +139,16 @@ const WeeklyToolsScreen = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="px-6 pt-8 pb-6" style={{ backgroundColor: TEAL_PRIMARY }}>
         <div className="flex items-center gap-3 mb-1">
-          <button onClick={() => navigate("/dashboard")} className="text-white/80 hover:text-white">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h1 className="text-xl font-bold text-white font-[var(--font-display)]">Weekly Tools</h1>
+          <button
+  onClick={() => navigate("/dashboard")}
+  className="flex items-center justify-center gap-2 text-white transition duration-200 ease-in-out rounded-full px-3 py-2 hover:bg-white hover:text-green-600 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
+>
+  <ArrowLeft className="w-5 h-5" />
+  <span className="text-xl font-bold font-[var(--font-display)]">
+    Weekly Tools
+  </span>
+</button>
+          
         </div>
         <p className="text-white/70 text-sm ml-8">Clinical assessments due this week</p>
       </div>

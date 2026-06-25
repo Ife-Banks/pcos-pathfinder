@@ -20,6 +20,10 @@ const getSeverityColor = (score: number, max: number): { color: string; label: s
   return { color: '#922B21', label: 'Extreme' };
 };
 
+const getErrorMessage = (error: unknown, fallback: string) => {
+  return error instanceof Error ? error.message : fallback;
+};
+
 const acneLabels = [
   { value: 0, label: 'No spots', color: '#27AE60' },
   { value: 1, label: 'Blackheads / whiteheads', color: '#27AE60' },
@@ -126,9 +130,10 @@ const EveningCheckIn = () => {
         bloating_delta_cm: bloatingDelta ? parseFloat(bloatingDelta) : null,
         unusual_bleeding: unusualBleeding,
       });
-    } catch (err: any) {
-      setSubmitError(err.message || 'Failed to save. Please try again.');
-      toast({ title: 'Error', description: err.message || 'Failed to save. Please try again.', variant: 'destructive' });
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, 'Failed to save. Please try again.');
+      setSubmitError(message);
+      toast({ title: 'Error', description: message, variant: 'destructive' });
       setSubmitting(false);
       return;
     }
@@ -141,13 +146,13 @@ const EveningCheckIn = () => {
 
     try {
       const result = await completeSession();
-      toast({ title: 'Evening check-in complete ✓', description: 'Great job today!' });
+      toast({ title: 'Evening check-in complete', description: 'Great job today!' });
       if (result.predictions_triggered) {
         toast({ title: 'Risk score is being updated...', description: 'Check back in a moment.' });
       }
       navigate('/dashboard');
-    } catch (err: any) {
-      setSubmitError(err.message || 'Submission failed. Please try again.');
+    } catch (err: unknown) {
+      setSubmitError(getErrorMessage(err, 'Submission failed. Please try again.'));
       toast({ title: 'Submission failed', description: 'Please try again.', variant: 'destructive' });
       setSubmitting(false);
     }
@@ -378,19 +383,32 @@ const EveningCheckIn = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="px-6 pt-8 pb-4" style={{ backgroundColor: TEAL_PRIMARY }}>
         <div className="flex items-center justify-between mb-4">
-          <button onClick={() => navigate('/dashboard')} className="text-white/80 hover:text-white">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="flex items-center gap-1 rounded-full px-3 py-2 text-white/80 transition duration-200 ease-in-out hover:bg-white hover:text-green-600 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span className="text-sm">Back</span>
+            </button>
+
+            <div className="inline-flex flex-col rounded-xl px-3 py-2">
+              <h1 className="flex items-center gap-2 text-xl font-bold text-white font-[var(--font-display)]">
+                <Moon className="w-5 h-5" />
+                Symptom Intensity Logging
+              </h1>
+
+              <p className="mt-1 text-sm text-white/70">
+                End of day review
+              </p>
+            </div>
+          </div>
+
           <div className="flex items-center gap-2 text-white text-sm">
             <div className="h-2 w-2 rounded-full bg-teal-300" />
             Evening Check-In
           </div>
         </div>
-        <h1 className="text-xl font-bold text-white font-[var(--font-display)] flex items-center gap-2">
-          <Moon className="w-5 h-5" />
-          Symptom Intensity Logging
-        </h1>
-        <p className="text-white/70 text-sm mt-1">End of day review</p>
       </div>
 
       <div className="px-6 py-6 max-w-lg mx-auto pb-20">

@@ -105,6 +105,11 @@ import OnboardingScreen from "./pages/OnboardingScreen";
 import OnboardingComplete from "./pages/OnboardingComplete";
 import DashboardScreen from "./pages/DashboardScreen";
 import PatientMessagesScreen from "./pages/PatientMessagesScreen";
+import AboutScreen from "./pages/AboutScreen";
+import FAQScreen from "./pages/FAQScreen";
+import BlogScreen from "./pages/BlogScreen";
+import CareersScreen from "./pages/CareersScreen";
+import ContactScreen from "./pages/ContactScreen";
 // Onboarding step screens
 import Step1PersonalInfo from "./pages/onboarding/Step1PersonalInfo";
 import Step2PhysicalMeasurements from "./pages/onboarding/Step2PhysicalMeasurements";
@@ -208,6 +213,11 @@ const App = () => {
                     <Route path="/reset-password" element={<ResetPasswordScreen />} />
                     <Route path="/verify-email" element={<VerifyEmailScreen />} />
                     <Route path="/change-password" element={<ChangePasswordScreen />} />
+                    <Route path="/about" element={<AboutScreen />} />
+                    <Route path="/faq" element={<FAQScreen />} />
+                    <Route path="/blog" element={<BlogScreen />} />
+                    <Route path="/careers" element={<CareersScreen />} />
+                    <Route path="/contact" element={<ContactScreen />} />
                     {/* Clinician Routes */}
                     <Route path="/clinician" element={<ClinicianLayout />}>
                       <Route path="dashboard" element={<ClinicianDashboardScreen />} />
