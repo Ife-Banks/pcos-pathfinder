@@ -94,6 +94,15 @@ import AdminHealthScreen from "./pages/admin/AdminHealthScreen";
 import AdminAlertsScreen from "./pages/admin/AdminAlertsScreen";
 import AdminSecurityScreen from "./pages/admin/AdminSecurityScreen";
 import AdminSettingsScreen from "./pages/admin/AdminSettingsScreen";
+import LGALayout from "./components/layout/LGALayout";
+import LGALoginScreen from "./pages/lga/LGALoginScreen";
+import LGADashboardScreen from "./pages/lga/LGADashboardScreen";
+import LGAPHCListScreen from "./pages/lga/LGAPHCListScreen";
+import LGACreatePHCScreen from "./pages/lga/LGACreatePHCScreen";
+import AdminLGAAccountsScreen from "./pages/admin/AdminLGAAccountsScreen";
+import AdminCreateLGAAccountScreen from "./pages/admin/AdminCreateLGAAccountScreen";
+import AdminCSVUploadScreen from "./pages/admin/AdminCSVUploadScreen";
+import AdminCreateFacilityScreen from "./pages/admin/AdminCreateFacilityScreen";
 import PHCPatientDetailScreen from "./pages/phc/PHCPatientDetailScreen";
 import PHCWalkInRegistrationScreen from "./pages/phc/PHCWalkInRegistrationScreen";
 import PHCAdviceInterventionScreen from "./pages/phc/PHCAdviceInterventionScreen";
@@ -330,7 +339,14 @@ const App = () => {
                       <Route path="users" element={<AdminUsersScreen />} />
                       <Route path="users/add" element={<AdminAddUserScreen />} />
                       <Route path="users/:id" element={<AdminUserDetailScreen />} />
-                      <Route path="facilities" element={<AdminFacilitiesScreen />} />
+                      <Route path="facilities" element={<AdminFacilitiesScreen />}>
+                        <Route index element={<AdminFacilitiesScreen tab="all" />} />
+                        <Route path="all" element={<AdminFacilitiesScreen tab="all" />} />
+                        <Route path="create" element={<AdminFacilitiesScreen tab="create" />} />
+                        <Route path="lga-accounts" element={<AdminFacilitiesScreen tab="lga-accounts" />} />
+                        <Route path="lga-accounts/create" element={<AdminFacilitiesScreen tab="create-lga-account" />} />
+                        <Route path="csv-upload" element={<AdminFacilitiesScreen tab="csv-upload" />} />
+                      </Route>
                       <Route path="facilities/new" element={<AdminAddFacilityScreen />} />
                       <Route path="facilities/:id" element={<AdminFacilityDetailScreen />} />
                       <Route path="staff" element={<AdminStaffScreen />} />
@@ -344,6 +360,12 @@ const App = () => {
                       <Route path="security" element={<AdminSecurityScreen />} />
                       <Route path="settings" element={<AdminSettingsScreen />} />
                     </Route>
+                    {/* LGA Portal Routes */}
+                    <Route path="/lga/login" element={<LGALoginScreen />} />
+                    <Route path="/lga/dashboard" element={<LGADashboardScreen />} />
+                    <Route path="/lga/phcs" element={<LGAPHCListScreen />} />
+                    <Route path="/lga/create-phc" element={<LGACreatePHCScreen />} />
+                    <Route path="/lga/settings" element={<div className="p-6"><h1 className="text-2xl font-bold">LGA Settings</h1></div>} />
                     {/* Patient Routes */}
                     <Route path="/onboarding" element={<OnboardingScreen />} />
                     <Route element={<Outlet />}>

@@ -30,6 +30,7 @@ import { dashboardService, UserProfile } from "@/services/dashboardService";
 import { checkinService } from "@/services/checkinService";
 import { toast } from "@/hooks/use-toast";
 import { authAPI } from "@/services/authService";
+import { useAuth } from "@/context/AuthContext";
 
 const TEAL = '#00897B';
 
@@ -86,6 +87,7 @@ const CompletenessRing = ({ percent }: { percent: number }) => {
 
 const MyProfileScreen = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -137,23 +139,8 @@ const MyProfileScreen = () => {
   const handleSignOut = async () => {
     setSigningOut(true);
     try {
-      const refresh = localStorage.getItem('refresh_token');
-      const access = localStorage.getItem('access_token');
-      if (refresh && access) {
-        await authAPI.logout(refresh);
-      }
+      await logout();
     } catch { /* ignore */ }
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('latest_prediction_id');
-    localStorage.removeItem('latest_risk_tier');
-    localStorage.removeItem('latest_risk_score');
-    localStorage.removeItem('latest_prediction_id');
-    localStorage.removeItem('mshm_mfg_completed_week');
-    localStorage.removeItem('mshm_phq4_completed_week');
-    localStorage.removeItem('mshm_affect_completed_week');
-    localStorage.removeItem('mshm_focus_completed_week');
-    localStorage.removeItem('mshm_sleep_completed_week');
     navigate('/login');
     setSigningOut(false);
   };

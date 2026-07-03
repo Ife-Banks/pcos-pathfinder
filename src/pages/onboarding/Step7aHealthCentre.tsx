@@ -338,7 +338,7 @@ const Step7aHealthCentre = () => {
               <Input
                 id="lga"
                 type="text"
-                placeholder="e.g. Surulere"
+                placeholder="Enter LGA name"
                 value={formData.lga}
                 onChange={(e) => handleInputChange('lga', e.target.value)}
               />

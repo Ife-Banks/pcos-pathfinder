@@ -197,7 +197,7 @@ const Step1PersonalInfo = () => {
             <Label htmlFor="full_name">Full Name</Label>
             <Input
               id="full_name"
-              placeholder="Your full name"
+              placeholder="Enter your full name"
               value={form.full_name}
               onChange={(e) => setForm({ ...form, full_name: e.target.value })}
             />
@@ -233,7 +233,7 @@ const Step1PersonalInfo = () => {
             <Input
               id="phone_number"
               type="tel"
-              placeholder="e.g., +2348123456789"
+              placeholder="Enter phone number"
               value={form.phone_number}
               onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
             />

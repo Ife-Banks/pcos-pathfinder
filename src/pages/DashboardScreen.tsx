@@ -73,6 +73,116 @@ const getCompletenessColor = (pct: number) => {
   return "#27AE60";
 };
 
+const expandAbbreviation = (key: string): string => {
+  const mapping: Record<string, string> = {
+    'T2D': 'Type 2 Diabetes',
+    'CVD': 'Cardiovascular Disease',
+    'PMDD': 'Premenstrual Dysphoric Disorder',
+    'CLV': 'Cycle Length Variation',
+    'TTH': 'Teaching Tertiary Hospital',
+    'STH': 'Secondary Tertiary Hospital',
+    'FTH': 'Federal Tertiary Hospital',
+    'HMO': 'Health Maintenance Organization',
+    'PHC': 'Primary Healthcare Centre',
+    'PTTH': 'Private Teaching Tertiary Hospital',
+    'STTH': 'State Tertiary Teaching Hospital',
+    'FMC': 'Federal Medical Centre',
+    'HRV': 'Heart Rate Variability',
+    'rPPG': 'Remote Photoplethysmography',
+    'TIR': 'Time in Range',
+    'GDM': 'Gestational Diabetes Mellitus',
+    'PCOS': 'Polycystic Ovary Syndrome',
+    'GAD': 'Generalized Anxiety Disorder',
+    'PHQ': 'Patient Health Questionnaire',
+    'MGH': 'Multi-Disciplinary Group Healthcare',
+    'LGA': 'Local Government Area',
+    'BMI': 'Body Mass Index',
+    'SMBG': 'Self-Monitoring of Blood Glucose',
+    'HbA1c': 'Hemoglobin A1c',
+    'LDL': 'Low-Density Lipoprotein',
+    'HDL': 'High-Density Lipoprotein',
+    'VLDL': 'Very-Low-Density Lipoprotein',
+    'TG': 'Triglycerides',
+    'TC': 'Total Cholesterol',
+    'SBP': 'Systolic Blood Pressure',
+    'DBP': 'Diastolic Blood Pressure',
+    'MAP': 'Mean Arterial Pressure',
+    'HR': 'Heart Rate',
+    'SpO2': 'Oxygen Saturation',
+    'RR': 'Respiratory Rate',
+    'UTI': 'Urinary Tract Infection',
+    'STI': 'Sexually Transmitted Infection',
+    'IVF': 'In Vitro Fertilization',
+    'IUI': 'Intrauterine Insemination',
+    'LH': 'Luteinizing Hormone',
+    'FSH': 'Follicle Stimulating Hormone',
+    'E2': 'Estradiol',
+    'P4': 'Progesterone',
+    'T': 'Testosterone',
+    'PRL': 'Prolactin',
+    'AMH': 'Anti-Müllerian Hormone',
+    'SHBG': 'Sex Hormone Binding Globulin',
+    'DHEA': 'Dehydroepiandrosterone',
+    'AID': 'Autoimmune Disease',
+    'SLE': 'Systemic Lupus Erythematosus',
+    'RA': 'Rheumatoid Arthritis',
+    'MS': 'Multiple Sclerosis',
+    'IBD': 'Inflammatory Bowel Disease',
+    'T1D': 'Type 1 Diabetes',
+    'CKD': 'Chronic Kidney Disease',
+    'ESRD': 'End-Stage Renal Disease',
+    'CHF': 'Congestive Heart Failure',
+    'COPD': 'Chronic Obstructive Pulmonary Disease',
+    'OSA': 'Obstructive Sleep Apnea',
+    'NAFLD': 'Non-Alcoholic Fatty Liver Disease',
+    'METS': 'Metabolic Syndrome',
+    'MetSyn': 'Metabolic Syndrome',
+    'Stroke': 'Stroke',
+    'HF': 'Heart Failure',
+    'PAD': 'Peripheral Arterial Disease',
+    'AF': 'Atrial Fibrillation',
+    'MI': 'Myocardial Infarction',
+    'ACS': 'Acute Coronary Syndrome',
+    'CABG': 'Coronary Artery Bypass Graft',
+    'PCI': 'Percutaneous Coronary Intervention',
+    'SVD': 'Small Vessel Disease',
+    'LVD': 'Large Vessel Disease',
+    'CVD_Mood': 'Cardiovascular Disease',
+    'T2D_Mood': 'Type 2 Diabetes',
+    'MetSyn_Mood': 'Metabolic Syndrome',
+    'Stroke_Mood': 'Stroke',
+    'Anxiety': 'Anxiety',
+    'Depression': 'Depression',
+    'ChronicStress': 'Chronic Stress',
+    'Insomnia': 'Insomnia',
+    'Bipolar': 'Bipolar Disorder',
+    'Schizophrenia': 'Schizophrenia',
+    'Anorexia': 'Anorexia Nervosa',
+    'Bulimia': 'Bulimia Nervosa',
+    'OCD': 'Obsessive Compulsive Disorder',
+    'PTSD': 'Post Traumatic Stress Disorder',
+    'ADHD': 'Attention Deficit Hyperactivity Disorder',
+    'ASD': 'Autism Spectrum Disorder',
+    'OID': 'Opioid Use Disorder',
+    'AUD': 'Alcohol Use Disorder',
+    'SUD': 'Substance Use Disorder',
+    'CUD': 'Cannabis Use Disorder',
+    'NIC': 'Nicotine Use Disorder',
+    'SH': 'Self-Harm',
+    'SI': 'Suicidal Ideation',
+    'ED': 'Eating Disorder',
+    'BFR': 'Bioavailability Factor',
+    'AUC': 'Area Under Curve',
+    'Cmax': 'Maximum Concentration',
+    'Tmax': 'Time to Maximum',
+    't1/2': 'Half Life',
+    'VD': 'Volume of Distribution',
+    'CL': 'Clearance',
+    'F': 'Bioavailability',
+  };
+  return mapping[key] || key.replace(/_/g, ' ');
+};
+
 const RiskGauge = ({ score }: { score?: number }) => {
   const safeScore = score ?? 0;
   const tier = getRiskTier(safeScore);
@@ -259,50 +369,50 @@ const DashboardScreen = () => {
         CLV: aggregates?.CLV ?? null,
         total_cycles_stored: cycles.length,
       });
+      return true;
     } catch {
-      // ignore
+      return false;
     }
   }, []);
 
   const fetchTodaySummary = useCallback(async () => {
     try {
-      // Fetch HRV from rPPG sessions (via Django proxy to Node.js)
       let hrv: number | null = null;
-      try {
-        const hrvRes = await apiClient.get('/rppg/sessions');
-        if (hrvRes.data?.data?.sessions?.length > 0) {
-          const latestSession = hrvRes.data.data.sessions[0];
-          hrv = latestSession.rmssd ?? latestSession.hrv_rmssd ?? null;
-        }
-      } catch { /* ignore */ }
-
-      // Fetch fatigue from morning check-in
       let fatigue: number | null = null;
-      try {
-        const todayRes = await checkinService.getTodayStatus();
-        if (todayRes.data?.morning_session_id) {
-          const morningRes = await apiClient.get(`/checkin/morning/${todayRes.data.morning_session_id}/`);
+      let mood: number | null = null;
+
+      const [hrvRes, todayRes, moodRes] = await Promise.allSettled([
+        apiClient.get('/rppg/sessions'),
+        checkinService.getTodayStatus(),
+        apiClient.get('/mood/history'),
+      ]);
+
+      if (hrvRes.status === 'fulfilled' && hrvRes.value.data?.data?.sessions?.length > 0) {
+        const latestSession = hrvRes.value.data.data.sessions[0];
+        hrv = latestSession.rmssd ?? latestSession.hrv_rmssd ?? null;
+      }
+
+      if (todayRes.status === 'fulfilled' && todayRes.value.data?.morning_session_id) {
+        try {
+          const morningRes = await apiClient.get(`/checkin/morning/${todayRes.value.data.morning_session_id}/`);
           if (morningRes.data?.data) {
             fatigue = morningRes.data.data.fatigue_vas ?? null;
           }
-        }
-      } catch { /* ignore */ }
+        } catch { /* ignore */ }
+      }
 
-      // Fetch mood from mood history
-      let mood: number | null = null;
-      try {
-        const moodRes = await apiClient.get('/mood/history');
-        const logs = moodRes.data?.data?.logs;
+      if (moodRes.status === 'fulfilled') {
+        const logs = moodRes.value.data?.data?.logs;
         if (Array.isArray(logs) && logs.length > 0) {
           const latestMood = logs[0];
-          // Handle both snake_case and camelCase
           mood = latestMood.phq4Total ?? latestMood.phq4_total ?? null;
         }
-      } catch { /* ignore */ }
+      }
 
       setTodaySummary({ hrv_rmssd: hrv, fatigue_vas: fatigue, mood_score: mood });
+      return true;
     } catch {
-      // ignore
+      return false;
     }
   }, []);
 
@@ -337,13 +447,15 @@ const DashboardScreen = () => {
     setError(null);
 
     try {
-      const [profileRes, todayRes, predRes] = await Promise.allSettled([
+      const results = await Promise.allSettled([
         dashboardService.getUserProfile(),
         checkinService.getTodayStatus(),
         dashboardService.getMLPredictions(),
         fetchMenstrualSummary(),
         fetchTodaySummary(),
       ]);
+
+      const [profileRes, todayRes, predRes] = results;
 
       if (profileRes.status === 'fulfilled') {
         setProfile(profileRes.value.data);
@@ -566,20 +678,20 @@ const DashboardScreen = () => {
         animate={{ opacity: 1, y: 0 }}
         className="sticky top-0 z-10 bg-white/80 backdrop-blur-lg border-b border-gray-200 px-6 py-4"
       >
-        <div className="flex items-center justify-between max-w-md mx-auto">
+        <div className="flex items-center justify-between max-w-2xl mx-auto">
           <div className="flex items-center gap-3">
-            <img src={logo} alt="AI-MSHM" className="h-8 w-8" />
+            <img src={logo} alt="AI-MSHM" className="h-10 w-10" />
             <div>
-              <p className="text-sm text-gray-500">{greeting}</p>
-              <p className="font-display font-bold text-gray-900">
+              <p className="text-sm text-gray-600 font-medium">{greeting}</p>
+              <p className="font-display font-bold text-gray-900 text-lg">
                 {loading ? (
-                  <span className="h-5 w-24 bg-gray-200 rounded animate-pulse inline-block" />
+                  <span className="h-5 w-28 bg-gray-200 rounded animate-pulse inline-block" />
                 ) : (
                   profile?.full_name || 'User'
                 )}
               </p>
               {profile?.unique_id && (
-                <p className="text-xs text-teal-600 font-medium">{profile.unique_id}</p>
+                <p className="text-sm text-teal-600 font-semibold">{profile.unique_id}</p>
               )}
             </div>
           </div>
@@ -610,7 +722,7 @@ const DashboardScreen = () => {
         </div>
       </motion.header>
       <TrialBanner />
-      <div className="flex-1 px-6 py-6 max-w-md mx-auto w-full space-y-6">
+      <div className="flex-1 px-6 py-6 max-w-2xl mx-auto w-full space-y-6">
         {refreshing && (
           <div className="flex items-center justify-center py-2">
             <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
@@ -676,9 +788,9 @@ const DashboardScreen = () => {
               className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm"
             >
               <div className="flex items-center justify-between mb-4">
-                <h2 className="font-display font-bold text-gray-900">{riskScoreTitle}</h2>
+                <h2 className="font-display font-bold text-gray-900 text-lg">{riskScoreTitle}</h2>
                 {prediction && hasValidDate && (
-                  <span className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">
+                  <span className="text-xs text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full font-medium">
                     {isUpdatedToday ? 'Updated today' : `Updated ${predictionAge} day${predictionAge !== 1 ? 's' : ''} ago`}
                   </span>
                 )}
@@ -690,7 +802,7 @@ const DashboardScreen = () => {
                   <div className="w-48 h-28 flex items-center justify-center text-gray-400">
                     No score yet
                   </div>
-                  <p className="text-sm text-gray-500 mt-2 text-center">
+                  <p className="text-sm text-gray-600 mt-2 text-center font-medium">
                     Complete your check-ins to generate your first score
                   </p>
                 </div>
@@ -705,39 +817,39 @@ const DashboardScreen = () => {
                 transition={{ delay: 0.3 }}
                 className="bg-white rounded-2xl border border-gray-200 p-4"
               >
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Downstream Disease Risk prediction </h3>
-                
-                <div className="space-y-3">
+                <h3 className="font-display font-bold text-gray-900 mb-3 text-base">Downstream Disease Risk Prediction</h3>
+
+                <div className="space-y-4">
                   {/* 1. Symptom Intensity */}
                   {prediction.symptom_intensity_risks && (
                     <div>
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <span className="text-xs">📝</span>
-                        <p className="text-xs text-gray-500 font-medium">Symptom Intensity</p>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm">📝</span>
+                        <p className="text-sm font-semibold text-gray-800">Symptom Intensity</p>
                       </div>
-                      <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div className="grid grid-cols-3 gap-2 text-sm">
                         {Object.entries(prediction.symptom_intensity_risks).map(([key, value]) => (
-                          <div key={key} className="text-center p-2 bg-teal-50 rounded">
-                            <div className="font-semibold text-gray-900 text-[10px]">{key.replace('_', ' ')}</div>
-                            <div className="text-teal-700">{(value * 100).toFixed(0)}%</div>
+                          <div key={key} className="text-center p-3 bg-teal-50 rounded-lg">
+                            <div className="font-semibold text-gray-800">{expandAbbreviation(key)}</div>
+                            <div className="text-teal-700 font-bold mt-1">{(value * 100).toFixed(0)}%</div>
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
-                  
+
                   {/* 2. Menstrual Health */}
                   {prediction.menstrual_risks && (
                     <div>
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <span className="text-xs">🩺</span>
-                        <p className="text-xs text-gray-500 font-medium">Menstrual Health</p>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm">🩺</span>
+                        <p className="text-sm font-semibold text-gray-800">Menstrual Health</p>
                       </div>
-                      <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div className="grid grid-cols-3 gap-2 text-sm">
                         {Object.entries(prediction.menstrual_risks).map(([key, value]) => (
-                          <div key={key} className="text-center p-2 bg-purple-50 rounded">
-                            <div className="font-semibold text-gray-900 text-[10px]">{key.replace('_', ' ')}</div>
-                            <div className="text-purple-700">{(value * 100).toFixed(0)}%</div>
+                          <div key={key} className="text-center p-3 bg-purple-50 rounded-lg">
+                            <div className="font-semibold text-gray-800">{expandAbbreviation(key)}</div>
+                            <div className="text-purple-700 font-bold mt-1">{(value * 100).toFixed(0)}%</div>
                           </div>
                         ))}
                       </div>
@@ -747,31 +859,29 @@ const DashboardScreen = () => {
                   {/* 3. rPPG Camera */}
                   {prediction.rppg_risks && (
                     <div>
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <span className="text-xs">📷</span>
-                        <p className="text-xs text-gray-500 font-medium">rPPG/HRV</p>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm">📷</span>
+                        <p className="text-sm font-semibold text-gray-800">rPPG/HRV</p>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
-                        <div className="p-2 bg-blue-50 rounded">
-                          <p className="text-xs font-semibold text-blue-900">Metabolic</p>
-                          <div className="flex justify-between text-xs text-blue-700">
-                            <span>Cardiovascular vascular Disease:</span>
-                            <span>{((prediction.rppg_risks.metabolic?.CVD || 0) * 100).toFixed(0)}%</span>
+                        <div className="p-3 bg-blue-50 rounded-lg">
+                          <div className="flex justify-between text-sm text-blue-800 font-medium">
+                            <span>Cardiovascular Disease:</span>
+                            <span className="font-bold">{((prediction.rppg_risks.metabolic?.CVD || 0) * 100).toFixed(0)}%</span>
                           </div>
-                          <div className="flex justify-between text-xs text-blue-700">
+                          <div className="flex justify-between text-sm text-blue-800 font-medium mt-1">
                             <span>Type 2 Diabetes:</span>
-                            <span>{((prediction.rppg_risks.metabolic?.T2D || 0) * 100).toFixed(0)}%</span>
+                            <span className="font-bold">{((prediction.rppg_risks.metabolic?.T2D || 0) * 100).toFixed(0)}%</span>
                           </div>
                         </div>
-                        <div className="p-2 bg-indigo-50 rounded">
-                          <p className="text-xs font-semibold text-indigo-900">Stress</p>
-                          <div className="flex justify-between text-xs text-indigo-700">
+                        <div className="p-3 bg-indigo-50 rounded-lg">
+                          <div className="flex justify-between text-sm text-indigo-800 font-medium">
                             <span>Stress:</span>
-                            <span>{((prediction.rppg_risks.reproductive?.Stress || 0) * 100).toFixed(0)}%</span>
+                            <span className="font-bold">{((prediction.rppg_risks.reproductive?.Stress || 0) * 100).toFixed(0)}%</span>
                           </div>
-                          <div className="flex justify-between text-xs text-indigo-700">
+                          <div className="flex justify-between text-sm text-indigo-800 font-medium mt-1">
                             <span>Infertility:</span>
-                            <span>{((prediction.rppg_risks.reproductive?.Infertility || 0) * 100).toFixed(0)}%</span>
+                            <span className="font-bold">{((prediction.rppg_risks.reproductive?.Infertility || 0) * 100).toFixed(0)}%</span>
                           </div>
                         </div>
                       </div>
@@ -781,15 +891,15 @@ const DashboardScreen = () => {
                   {/* 4. Mood Analysis */}
                   {prediction.rppg_risks?.mood && (
                     <div>
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <span className="text-xs">🧠</span>
-                        <p className="text-xs text-gray-500 font-medium">Mood Analysis</p>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm">🧠</span>
+                        <p className="text-sm font-semibold text-gray-800">Mood Analysis</p>
                       </div>
                       <div className="grid grid-cols-3 gap-2">
                         {Object.entries(prediction.rppg_risks.mood).slice(0, 3).map(([key, value]) => (
-                          <div key={key} className="text-center p-2 bg-amber-50 rounded">
-                            <div className="font-semibold text-gray-900 text-[10px]">{key}</div>
-                            <div className="text-amber-700">{(value * 100).toFixed(0)}%</div>
+                          <div key={key} className="text-center p-3 bg-amber-50 rounded-lg">
+                            <div className="font-semibold text-gray-800 text-sm">{expandAbbreviation(key)}</div>
+                            <div className="text-amber-700 font-bold mt-1 text-base">{(value * 100).toFixed(0)}%</div>
                           </div>
                         ))}
                       </div>
@@ -805,32 +915,32 @@ const DashboardScreen = () => {
               transition={{ delay: 0.2 }}
               className="grid grid-cols-2 gap-3"
             >
-              <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
+              <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4">
                 <CompletenessRing percent={completenessPct} missing={missingCount} />
                 <div>
-                  <p className="text-xs text-gray-500">Data</p>
-                  <p className="font-display font-bold text-gray-900 text-sm">Completeness</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="text-sm text-gray-600 font-medium">Data</p>
+                  <p className="font-display font-bold text-gray-900 text-lg">Completeness</p>
+                  <p className="text-sm text-gray-600 mt-1">
                     {completenessPct >= 100
                       ? 'All data complete ✓'
                       : `${missingCount} missing inputs`}
                   </p>
                 </div>
               </div>
-              <div className="bg-white rounded-xl border border-gray-200 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Activity className="h-4 w-4" style={{ color: TEAL_PRIMARY }} />
-                  <p className="text-xs text-gray-500">Check-in Streak</p>
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <Activity className="h-5 w-5" style={{ color: TEAL_PRIMARY }} />
+                  <p className="text-sm text-gray-600 font-semibold">Check-in Streak</p>
                 </div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-bold font-display text-gray-900">{streakDays}</span>
-                  <span className="text-sm text-gray-500">days</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-bold font-display text-gray-900">{streakDays}</span>
+                  <span className="text-lg text-gray-500">days</span>
                 </div>
-                <div className="flex gap-1 mt-2">
+                <div className="flex gap-1.5 mt-3">
                   {[1, 2, 3, 4, 5, 6, 7].map((d) => (
                     <div
                       key={d}
-                      className="h-1.5 flex-1 rounded-full"
+                      className="h-2 flex-1 rounded-full"
                       style={d <= streakDays ? { backgroundColor: TEAL_PRIMARY } : { backgroundColor: '#E5E7EB' }}
                     />
                   ))}
@@ -845,8 +955,8 @@ const DashboardScreen = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <h3 className="font-display font-bold text-gray-900 mb-3">Quick Actions</h3>
-          <div className="space-y-2.5">
+          <h3 className="font-display font-bold text-gray-900 mb-3 text-lg">Quick Actions</h3>
+          <div className="space-y-3">
             {quickActions.map((action, i) => (
               <motion.button
                 key={action.title}
@@ -862,22 +972,22 @@ const DashboardScreen = () => {
                 }}
                 className={`w-full flex items-center gap-4 p-4 rounded-xl border hover:shadow-md transition-all group text-left ${action.bgTint ?? 'bg-white border-gray-200'}`}
               >
-                <div className={`h-11 w-11 rounded-xl ${action.gradient} flex items-center justify-center shrink-0`}>
-                  <action.icon className="h-5 w-5 text-white" />
+                <div className={`h-12 w-12 rounded-xl ${action.gradient} flex items-center justify-center shrink-0`}>
+                  <action.icon className="h-6 w-6 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="font-display font-semibold text-gray-900 text-sm">{action.title}</p>
+                    <p className="font-display font-bold text-gray-900 text-base">{action.title}</p>
                     {'dotColor' in action && (
-                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: action.dotColor }} />
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: action.dotColor }} />
                     )}
                     {action.urgent && !('dotColor' in action) && (
-                      <span className="h-2 w-2 rounded-full bg-amber-500" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
                     )}
                   </div>
-                  <p className="text-xs text-gray-500">{action.subtitle}</p>
+                  <p className="text-sm text-gray-600 mt-0.5">{action.subtitle}</p>
                 </div>
-                <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
+                <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
               </motion.button>
             ))}
           </div>
@@ -889,65 +999,65 @@ const DashboardScreen = () => {
           transition={{ delay: 0.5 }}
           className="bg-white rounded-2xl border border-gray-200 p-5"
         >
-          <h3 className="font-display font-bold text-gray-900 mb-3">Today's Summary</h3>
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="p-3 rounded-lg bg-gray-50">
-              <Heart className="h-4 w-4 mx-auto mb-1 text-teal-500" />
-              <p className="text-lg font-bold font-display text-gray-900">
+          <h3 className="font-display font-bold text-gray-900 mb-4 text-lg">Today's Summary</h3>
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div className="p-4 rounded-lg bg-gray-50">
+              <Heart className="h-5 w-5 mx-auto mb-2 text-teal-500" />
+              <p className="text-2xl font-bold font-display text-gray-900">
                 {todaySummary?.hrv_rmssd ? `${todaySummary.hrv_rmssd.toFixed(0)}` : '—'}
               </p>
-              <p className="text-[10px] text-gray-500">HRV</p>
+              <p className="text-sm text-gray-600 mt-1 font-medium">HRV</p>
             </div>
-            <div className="p-3 rounded-lg bg-gray-50">
-              <TrendingUp className="h-4 w-4 mx-auto mb-1 text-amber-500" />
-              <p className="text-lg font-bold font-display text-gray-900">
+            <div className="p-4 rounded-lg bg-gray-50">
+              <TrendingUp className="h-5 w-5 mx-auto mb-2 text-amber-500" />
+              <p className="text-2xl font-bold font-display text-gray-900">
                 {todaySummary?.fatigue_vas ? `${todaySummary.fatigue_vas.toFixed(1)}` : morningComplete ? '✓' : '—'}
               </p>
-              <p className="text-[10px] text-gray-500">Fatigue</p>
+              <p className="text-sm text-gray-600 mt-1 font-medium">Fatigue</p>
             </div>
-            <div className="p-3 rounded-lg bg-gray-50">
-              <Sun className="h-4 w-4 mx-auto mb-1 text-purple-500" />
-              <p className="text-lg font-bold font-display text-gray-900">
+            <div className="p-4 rounded-lg bg-gray-50">
+              <Sun className="h-5 w-5 mx-auto mb-2 text-purple-500" />
+              <p className="text-2xl font-bold font-display text-gray-900">
                 {todaySummary?.mood_score ? `${todaySummary.mood_score.toFixed(0)}` : '—'}
               </p>
-              <p className="text-[10px] text-gray-500">Mood</p>
+              <p className="text-sm text-gray-600 mt-1 font-medium">Mood</p>
             </div>
           </div>
 
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
             {morningComplete ? (
-              <span className="flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-medium">
-                <span className="h-1.5 w-1.5 rounded-full bg-green-500" />Morning: Done
+              <span className="flex items-center gap-1.5 text-sm bg-green-100 text-green-800 px-3 py-1.5 rounded-full font-semibold">
+                <span className="h-2 w-2 rounded-full bg-green-500" />Morning: Done
               </span>
             ) : (
-              <span className="flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full font-medium">
-                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />Morning: Pending
+              <span className="flex items-center gap-1.5 text-sm bg-amber-100 text-amber-800 px-3 py-1.5 rounded-full font-semibold">
+                <span className="h-2 w-2 rounded-full bg-amber-500" />Morning: Pending
               </span>
             )}
             {eveningComplete ? (
-              <span className="flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-medium">
-                <span className="h-1.5 w-1.5 rounded-full bg-green-500" />Evening: Done
+              <span className="flex items-center gap-1.5 text-sm bg-green-100 text-green-800 px-3 py-1.5 rounded-full font-semibold">
+                <span className="h-2 w-2 rounded-full bg-green-500" />Evening: Done
               </span>
             ) : (
-              <span className="flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full font-medium">
-                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />Evening: Pending
+              <span className="flex items-center gap-1.5 text-sm bg-amber-100 text-amber-800 px-3 py-1.5 rounded-full font-semibold">
+                <span className="h-2 w-2 rounded-full bg-amber-500" />Evening: Pending
               </span>
             )}
           </div>
 
           {!morningComplete && (
-            <div className="mt-3 flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200">
-              <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
-              <p className="text-xs text-amber-800">
+            <div className="mt-4 flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
+              <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
+              <p className="text-sm text-amber-800 font-medium">
                 Complete your morning check-in to update today's data.
               </p>
             </div>
           )}
 
           {bothComplete && currentHour >= 17 && !prediction && (
-            <div className="mt-3 flex items-center gap-2 p-2.5 rounded-lg bg-teal-50 border border-teal-200">
-              <Activity className="h-4 w-4 text-teal-600 shrink-0" />
-              <p className="text-xs text-teal-800">
+            <div className="mt-4 flex items-center gap-2 p-3 rounded-lg bg-teal-50 border border-teal-200">
+              <Activity className="h-5 w-5 text-teal-600 shrink-0" />
+              <p className="text-sm text-teal-800 font-medium">
                 Complete your evening check-in to unlock today's risk prediction.
               </p>
             </div>
@@ -956,7 +1066,7 @@ const DashboardScreen = () => {
       </div>
 
       <nav className="sticky bottom-0 bg-white/90 backdrop-blur-lg border-t border-gray-200 px-6 py-3">
-        <div className="flex justify-around max-w-md mx-auto">
+        <div className="flex justify-around max-w-2xl mx-auto">
           {navItems.map((item) => (
             <button
               key={item.label}

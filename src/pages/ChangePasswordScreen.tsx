@@ -167,7 +167,7 @@ const ChangePasswordScreen = () => {
                   <Button
                     type="button"
                     variant="link"
-                    onClick={() => logout()}
+                    onClick={async () => { await logout(); navigate('/login'); }}
                     className="text-gray-500"
                   >
                     Log out

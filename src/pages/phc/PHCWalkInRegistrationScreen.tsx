@@ -209,11 +209,11 @@ export default function PHCWalkInRegistrationScreen() {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="first_name">First Name *</Label>
-          <Input id="first_name" value={form.first_name} onChange={e => updateField('first_name', e.target.value)} placeholder="Jane" />
+          <Input id="first_name" value={form.first_name} onChange={e => updateField('first_name', e.target.value)} placeholder="Enter first name" />
         </div>
         <div>
           <Label htmlFor="last_name">Last Name *</Label>
-          <Input id="last_name" value={form.last_name} onChange={e => updateField('last_name', e.target.value)} placeholder="Doe" />
+          <Input id="last_name" value={form.last_name} onChange={e => updateField('last_name', e.target.value)} placeholder="Enter last name" />
         </div>
       </div>
       <div>
@@ -223,11 +223,11 @@ export default function PHCWalkInRegistrationScreen() {
       </div>
       <div>
         <Label htmlFor="phone">Phone Number *</Label>
-        <Input id="phone" type="tel" value={form.phone} onChange={e => updateField('phone', e.target.value)} placeholder="+91 9876543210" />
+        <Input id="phone" type="tel" value={form.phone} onChange={e => updateField('phone', e.target.value)} placeholder="Enter phone number" />
       </div>
       <div>
         <Label htmlFor="email">Email Address *</Label>
-        <Input id="email" type="email" value={form.email} onChange={e => updateField('email', e.target.value)} placeholder="jane@example.com" />
+        <Input id="email" type="email" value={form.email} onChange={e => updateField('email', e.target.value)} placeholder="Enter email address" />
       </div>
       <div>
         <Label>Gender *</Label>
@@ -273,7 +273,7 @@ export default function PHCWalkInRegistrationScreen() {
             <Input id="height" type="number" value={form.height_cm ? (heightUnit === 'cm' ? form.height_cm : parseFloat((form.height_cm / 30.48).toFixed(2))) : ''} onChange={e => {
               const val = parseFloat(e.target.value);
               updateField('height_cm', isNaN(val) ? null : heightUnit === 'cm' ? val : val * 30.48);
-            }} placeholder={heightUnit === 'cm' ? '170' : '5.6'} className="text-center" />
+            }} placeholder={heightUnit === 'cm' ? 'Enter height' : 'Enter height'} className="text-center" />
             <Button type="button" variant="outline" size="sm" onClick={() => {
               const delta = heightUnit === 'cm' ? 1 : 0.1;
               const currentDisplayVal = form.height_cm ? (heightUnit === 'cm' ? form.height_cm : form.height_cm / 30.48) : 0;
@@ -313,7 +313,7 @@ export default function PHCWalkInRegistrationScreen() {
             <Input id="weight" type="number" value={form.weight_kg ? (weightUnit === 'kg' ? form.weight_kg : parseFloat((form.weight_kg / 0.453592).toFixed(1))) : ''} onChange={e => {
               const val = parseFloat(e.target.value);
               updateField('weight_kg', isNaN(val) ? null : weightUnit === 'kg' ? val : val * 0.453592);
-            }} placeholder={weightUnit === 'kg' ? '65' : '143'} className="text-center" />
+            }} placeholder={weightUnit === 'kg' ? 'Enter weight' : 'Enter weight'} className="text-center" />
             <Button type="button" variant="outline" size="sm" onClick={() => {
               const delta = 1;
               const currentDisplayVal = form.weight_kg ? (weightUnit === 'kg' ? form.weight_kg : form.weight_kg / 0.453592) : 0;
@@ -334,7 +334,7 @@ export default function PHCWalkInRegistrationScreen() {
         <Input id="waist" type="number" value={form.waist_cm ?? ''} onChange={e => {
           const val = parseFloat(e.target.value);
           updateField('waist_cm', isNaN(val) ? null : val);
-        }} placeholder="80" />
+        }} placeholder="Enter waist circumference" />
       </div>
       <div>
         <Label>Acanthosis Nigricans *</Label>
@@ -367,7 +367,7 @@ export default function PHCWalkInRegistrationScreen() {
             <Input id="cycle_length" type="number" value={form.typical_cycle_length ?? ''} onChange={e => {
               const val = parseInt(e.target.value);
               updateField('typical_cycle_length', isNaN(val) ? null : val);
-            }} placeholder="28" />
+            }} placeholder="Enter number of days" />
           </div>
           <div>
             <Label htmlFor="last_period">Last Period Start Date</Label>
