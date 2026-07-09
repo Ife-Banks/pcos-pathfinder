@@ -936,18 +936,18 @@ const DashboardScreen = () => {
   <div className="p-3 bg-blue-50 rounded-lg text-center">
     <div className="text-sm text-black-800 font-bold">Cardiovascular Disease:</div>
     <div className="font-bold text-blue-800">
-      {prediction.rppg_status?.metabolic_cardio?.status === 'pending'
-        ? `${prediction.rppg_status.metabolic_cardio.current_span_days ?? 0}/${prediction.rppg_status.metabolic_cardio.required_span_days ?? 30}d`
-        : `${((prediction.rppg_risks.metabolic?.CVD || 0) * 100).toFixed(0)}%`}
+      {prediction.rppg_risks.metabolic?.CVD != null
+        ? `${(prediction.rppg_risks.metabolic.CVD * 100).toFixed(0)}%`
+        : `${prediction.rppg_status?.metabolic_cardio?.current_span_days ?? 0}/${prediction.rppg_status?.metabolic_cardio?.required_span_days ?? 30}d · No result yet`}
     </div>
   </div>
 
   <div className="p-3 bg-blue-50 rounded-lg text-center">
     <div className="text-sm text-black-800 font-bold">Type 2 Diabetes:</div>
     <div className="font-bold text-blue-800">
-      {prediction.rppg_status?.metabolic_cardio?.status === 'pending'
-        ? `${prediction.rppg_status.metabolic_cardio.current_span_days ?? 0}/${prediction.rppg_status.metabolic_cardio.required_span_days ?? 30}d`
-        : `${((prediction.rppg_risks.metabolic?.T2D || 0) * 100).toFixed(0)}%`}
+      {prediction.rppg_risks.metabolic?.T2D != null
+        ? `${(prediction.rppg_risks.metabolic.T2D * 100).toFixed(0)}%`
+        : `${prediction.rppg_status?.metabolic_cardio?.current_span_days ?? 0}/${prediction.rppg_status?.metabolic_cardio?.required_span_days ?? 30}d · No result yet`}
     </div>
   </div>
 
@@ -968,10 +968,7 @@ const DashboardScreen = () => {
         : `${((prediction.rppg_risks.reproductive?.Infertility || 0) * 100).toFixed(0)}%`}
     </div>
   </div>
-</div>
-    </div>
   </div>
-</div>  
                     </div>
                   )}
 

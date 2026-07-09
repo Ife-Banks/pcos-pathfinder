@@ -56,14 +56,14 @@ export interface PredictionData {
   // rPPG + Mood (for dashboard display)
   rppg_risks?: {
     metabolic: {
-      CVD: number;
-      T2D: number;
-      Metabolic: number;
-      HeartFailure: number;
+      CVD: number | null;
+      T2D: number | null;
+      Metabolic: number | null;
+      HeartFailure: number | null;
     };
     reproductive: {
-      Stress: number;
-      Infertility: number;
+      Stress: number | null;
+      Infertility: number | null;
     };
     mood?: {
       Anxiety: number;
@@ -220,17 +220,17 @@ export const dashboardService = {
             moodPreds.CVD_Mood?.risk_score || 0
           ),
         },
-        // rPPG + Mood (for dashboard display) - use risk_score
+        // rPPG + Mood (for dashboard display) - use risk_score, preserve nulls
         rppg_risks: {
           metabolic: {
-            CVD: rppgPreds.CVD?.risk_score || 0,
-            T2D: rppgPreds.T2D?.risk_score || 0,
-            Metabolic: rppgPreds.Metabolic?.risk_score || 0,
-            HeartFailure: rppgPreds.HeartFailure?.risk_score || 0,
+            CVD: rppgPreds.CVD?.risk_score ?? null,
+            T2D: rppgPreds.T2D?.risk_score ?? null,
+            Metabolic: rppgPreds.Metabolic?.risk_score ?? null,
+            HeartFailure: rppgPreds.HeartFailure?.risk_score ?? null,
           },
           reproductive: {
-            Stress: rppgPreds.Stress?.risk_score || 0,
-            Infertility: rppgPreds.Infertility?.risk_score || 0,
+            Stress: rppgPreds.Stress?.risk_score ?? null,
+            Infertility: rppgPreds.Infertility?.risk_score ?? null,
           },
           mood: {
             Anxiety: moodPreds.Anxiety?.risk_score || 0,
