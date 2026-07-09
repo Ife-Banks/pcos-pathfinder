@@ -143,8 +143,9 @@ function ChatTab() {
     try {
       const res = await phcAPI.getPHCConversations();
       const data: Conversation[] = Array.isArray(res) ? res : (res?.data || []);
-      setConversations(data);
-      setFilteredConversations(data);
+      const sorted = [...data].sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
+      setConversations(sorted);
+      setFilteredConversations(sorted);
     } catch {
       setError("Failed to load conversations.");
     } finally {
@@ -166,7 +167,7 @@ function ChatTab() {
     try {
       const res = await phcAPI.getPHCMessages(convId);
       const data: Message[] = Array.isArray(res) ? res : (res?.data || []);
-      setMessages(data);
+      setMessages([...data].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
     } catch {
       setMessages([]);
     } finally {
@@ -182,7 +183,7 @@ function ChatTab() {
       try {
         const res = await phcAPI.getPHCMessages(convId);
         const data: Message[] = Array.isArray(res) ? res : (res?.data || []);
-        setMessages(data);
+        setMessages([...data].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
       } catch {}
     }, POLL_INTERVAL);
   };
@@ -550,7 +551,8 @@ function AdviceTab() {
   const fetchSentMessages = async () => {
     try {
       const data = await phcAPI.getRecentAdvice(10);
-      setSentMessages(Array.isArray(data) ? data : (data?.data?.results || data?.data || []));
+      const msgs = Array.isArray(data) ? data : (data?.data?.results || data?.data || []);
+      setSentMessages([...msgs].sort((a, b) => new Date(b.created_at || b.sent_at).getTime() - new Date(a.created_at || a.sent_at).getTime()));
     } catch {}
   };
 

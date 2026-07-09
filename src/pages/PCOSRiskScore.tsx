@@ -140,8 +140,8 @@ const PCOSRiskScore = () => {
     return (
       <div className="min-h-screen bg-gray-100">
         <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-gray-300 px-4 py-3 flex items-center gap-3">
-          <button className="p-1.5 rounded-lg hover:bg-gray-200 hover:text-teal-600">
-            <ArrowLeft className="w-5 h-5 text-gray-700" /> back
+          <button className="p-1.5 rounded-lg hover:bg-teal-700 hover:text-white flex items-center gap-1">
+            <ArrowLeft className="w-5 h-5 text-gray-700 hover:text-teal-600" /> back
           </button>
           <div>
             <h1 className="font-display text-lg font-bold text-gray-900">PMOS Risk Score</h1>
@@ -164,8 +164,8 @@ const PCOSRiskScore = () => {
     return (
       <div className="min-h-screen bg-gray-100">
         <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-gray-300 px-4 py-3 flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="p-1.5 rounded-lg hover:bg-gray-200 hover:text-teal-600">
-            <ArrowLeft className="w-5 h-5 text-gray-700" />
+          <button onClick={() => navigate(-1)} className="p-1.5 rounded-lg hover:bg-teal-700 hover:text-white flex items-center gap-1">
+            <ArrowLeft className="w-5 h-5 text-gray-700 hover:text-teal-600" /> back
           </button>
           <div>
             <h1 className="font-display text-lg font-bold text-gray-900">PMOS Risk Score</h1>
@@ -245,8 +245,8 @@ const PCOSRiskScore = () => {
   return (
     <div className="min-h-screen bg-gray-100">
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-gray-300 px-4 py-3 flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="p-1.5 rounded-lg hover:bg-gray-200 hover:text-teal-600">
-          <ArrowLeft className="w-5 h-5 text-gray-700" />
+        <button onClick={() => navigate(-1)} className="p-1.5 rounded-lg hover:bg-teal-700 hover:text-white flex items-center gap-1">
+          <ArrowLeft className="w-5 h-5 text-gray-700 hover:text-teal-600" /> back
         </button>
         <div className="flex-1">
           <h1 className="font-display text-lg font-bold text-gray-900">PMOS Risk Score</h1>
@@ -364,7 +364,7 @@ const PCOSRiskScore = () => {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.6 }}
               >
-                <p className="text-4xl font-display font-bold text-gray-900">{score.toFixed(2)} <span className="text-xl font-bold text-gray-400">/ 1.00</span></p>
+                <p className="text-4xl font-display font-bold text-gray-900">{score.toFixed(2)} <span className="text-xl font-black text-gray-800">/ 1.00</span></p>
                 <div className="flex items-center justify-center gap-2 mt-1.5">
                   <TierIcon className="w-4 h-4" style={{ color: safeTierConfig.color }} />
                   <Badge className="border-0 font-display font-semibold text-white" style={{ backgroundColor: safeTierConfig.bg }}>
@@ -624,7 +624,7 @@ const PCOSRiskScore = () => {
           <Info className="w-5 h-5 text-gray-900 shrink-0 mt-0.5" />
           <p className="text-xs font-medium text-gray-900 leading-relaxed">
             
-            Consult your healthcare provider for diagnosis and treatment decisions.
+            Consult your healthcare provider for treatment decisions.
           </p>
         </div>
 
