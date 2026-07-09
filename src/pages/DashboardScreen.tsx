@@ -236,9 +236,12 @@ const RiskGauge = ({ score }: { score?: number }) => {
         transition={{ delay: 0.6 }}
         className="text-center -mt-2"
       >
-        <span className="text-3xl font-bold font-display" style={{ color: tier.color }}>
-          {safeScore.toFixed(2)}
-        </span>
+        <span>
+  <span className="text-3xl font-bold font-display" style={{ color: tier.color }}>
+    {safeScore.toFixed(2)}
+  </span>{' '}
+  <span className="text-lg text-gray-500">/ 1.00</span>
+</span>
         <p className="text-sm font-semibold text-gray-800">
           Risk Tier: <span className="font-extrabold" style={{ color: tier.color }}>{tier.label}</span>
         </p>
