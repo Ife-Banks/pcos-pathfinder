@@ -863,28 +863,43 @@ const DashboardScreen = () => {
                         <span className="text-sm">📷</span>
                         <p className="text-sm font-semibold text-gray-800">rPPG/HRV</p>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="p-3 bg-blue-50 rounded-lg">
-                          <div className="flex justify-between text-sm text-blue-800 font-medium">
-                            <span>Cardiovascular Disease:</span>
-                            <span className="font-bold">{((prediction.rppg_risks.metabolic?.CVD || 0) * 100).toFixed(0)}%</span>
-                          </div>
-                          <div className="flex justify-between text-sm text-blue-800 font-medium mt-1">
-                            <span>Type 2 Diabetes:</span>
-                            <span className="font-bold">{((prediction.rppg_risks.metabolic?.T2D || 0) * 100).toFixed(0)}%</span>
-                          </div>
-                        </div>
-                        <div className="p-3 bg-indigo-50 rounded-lg">
-                          <div className="flex justify-between text-sm text-indigo-800 font-medium">
-                            <span>Stress:</span>
-                            <span className="font-bold">{((prediction.rppg_risks.reproductive?.Stress || 0) * 100).toFixed(0)}%</span>
-                          </div>
-                          <div className="flex justify-between text-sm text-indigo-800 font-medium mt-1">
-                            <span>Infertility:</span>
-                            <span className="font-bold">{((prediction.rppg_risks.reproductive?.Infertility || 0) * 100).toFixed(0)}%</span>
-                          </div>
-                        </div>
-                      </div>
+                      <div className="grid grid-cols-4 gap-2">
+  <div className="p-3 bg-blue-50 rounded-lg">
+    <div className="flex justify-between text-sm text-blue-800 font-medium">
+      <span>Cardiovascular Disease:</span>
+      <span className="font-bold">
+        {((prediction.rppg_risks.metabolic?.CVD || 0) * 100).toFixed(0)}%
+      </span>
+    </div>
+  </div>
+
+  <div className="p-3 bg-blue-50 rounded-lg">
+    <div className="flex justify-between text-sm text-blue-800 font-medium">
+      <span>Type 2 Diabetes:</span>
+      <span className="font-bold">
+        {((prediction.rppg_risks.metabolic?.T2D || 0) * 100).toFixed(0)}%
+      </span>
+    </div>
+  </div>
+
+  <div className="p-3 bg-indigo-50 rounded-lg">
+    <div className="flex justify-between text-sm text-indigo-800 font-medium">
+      <span>Stress:</span>
+      <span className="font-bold">
+        {((prediction.rppg_risks.reproductive?.Stress || 0) * 100).toFixed(0)}%
+      </span>
+    </div>
+  </div>
+
+  <div className="p-3 bg-indigo-50 rounded-lg">
+    <div className="flex justify-between text-sm text-indigo-800 font-medium">
+      <span>Infertility:</span>
+      <span className="font-bold">
+        {((prediction.rppg_risks.reproductive?.Infertility || 0) * 100).toFixed(0)}%
+      </span>
+    </div>
+  </div>
+</div>
                     </div>
                   )}
 

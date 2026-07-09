@@ -936,6 +936,12 @@ function CreateLgaAccountTab({ navigate }: { navigate: any }) {
               {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number *</Label>
+              <Input id="phone" type="tel" value={form.phone} onChange={e => handleChange('phone', e.target.value)} className={errors.phone ? 'border-red-500' : ''} placeholder="+2348000000000" />
+              {errors.phone && <p className="text-sm text-red-500">{errors.phone}</p>}
+            </div>
+
             <div className="flex gap-3 pt-4">
               <Button type="submit" disabled={submitting} className="bg-blue-600 hover:bg-blue-700">
                 {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Create Account
