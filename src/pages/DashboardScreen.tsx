@@ -12,7 +12,7 @@ import { useAuth } from "@/context/AuthContext";
 import { NotificationPanel } from "@/components/NotificationPanel";
 import { dashboardService, UserProfile, PredictionData } from "@/services/dashboardService";
 import { checkinService } from "@/services/checkinService";
-import { menstrualService } from "@/services/menstrualService";
+import { menstrualService, CriterionFlags } from "@/services/menstrualService";
 import { apiClient } from "@/services/apiClient";
 import { isToolCompleteThisWeek, getCurrentWeekKey } from "@/utils/weekUtils";
 import logo from "@/assets/logo.png";
@@ -305,6 +305,7 @@ interface MenstrualSummary {
   mean_cycle_len: number | null;
   CLV: number | null;
   total_cycles_stored: number;
+  criterion_flags?: CriterionFlags;
 }
 
 const DashboardScreen = () => {
@@ -384,6 +385,7 @@ const DashboardScreen = () => {
         mean_cycle_len: aggregates?.mean_cycle_len ?? null,
         CLV: aggregates?.CLV ?? null,
         total_cycles_stored: cycles.length,
+        criterion_flags: res.data?.criterion_flags,
       });
       return true;
     } catch {
@@ -574,8 +576,23 @@ const DashboardScreen = () => {
   const isMale = profile?.gender === 'male';
   const isFemale = profile?.gender === 'female';
 
+  const getCycleStatus = (summary: MenstrualSummary): string => {
+    const flags = summary.criterion_flags;
+    if (!flags) return '';
+    if (!flags.criterion_1_positive) return 'No irregularity detected';
+    const labels: Record<string, string> = {
+      'oligomenorrhea': 'Oligomenorrhea (cycle >35 days)',
+      'amenorrhea_risk': 'Amenorrhea Risk (<8 periods/year)',
+      'irregular_cycle_pattern': 'Irregular Pattern (CLV >7 days)',
+    };
+    return flags.criteria
+      .filter((c) => c.triggered)
+      .map((c) => labels[c.condition] || c.condition)
+      .join(', ');
+  };
+
   const periodCardSubtitle = menstrualSummary && menstrualSummary.mean_cycle_len
-    ? `Cycle ${Math.round(menstrualSummary.mean_cycle_len)} days · CLV ${menstrualSummary.CLV ?? '—'}`
+    ? `Cycle Length ${Math.round(menstrualSummary.mean_cycle_len)} days · CLV ${menstrualSummary.CLV ?? '—'} · ${getCycleStatus(menstrualSummary)}`
     : "Log your cycle";
 
   const riskScoreTitle = isMale ? "Cardiovascular Risk Score" : "Polyendocrine Metabolic Ovarian Syndrome (PMOS) Score";
@@ -919,31 +936,39 @@ const DashboardScreen = () => {
   <div className="p-3 bg-blue-50 rounded-lg text-center">
     <div className="text-sm text-black-800 font-bold">Cardiovascular Disease:</div>
     <div className="font-bold text-blue-800">
-      {((prediction.rppg_risks.metabolic?.CVD || 0) * 100).toFixed(0)}%
+      {prediction.rppg_risks.metabolic?.CVD != null
+        ? `${(prediction.rppg_risks.metabolic.CVD * 100).toFixed(0)}%`
+        : `${prediction.rppg_status?.metabolic_cardio?.current_span_days ?? 0}/${prediction.rppg_status?.metabolic_cardio?.required_span_days ?? 30}d · No result yet`}
     </div>
   </div>
 
   <div className="p-3 bg-blue-50 rounded-lg text-center">
     <div className="text-sm text-black-800 font-bold">Type 2 Diabetes:</div>
     <div className="font-bold text-blue-800">
-      {((prediction.rppg_risks.metabolic?.T2D || 0) * 100).toFixed(0)}%
+      {prediction.rppg_risks.metabolic?.T2D != null
+        ? `${(prediction.rppg_risks.metabolic.T2D * 100).toFixed(0)}%`
+        : `${prediction.rppg_status?.metabolic_cardio?.current_span_days ?? 0}/${prediction.rppg_status?.metabolic_cardio?.required_span_days ?? 30}d · No result yet`}
     </div>
   </div>
 
   <div className="p-3 bg-indigo-50 rounded-lg text-center">
     <div className="text-sm text-black-800 font-bold">Stress:</div>
     <div className="font-bold text-indigo-800">
-      {((prediction.rppg_risks.reproductive?.Stress || 0) * 100).toFixed(0)}%
+      {prediction.rppg_status?.stress_reproductive?.status === 'pending'
+        ? `${prediction.rppg_status.stress_reproductive.current_span_days ?? 0}/${prediction.rppg_status.stress_reproductive.required_span_days ?? 7}d`
+        : `${((prediction.rppg_risks.reproductive?.Stress || 0) * 100).toFixed(0)}%`}
     </div>
   </div>
 
   <div className="p-3 bg-indigo-50 rounded-lg text-center">
     <div className="text-sm text-black-800 font-bold">Infertility:</div>
     <div className="font-bold text-indigo-800">
-      {((prediction.rppg_risks.reproductive?.Infertility || 0) * 100).toFixed(0)}%
+      {prediction.rppg_status?.stress_reproductive?.status === 'pending'
+        ? `${prediction.rppg_status.stress_reproductive.current_span_days ?? 0}/${prediction.rppg_status.stress_reproductive.required_span_days ?? 7}d`
+        : `${((prediction.rppg_risks.reproductive?.Infertility || 0) * 100).toFixed(0)}%`}
     </div>
   </div>
-</div>  
+  </div>
                     </div>
                   )}
 
