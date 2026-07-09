@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
   Sun, Moon, Activity, TrendingUp, Calendar, AlertCircle, MessageCircle,
-  ChevronRight, Bell, User, Heart, BarChart3, ClipboardCheck, Loader2, Check, Camera
+  ChevronRight, Bell, User, Heart, BarChart3, ClipboardCheck, Loader2, Check, Camera, LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/context/NotificationContext";
@@ -16,6 +16,7 @@ import { menstrualService } from "@/services/menstrualService";
 import { apiClient } from "@/services/apiClient";
 import { isToolCompleteThisWeek, getCurrentWeekKey } from "@/utils/weekUtils";
 import logo from "@/assets/logo.png";
+import { AnimatePresence } from "framer-motion";
 
 const TrialBanner = () => {
   const { subscription } = useAuth();
@@ -309,7 +310,7 @@ interface MenstrualSummary {
 const DashboardScreen = () => {
   const navigate = useNavigate();
   const { unreadCount } = useNotifications();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   // Redirect patients with incomplete onboarding back to onboarding
   useEffect(() => {
@@ -323,6 +324,8 @@ const DashboardScreen = () => {
   }, [user, navigate]);
 
   const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const profileDropdownRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -334,6 +337,16 @@ const DashboardScreen = () => {
   const [error, setError] = useState<string | null>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const pollingAttempts = useRef(0);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
+        setIsProfileDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const greeting = getGreeting();
   const currentHour = new Date().getHours();
@@ -710,17 +723,53 @@ const DashboardScreen = () => {
                 </span>
               )}
             </button>
-            <button
-              onClick={() => navigate("/profile")}
-              className="h-9 w-9 rounded-full flex items-center justify-center text-white font-semibold text-sm"
-              style={{ backgroundColor: TEAL_PRIMARY }}
-            >
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
-              ) : (
-                profile?.full_name ? getInitials(profile.full_name) : <User className="h-4 w-4" />
-              )}
-            </button>
+            <div className="relative" ref={profileDropdownRef}>
+              <button
+                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                className="h-9 w-9 rounded-full flex items-center justify-center text-white font-semibold text-sm"
+                style={{ backgroundColor: TEAL_PRIMARY }}
+              >
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
+                ) : (
+                  profile?.full_name ? getInitials(profile.full_name) : <User className="h-4 w-4" />
+                )}
+              </button>
+              <AnimatePresence>
+                {isProfileDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -5, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                    transition={{ duration: 0.15, ease: 'easeOut' }}
+                    className="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50"
+                  >
+                    <button
+                      onClick={() => {
+                        navigate('/profile');
+                        setIsProfileDropdownOpen(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <User className="h-4 w-4 text-gray-500" />
+                      Profile
+                    </button>
+                    <div className="h-px bg-gray-100 my-1" />
+                    <button
+                      onClick={async () => {
+                        setIsProfileDropdownOpen(false);
+                        await logout();
+                        navigate('/login');
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Log out
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </motion.header>

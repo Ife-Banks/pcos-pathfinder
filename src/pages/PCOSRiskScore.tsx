@@ -138,21 +138,21 @@ const PCOSRiskScore = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-3 flex items-center gap-3">
-          <button className="p-1.5 rounded-lg hover:bg-gray-100">
-            <ArrowLeft className="w-5 h-5 text-gray-700" />
+      <div className="min-h-screen bg-gray-100">
+        <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-gray-300 px-4 py-3 flex items-center gap-3">
+          <button className="p-1.5 rounded-lg hover:bg-gray-200 hover:text-teal-600">
+            <ArrowLeft className="w-5 h-5 text-gray-700" /> back
           </button>
           <div>
             <h1 className="font-display text-lg font-bold text-gray-900">PMOS Risk Score</h1>
-            <p className="text-xs text-gray-500">AI-powered assessment</p>
+            <p className="text-sm font-black text-gray-900">AI-powered assessment</p>
           </div>
         </header>
         <div className="p-4 space-y-4">
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 animate-pulse">
+          <div className="bg-white rounded-2xl border border-gray-300 p-6 animate-pulse">
             <div className="flex flex-col items-center">
-              <div className="w-56 h-32 bg-gray-100 rounded-full" />
-              <div className="h-8 bg-gray-100 rounded w-24 mt-4" />
+              <div className="w-56 h-32 bg-gray-200 rounded-full" />
+              <div className="h-8 bg-gray-200 rounded w-24 mt-4" />
             </div>
           </div>
         </div>
@@ -162,20 +162,20 @@ const PCOSRiskScore = () => {
 
   if (!prediction) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-3 flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="p-1.5 rounded-lg hover:bg-gray-100">
+      <div className="min-h-screen bg-gray-100">
+        <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-gray-300 px-4 py-3 flex items-center gap-3">
+          <button onClick={() => navigate(-1)} className="p-1.5 rounded-lg hover:bg-gray-200 hover:text-teal-600">
             <ArrowLeft className="w-5 h-5 text-gray-700" />
           </button>
           <div>
             <h1 className="font-display text-lg font-bold text-gray-900">PMOS Risk Score</h1>
-            <p className="text-xs text-gray-500">AI-powered assessment</p>
+            <p className="text-xs font-medium text-gray-900">AI-powered assessment</p>
           </div>
         </header>
         <div className="p-4 flex flex-col items-center justify-center min-h-[60vh] text-center">
           <div className="text-6xl mb-4">📊</div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">No Score Yet</h2>
-          <p className="text-sm text-gray-500 max-w-xs">
+          <p className="text-sm font-medium text-gray-900 max-w-xs">
             Complete your daily check-ins to generate your first PMOS risk score.
           </p>
           <Button
@@ -228,12 +228,12 @@ const PCOSRiskScore = () => {
         <div className="grid grid-cols-2 gap-2">
           {Object.entries(predictions).slice(0, 6).map(([disease, pred]) => (
             <div key={disease} className="bg-white/80 rounded-lg p-2">
-              <p className="text-xs text-gray-600 font-medium truncate">{formatDiseaseName(disease)}</p>
+              <p className="text-xs text-gray-900 font-medium truncate">{formatDiseaseName(disease)}</p>
               <div className="flex items-center justify-between mt-1">
                 <span className="text-sm font-bold" style={{ color: getSeverityColor(pred.severity) }}>
                   {(pred.risk_score * 100).toFixed(0)}%
                 </span>
-                <span className="text-[10px] text-gray-400">{pred.severity}</span>
+                <span className="text-[10px] font-medium text-gray-900">{pred.severity}</span>
               </div>
             </div>
           ))}
@@ -243,19 +243,19 @@ const PCOSRiskScore = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-3 flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="p-1.5 rounded-lg hover:bg-gray-100">
+    <div className="min-h-screen bg-gray-100">
+      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-gray-300 px-4 py-3 flex items-center gap-3">
+        <button onClick={() => navigate(-1)} className="p-1.5 rounded-lg hover:bg-gray-200 hover:text-teal-600">
           <ArrowLeft className="w-5 h-5 text-gray-700" />
         </button>
         <div className="flex-1">
           <h1 className="font-display text-lg font-bold text-gray-900">PMOS Risk Score</h1>
-          <p className="text-xs text-gray-500">AI-powered assessment</p>
+          <p className="text-xs font-medium text-gray-900">AI-powered assessment</p>
         </div>
-        <button onClick={handleRefresh} disabled={refreshing} className="p-1.5 rounded-lg hover:bg-gray-100">
+        <button onClick={handleRefresh} disabled={refreshing} className="p-1.5 rounded-lg hover:bg-gray-200">
           <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} style={{ color: TEAL }} />
         </button>
-        <button onClick={() => navigate("/risk-trend")} className="p-1.5 rounded-lg hover:bg-gray-100">
+        <button onClick={() => navigate("/risk-trend")} className="p-1.5 rounded-lg hover:bg-gray-200">
           <TrendingUp className="w-5 h-5" style={{ color: TEAL }} />
         </button>
       </header>
@@ -264,11 +264,11 @@ const PCOSRiskScore = () => {
         {/* Data Sources Section */}
         {comprehensive?.data_sources && comprehensive.data_sources.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-            <Card className="border border-gray-200">
+            <Card className="border border-gray-300">
               <CardContent className="pt-4">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-semibold text-gray-700">Data Sources</h3>
-                  <span className="text-xs text-gray-500">{comprehensive.data_completeness_pct}% complete</span>
+                  <span className="text-xs font-medium text-gray-900">{comprehensive.data_completeness_pct}% complete</span>
                 </div>
                 <div className="space-y-2">
                   {comprehensive.data_sources.map((source) => (
@@ -276,7 +276,7 @@ const PCOSRiskScore = () => {
                       <span className="text-base">{source.icon}</span>
                       <div className="flex-1">
                         <p className="text-xs font-medium text-gray-800">{source.name}</p>
-                        <p className="text-[10px] text-gray-500">{source.description}</p>
+                        <p className="text-[10px] font-medium text-gray-900">{source.description}</p>
                       </div>
                       <CheckCircle className="w-4 h-4 text-green-500" />
                     </div>
@@ -296,8 +296,8 @@ const PCOSRiskScore = () => {
                       <div key={layer} className="flex items-center gap-2 opacity-50">
                         <span className="text-base">{info?.icon}</span>
                         <div className="flex-1">
-                          <p className="text-xs font-medium text-gray-600">{info?.name}</p>
-                          <p className="text-[10px] text-gray-400">{info?.desc}</p>
+                          <p className="text-xs font-medium text-gray-900">{info?.name}</p>
+                          <p className="text-[10px] font-medium text-gray-900">{info?.desc}</p>
                         </div>
                         <AlertCircle className="w-4 h-4 text-amber-500" />
                       </div>
@@ -338,7 +338,7 @@ const PCOSRiskScore = () => {
         )}
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <Card className="overflow-hidden border border-gray-200">
+          <Card className="overflow-hidden border border-gray-300">
             <CardContent className="pt-6 pb-4 flex flex-col items-center">
               <div className="relative w-56 h-32">
                 <svg viewBox="0 0 200 110" className="w-full h-full">
@@ -364,14 +364,14 @@ const PCOSRiskScore = () => {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.6 }}
               >
-                <p className="text-4xl font-display font-bold text-gray-900">{score.toFixed(2)}</p>
+                <p className="text-4xl font-display font-bold text-gray-900">{score.toFixed(2)} <span className="text-xl font-bold text-gray-400">/ 1.00</span></p>
                 <div className="flex items-center justify-center gap-2 mt-1.5">
                   <TierIcon className="w-4 h-4" style={{ color: safeTierConfig.color }} />
-                  <Badge className="border-0 font-display font-semibold" style={{ backgroundColor: safeTierConfig.bg, color: safeTierConfig.color }}>
+                  <Badge className="border-0 font-display font-semibold text-white" style={{ backgroundColor: safeTierConfig.bg }}>
                     {safeTierConfig.tierLabel}
                   </Badge>
                 </div>
-                <p className="text-sm text-gray-500 mt-1">{safeTierConfig.desc}</p>
+                <p className="text-sm font-medium text-gray-900 mt-1">{safeTierConfig.desc}</p>
               </motion.div>
             </CardContent>
           </Card>
@@ -404,14 +404,14 @@ const PCOSRiskScore = () => {
               onClick={() => setShowDiseaseScores(!showDiseaseScores)}
               className="w-full flex items-center justify-between mb-3"
             >
-              <h2 className="font-display font-semibold text-xs text-gray-400 uppercase tracking-wider">
+              <h2 className="font-display font-semibold text-xs text-gray-900 uppercase tracking-wider">
                 All Disease Scores
               </h2>
-              {showDiseaseScores ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+              {showDiseaseScores ? <ChevronUp className="w-4 h-4 text-gray-900" /> : <ChevronDown className="w-4 h-4 text-gray-900" />}
             </button>
             
             {showDiseaseScores && (
-              <Card className="border border-gray-200 mb-4">
+              <Card className="border border-gray-300 mb-4">
                 <CardContent className="p-4">
                   <div className="space-y-3">
                     {Object.entries(comprehensive.per_disease_scores).map(([disease, diseaseScore]) => {
@@ -475,10 +475,10 @@ const PCOSRiskScore = () => {
             </button>
             
             {showCalculation && (
-              <Card className="border border-gray-200 mb-4">
+              <Card className="border border-gray-300 mb-4">
                 <CardContent className="p-4 space-y-4">
                   {comprehensive.calculation_explanation && (
-                    <p className="text-xs text-gray-600">{comprehensive.calculation_explanation}</p>
+                    <p className="text-xs font-medium text-gray-900">{comprehensive.calculation_explanation}</p>
                   )}
                   
                   {comprehensive.weights_used && Object.keys(comprehensive.weights_used).length > 0 && (
@@ -486,9 +486,9 @@ const PCOSRiskScore = () => {
                       <h4 className="text-xs font-semibold text-gray-700 mb-2">Model Weights Used (for PCOS)</h4>
                       <div className="grid grid-cols-4 gap-2 text-center">
                         {Object.entries(comprehensive.weights_used.PCOS || {}).map(([model, weight]) => (
-                          <div key={model} className="bg-gray-50 rounded-lg p-2">
+                          <div key={model} className="bg-gray-100 rounded-lg p-2">
                             <div className="text-lg font-bold text-gray-900">{(weight * 100).toFixed(0)}%</div>
-                            <div className="text-[10px] text-gray-500 capitalize">{model}</div>
+                            <div className="text-[10px] font-medium text-gray-900 capitalize">{model}</div>
                           </div>
                         ))}
                       </div>
@@ -511,7 +511,7 @@ const PCOSRiskScore = () => {
         {/* All 4 Models Section */}
         {prediction.all_predictions && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-            <h2 className="font-display font-semibold text-xs text-gray-400 uppercase tracking-wider mb-3">
+            <h2 className="font-display font-semibold text-xs text-gray-900 uppercase tracking-wider mb-3">
               Prediction Models
             </h2>
             <div className="space-y-3">
@@ -542,7 +542,7 @@ const PCOSRiskScore = () => {
         {sortedDrivers.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-display font-semibold text-xs text-gray-400 uppercase tracking-wider">
+              <h2 className="font-display font-semibold text-xs text-gray-900 uppercase tracking-wider">
                 Contributing Factors
               </h2>
               <button
@@ -554,7 +554,7 @@ const PCOSRiskScore = () => {
               </button>
             </div>
 
-            <Card className="border border-gray-200">
+            <Card className="border border-gray-300">
               <CardContent className="p-4 space-y-3">
                 {sortedDrivers.map((f, i) => (
                   <motion.div
@@ -574,7 +574,7 @@ const PCOSRiskScore = () => {
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                         <motion.div
                           className="h-full rounded-full"
                           initial={{ width: 0 }}
@@ -593,12 +593,12 @@ const PCOSRiskScore = () => {
 
         {sortedDrivers.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
-            <h2 className="font-display font-semibold text-xs text-gray-400 uppercase tracking-wider mb-3">
+            <h2 className="font-display font-semibold text-xs text-gray-900 uppercase tracking-wider mb-3">
               What This Means
             </h2>
             <div className="space-y-2">
               {sortedDrivers.map((f, i) => (
-                <Card key={f.feature} className="border border-gray-200 shadow-none">
+                <Card key={f.feature} className="border border-gray-300 shadow-none">
                   <CardContent className="p-3 flex gap-3">
                     <div
                       className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
@@ -611,7 +611,7 @@ const PCOSRiskScore = () => {
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-gray-900 font-display">{f.display_name}</p>
-                      <p className="text-xs text-gray-500 leading-relaxed mt-0.5">{f.explanation}</p>
+                      <p className="text-xs font-medium text-gray-900 leading-relaxed mt-0.5">{f.explanation}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -620,11 +620,11 @@ const PCOSRiskScore = () => {
           </motion.div>
         )}
 
-        <div className="bg-gray-100 rounded-xl p-4 flex gap-3">
-          <Info className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" />
-          <p className="text-xs text-gray-500 leading-relaxed">
-            This score is generated by a machine learning model and is for informational purposes only.
-            Always consult your healthcare provider for diagnosis and treatment decisions.
+        <div className="bg-gray-200 rounded-xl p-4 flex gap-3">
+          <Info className="w-5 h-5 text-gray-900 shrink-0 mt-0.5" />
+          <p className="text-xs font-medium text-gray-900 leading-relaxed">
+            
+            Consult your healthcare provider for diagnosis and treatment decisions.
           </p>
         </div>
 
