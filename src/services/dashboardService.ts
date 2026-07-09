@@ -79,6 +79,25 @@ export interface PredictionData {
       explanation: string;
     };
   };
+  /** Metadata about rPPG prediction availability (pending vs available) */
+  rppg_status?: {
+    metabolic_cardio?: {
+      status: 'available' | 'pending';
+      message?: string;
+      current_sessions?: number;
+      required_sessions?: number;
+      current_span_days?: number;
+      required_span_days?: number;
+    };
+    stress_reproductive?: {
+      status: 'available' | 'pending';
+      message?: string;
+      current_sessions?: number;
+      required_sessions?: number;
+      current_span_days?: number;
+      required_span_days?: number;
+    };
+  };
   last_updated: string;
 }
 
@@ -221,6 +240,7 @@ export const dashboardService = {
             Stroke: moodPreds.Stroke_Mood?.risk_score || 0,
           },
         },
+        rppg_status: pcosData.rppg_status,
         last_updated: new Date().toISOString()
       };
 
