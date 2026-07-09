@@ -128,7 +128,7 @@ const Step2aPhysicalMeasurements = () => {
                 <Input
                   id="height"
                   type="number"
-                  placeholder="175"
+                  placeholder="Enter height"
                   value={form.height_cm}
                   onChange={(e) => setForm({ ...form, height_cm: e.target.value })}
                 />
@@ -142,7 +142,7 @@ const Step2aPhysicalMeasurements = () => {
                 <Input
                   id="weight"
                   type="number"
-                  placeholder="70"
+                  placeholder="Enter weight"
                   value={form.weight_kg}
                   onChange={(e) => setForm({ ...form, weight_kg: e.target.value })}
                 />

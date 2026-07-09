@@ -381,7 +381,7 @@ const FMCPatientDetailScreen = () => {
               <div className="bg-white rounded-xl border border-gray-200 p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">PHC Notes</h3>
                 <div className="space-y-3">
-                  <p className="text-gray-600">Reason for referral: PCOS Risk Score reached Critical tier with elevated androgen levels.</p>
+                  <p className="text-gray-600">Reason for referral: PmOS Risk Score reached Critical tier with elevated androgen levels.</p>
                   <p className="text-gray-600">Patient presents with hirsutism, irregular menses, and elevated BMI.</p>
                 </div>
               </div>

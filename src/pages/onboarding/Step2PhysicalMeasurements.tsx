@@ -169,7 +169,7 @@ const Step2PhysicalMeasurements = () => {
             <div className="flex gap-2">
               <Input
                 id="height_cm"
-                placeholder={form.height_unit === 'cm' ? 'Height in cm' : 'Height in feet.inches'}
+                placeholder={form.height_unit === 'cm' ? 'Enter height' : 'Enter height'}
                 value={form.height_cm}
                 onChange={(e) => setForm({ ...form, height_cm: e.target.value })}
               />
@@ -192,7 +192,7 @@ const Step2PhysicalMeasurements = () => {
             <div className="flex gap-2">
               <Input
                 id="weight_kg"
-                placeholder={form.weight_unit === 'kg' ? 'Weight in kg' : 'Weight in lbs'}
+                placeholder={form.weight_unit === 'kg' ? 'Enter weight' : 'Enter weight'}
                 value={form.weight_kg}
                 onChange={(e) => setForm({ ...form, weight_kg: e.target.value })}
               />

@@ -18,7 +18,7 @@ interface FormData {
   date_of_birth: string;
   phone: string;
   email: string;
-  gender: 'female' | 'male' | 'intersex' | 'prefer_not_to_say';
+  gender: 'female' | 'male';
   height_cm: number | null;
   weight_kg: number | null;
   waist_cm: number | null;
@@ -56,7 +56,8 @@ export default function PHCWalkInRegistrationScreen() {
     queue_record_id: string;
   } | null>(null);
   const [copied, setCopied] = useState(false);
-  const [useMetric, setUseMetric] = useState(true);
+  const [heightUnit, setHeightUnit] = useState<'cm' | 'ft'>('cm');
+  const [weightUnit, setWeightUnit] = useState<'kg' | 'lbs'>('kg');
 
   const updateField = <K extends keyof FormData>(key: K, value: FormData[K]) => {
     setForm(prev => ({ ...prev, [key]: value }));
@@ -141,6 +142,12 @@ export default function PHCWalkInRegistrationScreen() {
           temp_password: body.temp_password || '',
           queue_record_id: body.phc_record_id || body.record_id || '',
         });
+
+        try {
+          await phcAPI.sendCredentials(body.patient_id, form.phone);
+        } catch (err) {
+          console.error('Failed to send credentials:', err);
+        }
       }
     } catch (e: unknown) {
       const err = e as { message?: string; response?: { data?: unknown; status?: number } };
@@ -189,7 +196,7 @@ export default function PHCWalkInRegistrationScreen() {
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${done ? 'bg-[#2E8B57] text-white' : active ? 'bg-[#2E8B57] text-white' : 'bg-gray-200 text-gray-500'}`}>
               {done ? <CheckCircle size={16} /> : stepNum}
             </div>
-            <span className={`ml-2 text-sm hidden sm:inline ${active ? 'text-[#2E8B57] font-medium' : 'text-gray-500'}`}>{s}</span>
+            <span className={`ml-2 text-sm hidden sm:inline ${active ? 'text-[#2E8B57] font-medium' : 'text-gray-700'}`}>{s}</span>
             {i < 3 && <div className={`w-8 sm:w-16 h-0.5 mx-2 ${step > stepNum ? 'bg-[#2E8B57]' : 'bg-gray-200'}`} />}
           </div>
         );
@@ -202,11 +209,11 @@ export default function PHCWalkInRegistrationScreen() {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="first_name">First Name *</Label>
-          <Input id="first_name" value={form.first_name} onChange={e => updateField('first_name', e.target.value)} placeholder="Jane" />
+          <Input id="first_name" value={form.first_name} onChange={e => updateField('first_name', e.target.value)} placeholder="Enter first name" />
         </div>
         <div>
           <Label htmlFor="last_name">Last Name *</Label>
-          <Input id="last_name" value={form.last_name} onChange={e => updateField('last_name', e.target.value)} placeholder="Doe" />
+          <Input id="last_name" value={form.last_name} onChange={e => updateField('last_name', e.target.value)} placeholder="Enter last name" />
         </div>
       </div>
       <div>
@@ -216,17 +223,17 @@ export default function PHCWalkInRegistrationScreen() {
       </div>
       <div>
         <Label htmlFor="phone">Phone Number *</Label>
-        <Input id="phone" type="tel" value={form.phone} onChange={e => updateField('phone', e.target.value)} placeholder="+91 9876543210" />
+        <Input id="phone" type="tel" value={form.phone} onChange={e => updateField('phone', e.target.value)} placeholder="Enter phone number" />
       </div>
       <div>
         <Label htmlFor="email">Email Address *</Label>
-        <Input id="email" type="email" value={form.email} onChange={e => updateField('email', e.target.value)} placeholder="jane@example.com" />
+        <Input id="email" type="email" value={form.email} onChange={e => updateField('email', e.target.value)} placeholder="Enter email address" />
       </div>
       <div>
         <Label>Gender *</Label>
         <div className="flex gap-2 mt-2">
-          {(['female', 'male', 'intersex', 'prefer_not_to_say'] as const).map(g => (
-            <PillButton key={g} label={g === 'prefer_not_to_say' ? 'Prefer not to say' : g.charAt(0).toUpperCase() + g.slice(1)} selected={form.gender === g} onClick={() => updateField('gender', g)} />
+          {(['female', 'male' ] as const).map(g => (
+            <PillButton key={g} label={g.charAt(0).toUpperCase() + g.slice(1)} selected={form.gender === g} onClick={() => updateField('gender', g)} />
           ))}
         </div>
       </div>
@@ -235,24 +242,86 @@ export default function PHCWalkInRegistrationScreen() {
 
   const renderPhysical = () => (
     <div className="space-y-4">
-      <div className="flex gap-2 mb-4">
-        <button onClick={() => setUseMetric(true)} className={`px-4 py-2 rounded-full text-sm font-medium ${useMetric ? 'bg-[#2E8B57] text-white' : 'bg-gray-100'}`}>Metric (cm/kg)</button>
-        <button onClick={() => setUseMetric(false)} className={`px-4 py-2 rounded-full text-sm font-medium ${!useMetric ? 'bg-[#2E8B57] text-white' : 'bg-gray-100'}`}>Imperial (ft/lbs)</button>
-      </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="height">{useMetric ? 'Height (cm)' : 'Height (ft)'}</Label>
-          <Input id="height" type="number" value={form.height_cm ?? ''} onChange={e => {
-            const val = parseFloat(e.target.value);
-            updateField('height_cm', isNaN(val) ? null : useMetric ? val : val * 30.48);
-          }} placeholder={useMetric ? '170' : '5.6'} />
+          <div className="flex items-center justify-between mb-1">
+            <Label htmlFor="height">Height</Label>
+            <select
+              value={heightUnit}
+              onChange={(e) => {
+                const newUnit = e.target.value as 'cm' | 'ft';
+                if (newUnit === heightUnit) return;
+                if (form.height_cm !== null) {
+                  const converted = newUnit === 'ft' ? form.height_cm / 30.48 : form.height_cm * 30.48;
+                  updateField('height_cm', Math.round(converted * 10) / 10);
+                }
+                setHeightUnit(newUnit);
+              }}
+              className="px-4 py-2.5 text-base border-2 border-gray-300 rounded-lg bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#2E8B57] focus:border-[#2E8B57] font-semibold cursor-pointer min-w-[80px]"
+            >
+              <option value="cm">cm</option>
+              <option value="ft">ft</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button type="button" variant="outline" size="sm" onClick={() => {
+              const delta = heightUnit === 'cm' ? 1 : 0.1;
+              const currentDisplayVal = form.height_cm ? (heightUnit === 'cm' ? form.height_cm : form.height_cm / 30.48) : 0;
+              const newDisplayVal = currentDisplayVal - delta;
+              updateField('height_cm', heightUnit === 'cm' ? newDisplayVal : newDisplayVal * 30.48);
+            }}>-</Button>
+            <Input id="height" type="number" value={form.height_cm ? (heightUnit === 'cm' ? form.height_cm : parseFloat((form.height_cm / 30.48).toFixed(2))) : ''} onChange={e => {
+              const val = parseFloat(e.target.value);
+              updateField('height_cm', isNaN(val) ? null : heightUnit === 'cm' ? val : val * 30.48);
+            }} placeholder={heightUnit === 'cm' ? 'Enter height' : 'Enter height'} className="text-center" />
+            <Button type="button" variant="outline" size="sm" onClick={() => {
+              const delta = heightUnit === 'cm' ? 1 : 0.1;
+              const currentDisplayVal = form.height_cm ? (heightUnit === 'cm' ? form.height_cm : form.height_cm / 30.48) : 0;
+              const newDisplayVal = currentDisplayVal + delta;
+              updateField('height_cm', heightUnit === 'cm' ? newDisplayVal : newDisplayVal * 30.48);
+            }}>+</Button>
+          </div>
+          <p className="text-sm text-gray-700 font-medium mt-1">Select unit from dropdown above</p>
         </div>
         <div>
-          <Label htmlFor="weight">{useMetric ? 'Weight (kg)' : 'Weight (lbs)'}</Label>
-          <Input id="weight" type="number" value={form.weight_kg ?? ''} onChange={e => {
-            const val = parseFloat(e.target.value);
-            updateField('weight_kg', isNaN(val) ? null : useMetric ? val : val * 0.453592);
-          }} placeholder={useMetric ? '65' : '143'} />
+          <div className="flex items-center justify-between mb-1">
+            <Label htmlFor="weight">Weight</Label>
+            <select
+              value={weightUnit}
+              onChange={(e) => {
+                const newUnit = e.target.value as 'kg' | 'lbs';
+                if (newUnit === weightUnit) return;
+                if (form.weight_kg !== null) {
+                  const converted = newUnit === 'lbs' ? form.weight_kg / 0.453592 : form.weight_kg * 0.453592;
+                  updateField('weight_kg', Math.round(converted * 10) / 10);
+                }
+                setWeightUnit(newUnit);
+              }}
+              className="px-4 py-2.5 text-base border-2 border-gray-300 rounded-lg bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#2E8B57] focus:border-[#2E8B57] font-semibold cursor-pointer min-w-[80px]"
+            >
+              <option value="kg">kg</option>
+              <option value="lbs">lbs</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button type="button" variant="outline" size="sm" onClick={() => {
+              const delta = 1;
+              const currentDisplayVal = form.weight_kg ? (weightUnit === 'kg' ? form.weight_kg : form.weight_kg / 0.453592) : 0;
+              const newDisplayVal = currentDisplayVal - delta;
+              updateField('weight_kg', weightUnit === 'kg' ? newDisplayVal : newDisplayVal * 0.453592);
+            }}>-</Button>
+            <Input id="weight" type="number" value={form.weight_kg ? (weightUnit === 'kg' ? form.weight_kg : parseFloat((form.weight_kg / 0.453592).toFixed(1))) : ''} onChange={e => {
+              const val = parseFloat(e.target.value);
+              updateField('weight_kg', isNaN(val) ? null : weightUnit === 'kg' ? val : val * 0.453592);
+            }} placeholder={weightUnit === 'kg' ? 'Enter weight' : 'Enter weight'} className="text-center" />
+            <Button type="button" variant="outline" size="sm" onClick={() => {
+              const delta = 1;
+              const currentDisplayVal = form.weight_kg ? (weightUnit === 'kg' ? form.weight_kg : form.weight_kg / 0.453592) : 0;
+              const newDisplayVal = currentDisplayVal + delta;
+              updateField('weight_kg', weightUnit === 'kg' ? newDisplayVal : newDisplayVal * 0.453592);
+            }}>+</Button>
+          </div>
+          <p className="text-sm text-gray-700 font-medium mt-1">Select unit from dropdown above</p>
         </div>
       </div>
       {bmiData && (
@@ -265,11 +334,11 @@ export default function PHCWalkInRegistrationScreen() {
         <Input id="waist" type="number" value={form.waist_cm ?? ''} onChange={e => {
           const val = parseFloat(e.target.value);
           updateField('waist_cm', isNaN(val) ? null : val);
-        }} placeholder="80" />
+        }} placeholder="Enter waist circumference" />
       </div>
       <div>
         <Label>Acanthosis Nigricans *</Label>
-        <p className="text-gray-500 text-xs mb-2">Dark, velvety patches on neck/underarms/groin?</p>
+        <p className="text-gray-700 font-medium text-xs mb-2">Dark, velvety patches on neck/underarms/groin?</p>
         <div className="flex gap-2">
           {[true, false, null].map((v, i) => (
             <PillButton key={i} label={v === true ? 'Yes' : v === false ? 'No' : 'Not Sure'} selected={form.acanthosis_nigricans === v && v !== null || (v === null && form.acanthosis_nigricans === null)} onClick={() => updateField('acanthosis_nigricans', v === null ? null : v)} />
@@ -281,14 +350,16 @@ export default function PHCWalkInRegistrationScreen() {
 
   const renderSymptoms = () => (
     <div className="space-y-4">
-      <div>
-        <Label>Cycle Regularity *</Label>
-        <div className="flex gap-2 mt-2">
-          {(['regular', 'irregular', 'not_sure'] as const).map(r => (
-            <PillButton key={r} label={r.charAt(0).toUpperCase() + r.slice(1).replace('_', ' ')} selected={form.cycle_regularity === r} onClick={() => updateField('cycle_regularity', r)} />
-          ))}
+      {form.gender === 'female' && (
+        <div>
+          <Label>Cycle Regularity *</Label>
+          <div className="flex gap-2 mt-2">
+            {(['regular', 'irregular', 'not_sure'] as const).map(r => (
+              <PillButton key={r} label={r.charAt(0).toUpperCase() + r.slice(1).replace('_', ' ')} selected={form.cycle_regularity === r} onClick={() => updateField('cycle_regularity', r)} />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
       {form.gender === 'female' && (
         <>
           <div>
@@ -296,7 +367,7 @@ export default function PHCWalkInRegistrationScreen() {
             <Input id="cycle_length" type="number" value={form.typical_cycle_length ?? ''} onChange={e => {
               const val = parseInt(e.target.value);
               updateField('typical_cycle_length', isNaN(val) ? null : val);
-            }} placeholder="28" />
+            }} placeholder="Enter number of days" />
           </div>
           <div>
             <Label htmlFor="last_period">Last Period Start Date</Label>
@@ -331,7 +402,10 @@ export default function PHCWalkInRegistrationScreen() {
       <div>
         <Label>Family History</Label>
         <div className="grid grid-cols-2 gap-2 mt-2">
-          {['PCOS', 'Type 2 Diabetes', 'Cardiovascular Disease', 'None'].map(h => (
+          {(form.gender === 'male' 
+            ? ['Metabolic-Associated Male Hypogonadism (MAMH)', 'Cardiovascular Disease', 'Hypertension', 'Type 2 Diabetes', 'Endocrine Cancer', 'Chronic Stress & Anxiety', 'Infertility', 'None']
+            : ['Polyendocrine Metabolic Ovarian Syndrome (PMOS)', 'Cardiovascular Disease', 'Hypertension', 'Type 2 Diabetes', 'Endocrine Cancer', 'Chronic Stress & Anxiety', 'Infertility', 'None']
+          ).map(h => (
             <label key={h} className="flex items-center gap-2 p-2 rounded border cursor-pointer hover:bg-gray-50">
               <input type="checkbox" checked={form.family_history.includes(h)} onChange={e => {
                 if (e.target.checked) updateField('family_history', [...form.family_history, h]);
@@ -351,11 +425,11 @@ export default function PHCWalkInRegistrationScreen() {
         <CardContent className="pt-4">
           <h3 className="font-semibold flex items-center gap-2 mb-3"><User size={18} /> Demographics</h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <p><span className="text-gray-500">Name:</span> {form.first_name} {form.last_name}</p>
-            <p><span className="text-gray-500">DOB:</span> {form.date_of_birth}</p>
-            <p><span className="text-gray-500">Phone:</span> {form.phone}</p>
-            <p><span className="text-gray-500">Email:</span> {form.email || 'Auto-generated'}</p>
-            <p><span className="text-gray-500">Gender:</span> {form.gender}</p>
+            <p><span className="text-gray-700 font-medium">Name:</span> {form.first_name} {form.last_name}</p>
+            <p><span className="text-gray-700 font-medium">DOB:</span> {form.date_of_birth}</p>
+            <p><span className="text-gray-700 font-medium">Phone:</span> {form.phone}</p>
+            <p><span className="text-gray-700 font-medium">Email:</span> {form.email || 'Auto-generated'}</p>
+            <p><span className="text-gray-700 font-medium">Gender:</span> {form.gender}</p>
           </div>
         </CardContent>
       </Card>
@@ -363,11 +437,11 @@ export default function PHCWalkInRegistrationScreen() {
         <CardContent className="pt-4">
           <h3 className="font-semibold flex items-center gap-2 mb-3"><Ruler size={18} /> Physical</h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <p><span className="text-gray-500">Height:</span> {form.height_cm?.toFixed(1)} cm</p>
-            <p><span className="text-gray-500">Weight:</span> {form.weight_kg?.toFixed(1)} kg</p>
-            <p><span className="text-gray-500">BMI:</span> {bmiData ? `${bmiData.value} (${bmiData.category})` : 'N/A'}</p>
-            <p><span className="text-gray-500">Acanthosis:</span> {form.acanthosis_nigricans === true ? 'Yes' : form.acanthosis_nigricans === false ? 'No' : 'Not Sure'}</p>
-            {form.waist_cm && <p><span className="text-gray-500">Waist:</span> {form.waist_cm} cm</p>}
+            <p><span className="text-gray-700 font-medium">Height:</span> {form.height_cm ? `${form.height_cm.toFixed(1)} cm (${(form.height_cm / 30.48).toFixed(2)} ft)` : 'N/A'}</p>
+            <p><span className="text-gray-700 font-medium">Weight:</span> {form.weight_kg ? `${form.weight_kg.toFixed(1)} kg (${(form.weight_kg / 0.453592).toFixed(1)} lbs)` : 'N/A'}</p>
+            <p><span className="text-gray-700 font-medium">BMI:</span> {bmiData ? `${bmiData.value} (${bmiData.category})` : 'N/A'}</p>
+            <p><span className="text-gray-700 font-medium">Acanthosis:</span> {form.acanthosis_nigricans === true ? 'Yes' : form.acanthosis_nigricans === false ? 'No' : 'Not Sure'}</p>
+            {form.waist_cm && <p><span className="text-gray-700 font-medium">Waist:</span> {form.waist_cm} cm</p>}
           </div>
         </CardContent>
       </Card>
@@ -375,13 +449,13 @@ export default function PHCWalkInRegistrationScreen() {
         <CardContent className="pt-4">
           <h3 className="font-semibold flex items-center gap-2 mb-3"><Activity size={18} /> Symptoms</h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <p><span className="text-gray-500">Cycle:</span> {form.cycle_regularity}</p>
-            {form.typical_cycle_length && <p><span className="text-gray-500">Cycle Length:</span> {form.typical_cycle_length} days</p>}
-            {form.last_period_date && <p><span className="text-gray-500">Last Period:</span> {form.last_period_date}</p>}
-            <p><span className="text-gray-500">Bleeding:</span> {['Spotting', 'Light', 'Medium', 'Heavy'][form.bleeding_intensity! - 1]}</p>
-            <p><span className="text-gray-500">Night Sweats:</span> {form.night_sweats}</p>
-            <p><span className="text-gray-500">Fatigue:</span> {form.persistent_fatigue ? 'Yes' : 'No'}</p>
-            <p className="col-span-2"><span className="text-gray-500">Family History:</span> {form.family_history.join(', ') || 'None'}</p>
+            <p><span className="text-gray-700 font-medium">Cycle:</span> {form.cycle_regularity}</p>
+            {form.typical_cycle_length && <p><span className="text-gray-700 font-medium">Cycle Length:</span> {form.typical_cycle_length} days</p>}
+            {form.last_period_date && <p><span className="text-gray-700 font-medium">Last Period:</span> {form.last_period_date}</p>}
+            <p><span className="text-gray-700 font-medium">Bleeding:</span> {['Spotting', 'Light', 'Medium', 'Heavy'][form.bleeding_intensity! - 1]}</p>
+            <p><span className="text-gray-700 font-medium">Night Sweats:</span> {form.night_sweats}</p>
+            <p><span className="text-gray-700 font-medium">Fatigue:</span> {form.persistent_fatigue ? 'Yes' : 'No'}</p>
+            <p className="col-span-2"><span className="text-gray-700 font-medium">Family History:</span> {form.family_history.join(', ') || 'None'}</p>
           </div>
         </CardContent>
       </Card>
@@ -399,7 +473,7 @@ export default function PHCWalkInRegistrationScreen() {
       </motion.div>
       <div>
         <h2 className="text-2xl font-bold text-gray-900">Patient Registered Successfully</h2>
-        <p className="text-gray-500 mt-1">{success.full_name}</p>
+        <p className="text-gray-700 font-medium mt-1">{success.full_name}</p>
         <p className="text-sm text-gray-400">ID: {success.queue_record_id.slice(-8)}</p>
       </div>
       <Card className="bg-blue-50 border-blue-200">
@@ -411,7 +485,7 @@ export default function PHCWalkInRegistrationScreen() {
           </div>
         </CardContent>
       </Card>
-      <p className="text-sm text-gray-500">Initial assessment is being computed. Check the patient record for risk scores.</p>
+      <p className="text-sm text-gray-700 font-medium">Initial assessment is being computed. Check the patient record for risk scores.</p>
       <div className="flex gap-4 justify-center">
         <Button onClick={() => navigate(`/phc/patients/${success.queue_record_id}`)} className="bg-[#2E8B57] hover:bg-[#247049]">View Patient Record</Button>
         <Button variant="outline" onClick={resetWizard}>Register Another</Button>
@@ -426,7 +500,7 @@ export default function PHCWalkInRegistrationScreen() {
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Register PHC/Walk-In Patient</h1>
-          <p className="text-gray-500">Create a new patient record for a walk-in visit</p>
+          <p className="text-gray-700 font-medium">Create a new patient record for a walk-in visit</p>
         </div>
         {renderStepIndicator()}
         {submitError && <Alert variant="destructive" className="mb-4"><AlertDescription>{submitError}</AlertDescription></Alert>}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -16,6 +16,11 @@ import {
   Bell,
   Smartphone,
   Loader2,
+  Heart,
+  Lock,
+  X,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,6 +30,7 @@ import { dashboardService, UserProfile } from "@/services/dashboardService";
 import { checkinService } from "@/services/checkinService";
 import { toast } from "@/hooks/use-toast";
 import { authAPI } from "@/services/authService";
+import { useAuth } from "@/context/AuthContext";
 
 const TEAL = '#00897B';
 
@@ -81,12 +87,23 @@ const CompletenessRing = ({ percent }: { percent: number }) => {
 
 const MyProfileScreen = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [devices, setDevices] = useState<Device[]>([]);
   const [todayStatus, setTodayStatus] = useState<{ completeness_pct: number } | null>(null);
+
+  // Change password modal state
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -122,25 +139,50 @@ const MyProfileScreen = () => {
   const handleSignOut = async () => {
     setSigningOut(true);
     try {
-      const refresh = localStorage.getItem('refresh_token');
-      const access = localStorage.getItem('access_token');
-      if (refresh && access) {
-        await authAPI.logout(refresh);
-      }
+      await logout();
     } catch { /* ignore */ }
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('latest_prediction_id');
-    localStorage.removeItem('latest_risk_tier');
-    localStorage.removeItem('latest_risk_score');
-    localStorage.removeItem('latest_prediction_id');
-    localStorage.removeItem('mshm_mfg_completed_week');
-    localStorage.removeItem('mshm_phq4_completed_week');
-    localStorage.removeItem('mshm_affect_completed_week');
-    localStorage.removeItem('mshm_focus_completed_week');
-    localStorage.removeItem('mshm_sleep_completed_week');
     navigate('/login');
     setSigningOut(false);
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError("");
+
+    if (!oldPassword) {
+      setPasswordError("Current password is required");
+      return;
+    }
+    if (!newPassword) {
+      setPasswordError("New password is required");
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordError("New password must be at least 8 characters");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New passwords do not match");
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      await authAPI.changePassword({
+        old_password: oldPassword,
+        new_password: newPassword,
+        confirm_password: confirmPassword,
+      });
+      toast({ title: "Password changed", description: "Your password has been updated." });
+      setShowPasswordModal(false);
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      setPasswordError(err?.message || "Failed to change password. Check your current password.");
+    } finally {
+      setChangingPassword(false);
+    }
   };
 
   const initials = userProfile?.full_name?.charAt(0)?.toUpperCase() ?? 'U';
@@ -168,6 +210,7 @@ const MyProfileScreen = () => {
     { icon: Bell, label: "Notification Settings", route: "/settings/notifications" },
     { icon: Shield, label: "Data & Privacy", route: "/settings/privacy" },
     { icon: Smartphone, label: "Connected Devices", route: "/settings/devices" },
+    { icon: Lock, label: "Change Password", onClick: () => setShowPasswordModal(true) },
   ];
 
   const categories = [
@@ -180,10 +223,12 @@ const MyProfileScreen = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-3 flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="p-1.5 rounded-lg hover:bg-gray-100">
+        <button onClick={() => navigate(-1)} className="p-1.5 rounded-lg hover:bg-teal-500   flex items-center gap-2 " >
           <ArrowLeft className="w-5 h-5 text-gray-700" />
+          <h1 className="font-display text-lg text-gray-900">Back</h1>
         </button>
         <h1 className="font-display text-lg font-bold text-gray-900 flex-1">My Profile</h1>
+        
         <button onClick={() => navigate("/settings/notifications")} className="p-1.5 rounded-lg hover:bg-gray-100">
           <Settings className="w-5 h-5" style={{ color: TEAL }} />
         </button>
@@ -246,6 +291,13 @@ const MyProfileScreen = () => {
                   <div className="grid grid-cols-2 gap-4">
                     {[
                       { icon: Calendar, label: "Age", value: profileData?.age ? `${profileData.age} years` : "Not set" },
+                      {
+                        icon: Heart,
+                        label: "Gender",
+                        value: profileData?.gender
+                          ? profileData.gender.charAt(0).toUpperCase() + profileData.gender.slice(1)
+                          : "Not set"
+                      },
                       { icon: User, label: "Ethnicity", value: profileData?.ethnicity ?? "Not set" },
                       { icon: Ruler, label: "Height", value: profileData?.height_cm ? `${profileData.height_cm} cm` : "Not set" },
                       { icon: Scale, label: "Weight", value: profileData?.weight_kg ? `${profileData.weight_kg} kg` : "Not set" },
@@ -361,7 +413,7 @@ const MyProfileScreen = () => {
                   {quickLinks.map((link) => (
                     <button
                       key={link.label}
-                      onClick={() => navigate(link.route)}
+                      onClick={() => link.onClick ? link.onClick() : navigate(link.route!)}
                       className="w-full flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors text-left"
                     >
                       <link.icon className="h-5 w-5 text-gray-400" />
@@ -372,6 +424,125 @@ const MyProfileScreen = () => {
                 </CardContent>
               </Card>
             </motion.div>
+
+            {/* Change Password Modal */}
+            <AnimatePresence>
+              {showPasswordModal && (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
+                    onClick={() => setShowPasswordModal(false)}
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                  >
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold text-gray-900">Change Password</h2>
+                        <button
+                          onClick={() => setShowPasswordModal(false)}
+                          className="p-1 rounded-full hover:bg-gray-100"
+                        >
+                          <X className="h-5 w-5 text-gray-500" />
+                        </button>
+                      </div>
+
+                      <form onSubmit={handleChangePassword} className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Current Password
+                          </label>
+                          <div className="relative">
+                            <input
+                              type={showOldPassword ? "text" : "password"}
+                              value={oldPassword}
+                              onChange={(e) => setOldPassword(e.target.value)}
+                              className="w-full border border-gray-200 rounded-lg px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                              placeholder="Enter current password"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowOldPassword(!showOldPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                            >
+                              {showOldPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            New Password
+                          </label>
+                          <div className="relative">
+                            <input
+                              type={showNewPassword ? "text" : "password"}
+                              value={newPassword}
+                              onChange={(e) => setNewPassword(e.target.value)}
+                              className="w-full border border-gray-200 rounded-lg px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                              placeholder="Min. 8 characters"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowNewPassword(!showNewPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                            >
+                              {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Confirm New Password
+                          </label>
+                          <input
+                            type="password"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                            placeholder="Re-enter new password"
+                          />
+                        </div>
+
+                        {passwordError && (
+                          <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+                            {passwordError}
+                          </p>
+                        )}
+
+                        <div className="flex gap-3 pt-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowPasswordModal(false)}
+                            className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={changingPassword}
+                            className="flex-1 px-4 py-2.5 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 disabled:opacity-50"
+                          >
+                            {changingPassword ? (
+                              <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                            ) : (
+                              "Change Password"
+                            )}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
 
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
               <Button

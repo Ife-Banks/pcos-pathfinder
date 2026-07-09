@@ -18,6 +18,9 @@ import {
 } from "lucide-react";
 import { fthAPI } from "@/services/portalService";
 import { useAuth } from "@/context/AuthContext";
+import logoImage from "@/assets/logo.png";
+import aimherLogo from "@/assets/AIMHER trademark  only.png";
+import healthLogo from "@/assets/Health  Trademark only-1.png";
 
 const FTHStaffLoginScreen = () => {
   const navigate = useNavigate();
@@ -103,8 +106,10 @@ const FTHStaffLoginScreen = () => {
         className="w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-[#7C3AED] rounded-2xl mx-auto mb-4 flex items-center justify-center">
-            <span className="text-white text-2xl font-bold">AI-MSHM</span>
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <img src={logoImage} alt="logo" className="h-10 w-auto" />
+            <img src={aimherLogo} alt="AIMHER" className="h-8 w-auto" />
+            <img src={healthLogo} alt="Health" className="h-8 w-auto" />
           </div>
           <Badge className="bg-[#7C3AED] text-white mb-4">
             Federal Teaching Hospital

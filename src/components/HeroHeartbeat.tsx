@@ -58,7 +58,7 @@ export default function HeroHeartbeat({ compact = false }: HeroHeartbeatProps) {
 
     function resize() {
       canvas.width = canvas.offsetWidth * DPR;
-      canvas.height = (compact ? 120 : 200) * DPR;
+      canvas.height = (compact ? 120 : 160) * DPR;
       s.pixBuf = new Float32Array(Math.ceil(canvas.offsetWidth)).fill(NaN);
     }
     resize();
@@ -74,11 +74,11 @@ export default function HeroHeartbeat({ compact = false }: HeroHeartbeatProps) {
       const minor = 20 * DPR, major = 100 * DPR;
       ctx.lineWidth = 0.5;
       for (let x = 0; x < W; x += minor) {
-        ctx.strokeStyle = Math.abs(x % major) < 1 ? "rgba(0,180,80,0.13)" : "rgba(0,180,80,0.06)";
+        ctx.strokeStyle = Math.abs(x % major) < 1 ? "rgba(0,100,0,0.12)" : "rgba(0,100,0,0.05)";
         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
       }
       for (let y = 0; y < H; y += minor) {
-        ctx.strokeStyle = Math.abs(y % major) < 1 ? "rgba(0,180,80,0.13)" : "rgba(0,180,80,0.06)";
+        ctx.strokeStyle = Math.abs(y % major) < 1 ? "rgba(0,100,0,0.12)" : "rgba(0,100,0,0.05)";
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
       }
     }
@@ -135,24 +135,24 @@ export default function HeroHeartbeat({ compact = false }: HeroHeartbeatProps) {
       if (!ctx) return;
       const { width: W, height: H } = canvas;
 
-      ctx.fillStyle = "#060d09";
+      ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, W, H);
       drawGrid(ctx);
-      ctx.fillStyle = "#060d09";
+      ctx.fillStyle = "#ffffff";
       ctx.fillRect(Math.floor(s.drawX) * DPR, 0, ERASE_W * DPR, H);
 
       ctx.save();
-      ctx.strokeStyle = "rgba(0,232,122,0.18)";
+      ctx.strokeStyle = "rgba(0,100,0,0.15)";
       ctx.lineWidth = 7 * DPR;
       ctx.lineJoin = "round"; ctx.lineCap = "round";
       drawTrace(ctx);
       ctx.restore();
 
       ctx.save();
-      ctx.strokeStyle = "#00e87a";
+      ctx.strokeStyle = "#006400";
       ctx.lineWidth = 1.5 * DPR;
       ctx.shadowBlur = 4 * DPR;
-      ctx.shadowColor = "#00e87a";
+      ctx.shadowColor = "#006400";
       ctx.lineJoin = "round"; ctx.lineCap = "round";
       drawTrace(ctx);
       ctx.restore();
@@ -160,8 +160,8 @@ export default function HeroHeartbeat({ compact = false }: HeroHeartbeatProps) {
       const lastMv = signal[(s.sigHead - 1 + signal.length) % signal.length];
       ctx.beginPath();
       ctx.arc(s.drawX * DPR, mvToY(lastMv), 3 * DPR, 0, Math.PI * 2);
-      ctx.fillStyle = "#ffffff";
-      ctx.shadowBlur = 8 * DPR; ctx.shadowColor = "#00e87a";
+      ctx.fillStyle = "#006400";
+      ctx.shadowBlur = 8 * DPR; ctx.shadowColor = "#006400";
       ctx.fill(); ctx.shadowBlur = 0;
 
       raf = requestAnimationFrame(frame);
@@ -182,37 +182,37 @@ export default function HeroHeartbeat({ compact = false }: HeroHeartbeatProps) {
 
   if (compact) {
     return (
-      <div className="w-full" style={{ background: "#0a0f0d", borderRadius: 14, overflow: "hidden", border: "1px solid #1a2e22", fontFamily: "'Courier New', monospace" }}>
-        <canvas ref={canvasRef} style={{ display: "block", width: "100%", height: compact ? 120 : 200, background: "#060d09" }} />
+      <div className="w-full" style={{ background: "#ffffff", borderRadius: 14, overflow: "hidden", border: "1px solid #e0e0e0", fontFamily: "'Courier New', monospace" }}>
+        <canvas ref={canvasRef} style={{ display: "block", width: "100%", height: compact ? 120 : 160, background: "#ffffff" }} />
       </div>
     );
   }
 
   return (
-    <div style={{ width: "100%", background: "#0a0f0d", borderRadius: 14, overflow: "hidden", border: "1px solid #1a2e22", fontFamily: "'Courier New', monospace" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px 8px", borderBottom: "1px solid #0f1f17" }}>
+    <div style={{ width: "100%", background: "#ffffff", borderRadius: 14, overflow: "hidden", border: "1px solid #e0e0e0", fontFamily: "'Courier New', monospace" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px 8px", borderBottom: "1px solid #e0e0e0" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {["AI-MSHM", "Lead II", "25mm/s", "10mm/mV"].map((label, i) => (
-            <span key={label} style={{ fontSize: i === 0 ? 11 : 10, color: i === 0 ? "#2a6644" : "#7dffb8", background: "#051a0f", border: "1px solid #0d3320", borderRadius: 4, padding: "2px 7px", letterSpacing: "0.08em", fontWeight: i === 0 ? 700 : 400 }}>{label}</span>
+            <span key={label} style={{ fontSize: i === 0 ? 11 : 10, color: i === 0 ? "#666666" : "#006400", background: "#f5f5f5", border: "1px solid #e0e0e0", borderRadius: 4, padding: "2px 7px", letterSpacing: "0.08em", fontWeight: i === 0 ? 700 : 400 }}>{label}</span>
           ))}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#1aff8c", boxShadow: "0 0 6px #1aff8c" }} />
-          <span style={{ fontSize: 10, color: "#1aff8c", letterSpacing: "0.1em" }}>RECORDING</span>
+          <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#006400", boxShadow: "0 0 6px #006400" }} />
+          <span style={{ fontSize: 10, color: "#006400", letterSpacing: "0.1em" }}>RECORDING</span>
         </div>
       </div>
 
-      <canvas ref={canvasRef} style={{ display: "block", width: "100%", height: 200, background: "#060d09" }} />
+      <canvas ref={canvasRef} style={{ display: "block", width: "100%", height: 160, background: "#ffffff" }} />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", borderTop: "1px solid #0f1f17" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", borderTop: "1px solid #e0e0e0" }}>
         {metrics.map(({ label, val, unit, sub }, i) => (
-          <div key={label} style={{ padding: "10px 14px", borderRight: i < 3 ? "1px solid #0f1f17" : "none" }}>
-            <div style={{ fontSize: 9, color: "#2a6644", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>{label}</div>
+          <div key={label} style={{ padding: "10px 14px", borderRight: i < 3 ? "1px solid #e0e0e0" : "none" }}>
+            <div style={{ fontSize: 9, color: "#666666", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>{label}</div>
             <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
-              <span style={{ fontSize: 20, color: "#1aff8c", fontWeight: 700 }}>{val}</span>
-              <span style={{ fontSize: 10, color: "#2a6644" }}>{unit}</span>
+              <span style={{ fontSize: 20, color: "#006400", fontWeight: 700 }}>{val}</span>
+              <span style={{ fontSize: 10, color: "#666666" }}>{unit}</span>
             </div>
-            <div style={{ fontSize: 9, color: "#1a5433", marginTop: 3 }}>{sub}</div>
+            <div style={{ fontSize: 9, color: "#888888", marginTop: 3 }}>{sub}</div>
           </div>
         ))}
       </div>

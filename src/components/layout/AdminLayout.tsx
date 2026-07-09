@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   Users,
   Building2,
-  Activity,
   BarChart2,
   Settings,
   LogOut,
@@ -19,41 +18,53 @@ import {
   ClipboardCheck,
   UserPlus,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ChevronDown,
+  UsersRound,
+  Upload,
+  PlusSquare,
 } from 'lucide-react';
+
+const FACILITY_SUB_ITEMS = [
+  { label: 'All Facilities', icon: Building2, path: '/system-admin/facilities?tab=all', key: 'all-facilities' },
+  { label: 'Create Facility', icon: PlusSquare, path: '/system-admin/facilities?tab=create', key: 'create-facility' },
+  { label: 'LGA Accounts', icon: UsersRound, path: '/system-admin/facilities?tab=lga-accounts', key: 'lga-accounts' },
+  { label: 'Create LGA Account', icon: UserPlus, path: '/system-admin/facilities?tab=create-lga-account', key: 'create-lga-account' },
+  { label: 'CSV Upload', icon: Upload, path: '/system-admin/facilities?tab=csv-upload', key: 'csv-upload' },
+];
+
+const NAV_ITEMS = [
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/system-admin/dashboard', key: 'dashboard' },
+  { label: 'Users', icon: Users, path: '/system-admin/users', key: 'users' },
+  { label: 'Staff Management', icon: Shield, path: '/system-admin/staff', key: 'staff' },
+  { label: 'Check-Ins', icon: ClipboardCheck, path: '/system-admin/checkins', key: 'checkins' },
+  { label: 'Onboardings', icon: UserPlus, path: '/system-admin/onboardings', key: 'onboardings' },
+  { label: 'Database', icon: Database, path: '/system-admin/database', key: 'database' },
+  { label: 'Analytics', icon: BarChart2, path: '/system-admin/analytics', key: 'analytics' },
+  { label: 'Logs', icon: FileText, path: '/system-admin/logs', key: 'logs' },
+  { label: 'System Health', icon: Server, path: '/system-admin/health', key: 'health' },
+  { label: 'Alerts', icon: Bell, path: '/system-admin/alerts', key: 'alerts' },
+  { label: 'Security', icon: Lock, path: '/system-admin/security', key: 'security' },
+  { label: 'Settings', icon: Settings, path: '/system-admin/settings', key: 'settings' },
+];
 
 const AdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [facilitiesOpen, setFacilitiesOpen] = useState(false);
 
-  const navItems = [
-    { label: 'Dashboard', icon: LayoutDashboard, path: '/system-admin/dashboard', key: 'dashboard' },
-    { label: 'Users', icon: Users, path: '/system-admin/users', key: 'users' },
-    { label: 'Facilities', icon: Building2, path: '/system-admin/facilities', key: 'facilities' },
-    { label: 'Staff Management', icon: Shield, path: '/system-admin/staff', key: 'staff' },
-    { label: 'Check-Ins', icon: ClipboardCheck, path: '/system-admin/checkins', key: 'checkins' },
-    { label: 'Onboardings', icon: UserPlus, path: '/system-admin/onboardings', key: 'onboardings' },
-    { label: 'Database', icon: Database, path: '/system-admin/database', key: 'database' },
-    { label: 'Analytics', icon: BarChart2, path: '/system-admin/analytics', key: 'analytics' },
-    { label: 'Logs', icon: FileText, path: '/system-admin/logs', key: 'logs' },
-    { label: 'System Health', icon: Server, path: '/system-admin/health', key: 'health' },
-    { label: 'Alerts', icon: Bell, path: '/system-admin/alerts', key: 'alerts' },
-    { label: 'Security', icon: Lock, path: '/system-admin/security', key: 'security' },
-    { label: 'Settings', icon: Settings, path: '/system-admin/settings', key: 'settings' },
-  ];
+  const path = location.pathname;
 
-  const isActive = (item: typeof navItems[0]) => {
-    const path = location.pathname;
-    // Exact match
-    if (path === item.path) return true;
-    // Child routes - /users/123, /facilities/new, /facilities/af01c5a8
-    if (path.startsWith(item.path + '/')) return true;
-    // Special case for dashboard index route
-    if (item.key === 'dashboard' && path === '/system-admin') return true;
-    return false;
+  const isFacilitiesSection = path.startsWith('/system-admin/facilities');
+
+  const isItemActive = (itemPath: string, itemKey: string) => {
+    if (itemKey === 'dashboard') return path === '/system-admin' || path === '/system-admin/dashboard';
+    return path === itemPath || path.startsWith(itemPath + '/');
   };
+
+  const isFacilitiesSubActive = (subPath: string) => path === subPath;
 
   const handleLogout = async () => {
     try {
@@ -76,6 +87,7 @@ const AdminLayout = () => {
   return (
     <div className="flex h-screen bg-gray-900">
       <aside className={`${isCollapsed ? 'w-16' : 'w-64'} bg-slate-800 border-r border-slate-700 flex flex-col transition-all duration-300 relative`}>
+
         {/* Header */}
         <div className="p-4 border-b border-slate-700">
           <div className="flex items-center gap-3">
@@ -101,8 +113,9 @@ const AdminLayout = () => {
 
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {navItems.map(item => {
-            const active = isActive(item);
+          {/* Regular nav items */}
+          {NAV_ITEMS.map(item => {
+            const active = isItemActive(item.path, item.key);
             return (
               <button
                 key={item.key}
@@ -119,6 +132,60 @@ const AdminLayout = () => {
               </button>
             );
           })}
+
+          {/* Facilities collapsible group */}
+          {!isCollapsed ? (
+            <div className="pt-2">
+              <button
+                onClick={() => setFacilitiesOpen(v => !v)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                  isFacilitiesSection
+                    ? 'bg-blue-600 text-white'
+                    : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                }`}
+              >
+                <Building2 className="h-5 w-5 flex-shrink-0" />
+                <span className="flex-1 truncate text-left">Facilities</span>
+                <ChevronDown
+                  className={`h-4 w-4 flex-shrink-0 transition-transform ${facilitiesOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
+
+              {facilitiesOpen && (
+                <div className="ml-2 mt-1 space-y-0.5 border-l border-slate-600 pl-3">
+                  {FACILITY_SUB_ITEMS.map(sub => {
+                    const active = isFacilitiesSubActive(sub.path);
+                    return (
+                      <button
+                        key={sub.key}
+                        onClick={() => navigate(sub.path)}
+                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                          active
+                            ? 'bg-blue-500/30 text-white font-medium'
+                            : 'text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+                        }`}
+                      >
+                        <sub.icon className="h-4 w-4 flex-shrink-0" />
+                        <span className="truncate">{sub.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => navigate('/system-admin/facilities?tab=all')}
+              title="Facilities"
+              className={`w-full flex items-center justify-center px-3 py-2.5 rounded-lg text-sm transition-colors mt-2 ${
+                isFacilitiesSection
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+              }`}
+            >
+              <Building2 className="h-5 w-5" />
+            </button>
+          )}
         </nav>
 
         {/* Footer */}

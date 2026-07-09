@@ -137,7 +137,7 @@ const Step4MenstrualHistory = () => {
             <Input
               id="cycle_length_days"
               type="number"
-              placeholder="28"
+              placeholder="Enter number of days"
               value={form.cycle_length_days}
               onChange={(e) => setForm({ ...form, cycle_length_days: e.target.value })}
               min={1}
@@ -153,7 +153,7 @@ const Step4MenstrualHistory = () => {
             <Input
               id="periods_per_year"
               type="number"
-              placeholder="12"
+              placeholder="Enter number of periods per year"
               value={form.periods_per_year}
               onChange={(e) => setForm({ ...form, periods_per_year: e.target.value })}
               min={0}

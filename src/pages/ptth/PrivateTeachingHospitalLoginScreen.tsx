@@ -18,6 +18,9 @@ import {
 } from "lucide-react";
 import { ptthAPI } from "@/services/portalService";
 import { useAuth } from "@/context/AuthContext";
+import logoImage from "@/assets/logo.png";
+import aimherLogo from "@/assets/AIMHER trademark  only.png";
+import healthLogo from "@/assets/Health  Trademark only-1.png";
 
 const PrivateTeachingHospitalLoginScreen = () => {
   const navigate = useNavigate();
@@ -101,8 +104,10 @@ const PrivateTeachingHospitalLoginScreen = () => {
         className="w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-[#CA8A04] rounded-2xl mx-auto mb-4 flex items-center justify-center">
-            <Building2 className="h-8 w-8 text-white" />
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <img src={logoImage} alt="logo" className="h-10 w-auto" />
+            <img src={aimherLogo} alt="AIMHER" className="h-8 w-auto" />
+            <img src={healthLogo} alt="Health" className="h-8 w-auto" />
           </div>
           <Badge className="bg-[#CA8A04] text-white mb-4">
             Private Teaching Hospital

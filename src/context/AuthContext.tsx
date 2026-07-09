@@ -143,7 +143,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return '/system-admin/dashboard';
     }
     
-    if (!['clinician', 'patient', 'fhc_staff', 'fhc_admin', 'hcc_staff', 'hcc_admin'].includes(user.role)) return '/role-mismatch';
+    // LGA admin role
+    if (user.role === 'lga_admin') {
+      return '/lga/dashboard';
+    }
+
+    if (!['clinician', 'patient', 'fhc_staff', 'fhc_admin', 'hcc_staff', 'hcc_admin', 'lga_admin'].includes(user.role)) return '/role-mismatch';
     
     // FMC roles
     if (user.role === 'fhc_staff' || user.role === 'fhc_admin') {

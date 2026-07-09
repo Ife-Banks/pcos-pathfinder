@@ -17,6 +17,8 @@ import {
   ArrowLeft
 } from "lucide-react";
 import logoImage from "@/assets/logo.png";
+import aimherLogo from "@/assets/AIMHER trademark  only.png";
+import healthLogo from "@/assets/Health  Trademark only-1.png";
 import { phcAPI } from "@/services/phcService";
 import { useAuth } from "@/context/AuthContext";
 
@@ -77,7 +79,7 @@ const PHCStaffLoginScreen = () => {
             <ArrowLeft className="w-4 h-4" />
             <span className="text-sm font-medium">Back to Home</span>
           </Link>
-          <Link to="/welcome">
+          <Link to="/welcome" className="flex items-center gap-2">
             <img src={logoImage} alt="AIMHER" className="h-8 w-auto" />
           </Link>
         </div>
@@ -92,9 +94,11 @@ const PHCStaffLoginScreen = () => {
         >
           {/* Logo & Title Section */}
           <div className="text-center mb-6">
-            {/* <Link to="/welcome" className="inline-block">
-              <img src={logoImage} alt="AIMHER" className="w-28 h-auto mx-auto mb-3" />
-            </Link> */}
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <img src={logoImage} alt="logo" className="h-8 w-auto" />
+              <img src={aimherLogo} alt="AIMHER" className="h-6 w-auto" />
+              <img src={healthLogo} alt="Health" className="h-6 w-auto" />
+            </div>
             <h1 className="text-4xl font-bold text-gray-900">PHC Portal</h1>
             <p className="text-gray-600 text-sm mt-1">Sign in to manage patients</p>
           </div>

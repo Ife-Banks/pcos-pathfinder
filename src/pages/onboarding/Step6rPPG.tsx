@@ -25,6 +25,7 @@ const Step6rPPG = () => {
   const [isCapturing, setIsCapturing] = useState(false);
   const [captureComplete, setCaptureComplete] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [saveComplete, setSaveComplete] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleStartCapture = () => {
@@ -72,7 +73,11 @@ const Step6rPPG = () => {
 
       setCaptureComplete(true);
       setIsCapturing(false);
-      navigate('/onboarding/step/7');
+      setSaveComplete(true);
+      
+      setTimeout(() => {
+        navigate('/onboarding/step/7');
+      }, 1500);
     } catch (err: any) {
       const backendErrors: Record<string, string> = {};
       if (err?.errors) {
@@ -183,26 +188,48 @@ const Step6rPPG = () => {
               >
                 {isCapturing ? "Capturing..." : "Start Capture"}
               </Button>
+            ) : saveComplete ? (
+              <Button
+                variant="clinical"
+                size="xl"
+                className="w-full bg-green-600 hover:bg-green-700"
+                disabled
+              >
+                <span className="flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Done! Moving to Step 7...
+                </span>
+              </Button>
             ) : (
               <Button
                 variant="clinical"
                 size="xl"
                 className="w-full"
-                onClick={() => navigate('/onboarding/step/7')}
                 disabled={isLoading}
               >
-                {isLoading ? "Saving..." : "Continue"}
+                {isLoading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Saving...
+                  </span>
+                ) : (
+                  "Processing..."
+                )}
               </Button>
             )}
             
-            <Button
-              variant="ghost"
-              className="w-full"
-              onClick={handleSkipAndFinish}
-              disabled={isLoading}
-            >
-              Skip
-            </Button>
+            {!captureComplete && (
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={handleSkipAndFinish}
+                disabled={isLoading}
+              >
+                Skip
+              </Button>
+            )}
           </div>
         </motion.div>
       </div>

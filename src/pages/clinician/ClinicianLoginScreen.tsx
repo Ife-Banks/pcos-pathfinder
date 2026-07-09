@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Eye, EyeOff, Shield, User, Mail, Lock, Key, Stethoscope, ArrowLeft } from "lucide-react";
 import logoImage from "@/assets/logo.png";
+import aimherLogo from "@/assets/AIMHER trademark  only.png";
+import healthLogo from "@/assets/Health  Trademark only-1.png";
 import { clinicianAPI } from "@/services/clinicianService";
 import { useAuth } from "@/context/AuthContext";
 import { ClinicianLoginForm } from "@/types/clinician";
@@ -169,9 +171,13 @@ const ClinicianLoginScreen = () => {
         >
           {/* Logo & Title Section */}
           <div className="text-center mb-6">
-            {/* <Link to="/welcome" className="inline-block">
-              <img src={logoImage} alt="AIMHER" className="w-28 h-auto mx-auto mb-3" />
-            </Link> */}
+            <Link to="/welcome" className="inline-block mb-3">
+              <div className="flex items-center justify-center gap-2">
+                <img src={logoImage} alt="logo" className="h-8 w-auto" />
+                <img src={aimherLogo} alt="AIMHER" className="h-6 w-auto" />
+                <img src={healthLogo} alt="Health" className="h-6 w-auto" />
+              </div>
+            </Link>
             <h1 className="text-4xl font-bold text-gray-900">Clinician Portal</h1>
             <p className="text-gray-600 text-sm mt-1">Secure access for medical professionals</p>
           </div>

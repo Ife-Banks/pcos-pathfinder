@@ -17,7 +17,7 @@ const Step1PersonalInfo = () => {
   
   const [form, setForm] = useState({
     full_name: '',
-    age: '',
+    date_of_birth: '',
     ethnicity: '',
     gender: '',
     phone_number: '',
@@ -26,12 +26,24 @@ const Step1PersonalInfo = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const calculateAge = (dob: string): number | null => {
+    if (!dob) return null;
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   // Load existing data on mount
   useEffect(() => {
     if (profile) {
       setForm({
         full_name: profile.full_name || '',
-        age: profile.age?.toString() || '',
+        date_of_birth: profile.date_of_birth || '',
         ethnicity: profile.ethnicity || '',
         gender: profile.gender || '',
         phone_number: profile.phone_number || '',
@@ -41,16 +53,20 @@ const Step1PersonalInfo = () => {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!form.full_name.trim()) {
       newErrors.full_name = 'Full name is required';
     }
-    
-    const ageNum = parseInt(form.age);
-    if (!form.age || isNaN(ageNum) || ageNum < 10 || ageNum > 120) {
-      newErrors.age = 'Age must be between 10 and 120';
+
+    if (!form.date_of_birth) {
+      newErrors.date_of_birth = 'Date of birth is required';
+    } else {
+      const age = calculateAge(form.date_of_birth);
+      if (age !== null && (age < 10 || age > 120)) {
+        newErrors.date_of_birth = 'Age must be between 10 and 120';
+      }
     }
-    
+
     if (!form.ethnicity) {
       newErrors.ethnicity = 'Please select your ethnicity';
     }
@@ -62,7 +78,7 @@ const Step1PersonalInfo = () => {
     if (!form.phone_number.trim()) {
       newErrors.phone_number = 'Phone number is required';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -81,7 +97,7 @@ const Step1PersonalInfo = () => {
       
       await onboardingAPI.saveStep1({
         full_name: form.full_name,
-        age: parseInt(form.age),
+        date_of_birth: form.date_of_birth,
         ethnicity: form.ethnicity,
         gender: form.gender,
         phone_number: form.phone_number,
@@ -113,7 +129,14 @@ const Step1PersonalInfo = () => {
 
   const ethnicityOptions = [
     { value: 'white', label: 'White / Caucasian' },
-    { value: 'black', label: 'Black / African American' },
+    { value: 'nigerian', label: 'Nigerian' },
+    { value: 'ghanaian', label: 'Ghanaian' },
+    { value: 'kenyan', label: 'Kenyan' },
+    { value: 'ethiopian', label: 'Ethiopian' },
+    { value: 'south_african', label: 'South African' },
+    { value: 'other_african', label: 'Other African' },
+    { value: 'african_american', label: 'African American' },
+    { value: 'caribbean', label: 'Caribbean' },
     { value: 'hispanic', label: 'Hispanic / Latino' },
     { value: 'asian', label: 'Asian' },
     { value: 'south_asian', label: 'South Asian' },
@@ -174,7 +197,7 @@ const Step1PersonalInfo = () => {
             <Label htmlFor="full_name">Full Name</Label>
             <Input
               id="full_name"
-              placeholder="Your full name"
+              placeholder="Enter your full name"
               value={form.full_name}
               onChange={(e) => setForm({ ...form, full_name: e.target.value })}
             />
@@ -210,7 +233,7 @@ const Step1PersonalInfo = () => {
             <Input
               id="phone_number"
               type="tel"
-              placeholder="e.g., +2348123456789"
+              placeholder="Enter phone number"
               value={form.phone_number}
               onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
             />
@@ -220,18 +243,21 @@ const Step1PersonalInfo = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="age">Age</Label>
+            <Label htmlFor="date_of_birth">Date of Birth</Label>
             <Input
-              id="age"
-              type="number"
-              placeholder="Your age"
-              value={form.age}
-              onChange={(e) => setForm({ ...form, age: e.target.value })}
-              min={10}
-              max={120}
+              id="date_of_birth"
+              type="date"
+              value={form.date_of_birth}
+              onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })}
+              max={new Date().toISOString().split('T')[0]}
             />
-            {errors.age && (
-              <p className="text-sm text-destructive">{errors.age}</p>
+            {form.date_of_birth && (
+              <p className="text-sm text-muted-foreground">
+                Age: {calculateAge(form.date_of_birth)} years old
+              </p>
+            )}
+            {errors.date_of_birth && (
+              <p className="text-sm text-destructive">{errors.date_of_birth}</p>
             )}
           </div>
 

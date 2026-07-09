@@ -9,6 +9,7 @@ export type WearableDevice =
 
 export interface OnboardingProfile {
   full_name:              string;
+  date_of_birth:          string | null;
   age:                    number | null;
   ethnicity:              Ethnicity | '';
   gender:                 string | '';

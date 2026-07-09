@@ -20,11 +20,12 @@ export const onboardingAPI = {
   },
 
   // PATCH /api/v1/onboarding/step/1/
-  // Fields: full_name (string), age (integer 10–120),
+  // Fields: full_name (string), date_of_birth (YYYY-MM-DD),
   //         ethnicity (enum — see choices below), gender (male/female), phone_number
+  //         Age is computed automatically from date_of_birth
   saveStep1: async (payload: {
     full_name: string;
-    age: number;
+    date_of_birth: string;
     ethnicity: string;
     gender: string;
     phone_number: string;

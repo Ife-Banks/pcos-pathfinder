@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, ArrowLeft, Shield, Stethoscope, Lock, Building2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import logo from "@/assets/logo.png";
+import aimherLogo from "@/assets/AIMHER trademark  only.png";
+import healthLogo from "@/assets/Health  Trademark only-1.png";
 
 const ClinicianLoginScreen = () => {
   const navigate = useNavigate();
@@ -53,12 +55,10 @@ const ClinicianLoginScreen = () => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <div className="flex items-center gap-3 mb-4">
-            <img src={logo} alt="AI-MSHM" className="h-10 w-10" />
-            <div className="h-10 w-px bg-border" />
-            <div className="h-10 w-10 rounded-lg gradient-clinical flex items-center justify-center">
-              <Shield className="h-5 w-5 text-primary-foreground" />
-            </div>
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <img src={logo} alt="logo" className="h-10 w-auto" />
+            <img src={aimherLogo} alt="AIMHER" className="h-8 w-auto" />
+            <img src={healthLogo} alt="Health" className="h-8 w-auto" />
           </div>
           <h1 className="text-2xl font-bold font-display text-foreground">Clinician Login</h1>
           <p className="text-muted-foreground mt-1">Access your patient panel with verified credentials</p>
