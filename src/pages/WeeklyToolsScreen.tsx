@@ -76,7 +76,7 @@ const WeeklyToolsScreen = () => {
   const getTools = (): WeeklyTool[] => [
     {
       id: "mfg",
-      title: "Hirsutism Score",
+      title: "Hirsutism",
       subtitle: "Modified Ferriman-Gallwey (mFG)",
       description: "Quantify hair growth patterns across 8 body zones to assess hyperandrogenism.",
       icon: Scissors,
