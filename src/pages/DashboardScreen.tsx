@@ -236,13 +236,13 @@ const RiskGauge = ({ score }: { score?: number }) => {
         transition={{ delay: 0.6 }}
         className="text-center -mt-2"
       >
-        <span>
+       <span>
   <span className="text-3xl font-bold font-display" style={{ color: tier.color }}>
     {safeScore.toFixed(2)}
   </span>{' '}
-  <span className="text-lg text-gray-500">/ 1.00</span>
+  <span className="text-lg font-extrabold text-black-500">/ 1.00</span>
 </span>
-        <p className="text-sm font-semibold text-gray-800">
+        <p className="text-sm text-semibold text-gray-800">
           Risk Tier: <span className="font-extrabold" style={{ color: tier.color }}>{tier.label}</span>
         </p>
       </motion.div>
@@ -1082,7 +1082,7 @@ const DashboardScreen = () => {
               key={item.label}
               onClick={() => navigate(item.route)}
               className={`flex flex-col items-center gap-1 px-3 py-1 transition-colors ${
-                item.active ? "text-teal-600" : "text-gray-400 hover:text-gray-600"
+                item.active ? "text-teal-600" : "text-gray-500 hover:text-gray-800 "
               }`}
             >
               <item.icon className="h-5 w-5" />
