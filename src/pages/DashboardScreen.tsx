@@ -239,8 +239,8 @@ const RiskGauge = ({ score }: { score?: number }) => {
         <span className="text-3xl font-bold font-display" style={{ color: tier.color }}>
           {safeScore.toFixed(2)}
         </span>
-        <p className="text-xs text-gray-500 mt-1">
-          Risk Tier: <span className="font-semibold" style={{ color: tier.color }}>{tier.label}</span>
+        <p className="text-sm font-semibold text-gray-800">
+          Risk Tier: <span className="font-extrabold" style={{ color: tier.color }}>{tier.label}</span>
         </p>
       </motion.div>
     </div>
@@ -562,7 +562,7 @@ const DashboardScreen = () => {
     ? `Cycle ${Math.round(menstrualSummary.mean_cycle_len)} days · CLV ${menstrualSummary.CLV ?? '—'}`
     : "Log your cycle";
 
-  const riskScoreTitle = isMale ? "Cardiovascular Risk Score" : "PMOS Risk Score";
+  const riskScoreTitle = isMale ? "Cardiovascular Risk Score" : "Polyendocrine Metabolic Ovarian Syndrome (PMOS) Score";
 
   const morningComplete = todayData?.morning_status === 'complete';
   const eveningComplete = todayData?.evening_status === 'complete';
@@ -843,7 +843,7 @@ const DashboardScreen = () => {
                     <div>
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-sm">🩺</span>
-                        <p className="text-sm font-semibold text-gray-800">Menstrual Health</p>
+                        <p className="text-sm font-semibold text-blue-800">Menstrual Health</p>
                       </div>
                       <div className="grid grid-cols-3 gap-2 text-sm">
                         {Object.entries(prediction.menstrual_risks).map(([key, value]) => (
@@ -861,45 +861,37 @@ const DashboardScreen = () => {
                     <div>
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-sm">📷</span>
-                        <p className="text-sm font-semibold text-gray-800">rPPG/HRV</p>
+                        <p className="text-sm font-semibold text-amber-500">rPPG/HRV</p>
                       </div>
-                      <div className="grid grid-cols-4 gap-2">
-  <div className="p-3 bg-blue-50 rounded-lg">
-    <div className="flex justify-between text-sm text-blue-800 font-medium">
-      <span>Cardiovascular Disease:</span>
-      <span className="font-bold">
-        {((prediction.rppg_risks.metabolic?.CVD || 0) * 100).toFixed(0)}%
-      </span>
+                      <div className="grid grid-cols-2 gap-2">
+  <div className="p-3 bg-blue-50 rounded-lg text-center">
+    <div className="text-sm text-black-800 font-bold">Cardiovascular Disease:</div>
+    <div className="font-bold text-blue-800">
+      {((prediction.rppg_risks.metabolic?.CVD || 0) * 100).toFixed(0)}%
     </div>
   </div>
 
-  <div className="p-3 bg-blue-50 rounded-lg">
-    <div className="flex justify-between text-sm text-blue-800 font-medium">
-      <span>Type 2 Diabetes:</span>
-      <span className="font-bold">
-        {((prediction.rppg_risks.metabolic?.T2D || 0) * 100).toFixed(0)}%
-      </span>
+  <div className="p-3 bg-blue-50 rounded-lg text-center">
+    <div className="text-sm text-black-800 font-bold">Type 2 Diabetes:</div>
+    <div className="font-bold text-blue-800">
+      {((prediction.rppg_risks.metabolic?.T2D || 0) * 100).toFixed(0)}%
     </div>
   </div>
 
-  <div className="p-3 bg-indigo-50 rounded-lg">
-    <div className="flex justify-between text-sm text-indigo-800 font-medium">
-      <span>Stress:</span>
-      <span className="font-bold">
-        {((prediction.rppg_risks.reproductive?.Stress || 0) * 100).toFixed(0)}%
-      </span>
+  <div className="p-3 bg-indigo-50 rounded-lg text-center">
+    <div className="text-sm text-black-800 font-bold">Stress:</div>
+    <div className="font-bold text-indigo-800">
+      {((prediction.rppg_risks.reproductive?.Stress || 0) * 100).toFixed(0)}%
     </div>
   </div>
 
-  <div className="p-3 bg-indigo-50 rounded-lg">
-    <div className="flex justify-between text-sm text-indigo-800 font-medium">
-      <span>Infertility:</span>
-      <span className="font-bold">
-        {((prediction.rppg_risks.reproductive?.Infertility || 0) * 100).toFixed(0)}%
-      </span>
+  <div className="p-3 bg-indigo-50 rounded-lg text-center">
+    <div className="text-sm text-black-800 font-bold">Infertility:</div>
+    <div className="font-bold text-indigo-800">
+      {((prediction.rppg_risks.reproductive?.Infertility || 0) * 100).toFixed(0)}%
     </div>
   </div>
-</div>
+</div>  
                     </div>
                   )}
 
@@ -908,7 +900,7 @@ const DashboardScreen = () => {
                     <div>
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-sm">🧠</span>
-                        <p className="text-sm font-semibold text-gray-800">Mood Analysis</p>
+                        <p className="text-sm font-semibold text-[#9615b3]">Mood Analysis</p>
                       </div>
                       <div className="grid grid-cols-3 gap-2">
                         {Object.entries(prediction.rppg_risks.mood).slice(0, 3).map(([key, value]) => (
