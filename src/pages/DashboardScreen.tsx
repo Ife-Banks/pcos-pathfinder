@@ -466,9 +466,10 @@ const DashboardScreen = () => {
 
     try {
       // Fire all requests in parallel immediately
+      setPredictionLoading(true);
+      const predPromise = dashboardService.getMLPredictions();
       const profilePromise = dashboardService.getUserProfile();
       const todayPromise = checkinService.getTodayStatus();
-      const predPromise = dashboardService.getMLPredictions();
       const menstrualPromise = fetchMenstrualSummary();
       const todaySummaryPromise = fetchTodaySummary();
 
@@ -511,10 +512,12 @@ const DashboardScreen = () => {
       if (predRes[0].status === 'fulfilled' && predRes[0].value.data) {
         setPrediction(predRes[0].value.data);
       }
+      setPredictionLoading(false);
 
       // menstrualPromise and todaySummaryPromise fire-and-forget (they call setState internally)
     } catch (err: any) {
       setError('Unable to load data');
+      setPredictionLoading(false);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -875,6 +878,13 @@ const DashboardScreen = () => {
               </div>
               {prediction ? (
                 <RiskGauge score={prediction.risk_score} />
+              ) : predictionLoading ? (
+                <div className="flex flex-col items-center py-8">
+                  <div className="w-48 h-28 flex items-center justify-center text-gray-400">
+                    <Loader2 className="w-8 h-8 animate-spin mb-2" />
+                    Calculating your score...
+                  </div>
+                </div>
               ) : (
                 <div className="flex flex-col items-center py-8">
                   <div className="w-48 h-28 flex items-center justify-center text-gray-400">

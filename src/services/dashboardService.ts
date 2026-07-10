@@ -143,10 +143,7 @@ export const dashboardService = {
   // NEW: Get comprehensive ML predictions
   getMLPredictions: async (): Promise<PredictionResponse> => {
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 25000);
-      const res = await apiClient.get('/predictions/pcos/', { signal: controller.signal });
-      clearTimeout(timeout);
+      const res = await apiClient.get('/predictions/pcos/');
       const body = res.data;
       
       // Check if response is success (even if data is null)
