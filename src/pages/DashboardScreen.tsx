@@ -938,7 +938,7 @@ const DashboardScreen = () => {
     <div className="font-bold text-blue-800">
       {prediction.rppg_risks.metabolic?.CVD != null
         ? `${(prediction.rppg_risks.metabolic.CVD * 100).toFixed(0)}%`
-        : `${prediction.rppg_status?.metabolic_cardio?.current_span_days ?? 0}/${prediction.rppg_status?.metabolic_cardio?.required_span_days ?? 30}d · No result yet`}
+        : `${prediction.rppg_status?.metabolic_cardio?.current_span_days ?? 0}/${prediction.rppg_status?.metabolic_cardio?.required_span_days ?? 30} days · No result yet`}
     </div>
   </div>
 
@@ -947,7 +947,7 @@ const DashboardScreen = () => {
     <div className="font-bold text-blue-800">
       {prediction.rppg_risks.metabolic?.T2D != null
         ? `${(prediction.rppg_risks.metabolic.T2D * 100).toFixed(0)}%`
-        : `${prediction.rppg_status?.metabolic_cardio?.current_span_days ?? 0}/${prediction.rppg_status?.metabolic_cardio?.required_span_days ?? 30}d · No result yet`}
+        : `${prediction.rppg_status?.metabolic_cardio?.current_span_days ?? 0}/${prediction.rppg_status?.metabolic_cardio?.required_span_days ?? 30} days · No result yet`}
     </div>
   </div>
 
