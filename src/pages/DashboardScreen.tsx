@@ -465,18 +465,26 @@ const DashboardScreen = () => {
     setError(null);
 
     try {
-      const results = await Promise.allSettled([
-        dashboardService.getUserProfile(),
-        checkinService.getTodayStatus(),
-        dashboardService.getMLPredictions(),
-        fetchMenstrualSummary(),
-        fetchTodaySummary(),
-      ]);
+      // Fire all requests in parallel immediately
+      const profilePromise = dashboardService.getUserProfile();
+      const todayPromise = checkinService.getTodayStatus();
+      const predPromise = dashboardService.getMLPredictions();
+      const menstrualPromise = fetchMenstrualSummary();
+      const todaySummaryPromise = fetchTodaySummary();
 
-      const [profileRes, todayRes, predRes] = results;
+      // Wait only for critical data (fast Django-local calls)
+      const [profileRes, todayRes] = await Promise.allSettled([profilePromise, todayPromise]);
 
       if (profileRes.status === 'fulfilled') {
         setProfile(profileRes.value.data);
+      } else {
+        const err = profileRes.reason;
+        if (err?.status === 401) {
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          navigate('/login');
+          return;
+        }
       }
 
       if (todayRes.status === 'fulfilled') {
@@ -495,16 +503,17 @@ const DashboardScreen = () => {
         }
       }
 
-      if (predRes.status === 'fulfilled') {
-        setPrediction(predRes.value.data);
+      // Show UI immediately with critical data
+      setLoading(false);
+
+      // Collect remaining results as they complete
+      const predRes = await Promise.allSettled([predPromise]);
+      if (predRes[0].status === 'fulfilled' && predRes[0].value.data) {
+        setPrediction(predRes[0].value.data);
       }
+
+      // menstrualPromise and todaySummaryPromise fire-and-forget (they call setState internally)
     } catch (err: any) {
-      if (err?.status === 401) {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        navigate('/login');
-        return;
-      }
       setError('Unable to load data');
     } finally {
       setLoading(false);
@@ -574,7 +583,7 @@ const DashboardScreen = () => {
   };
 
   const isMale = profile?.gender === 'male';
-  const isFemale = profile?.gender === 'female';
+  const isFemale = profile ? profile.gender === 'female' : true;
 
   const getCycleStatus = (summary: MenstrualSummary): string => {
     const flags = summary.criterion_flags;

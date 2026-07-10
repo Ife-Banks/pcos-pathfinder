@@ -12,6 +12,7 @@ const isCancelError = (error: any): boolean => {
 // Note: NO trailing slash on baseURL. All endpoint paths start after /api/v1 (e.g. /auth/me/, /centers/phc/profile/)
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 30000,
 });
 
 // Attach token to every request
