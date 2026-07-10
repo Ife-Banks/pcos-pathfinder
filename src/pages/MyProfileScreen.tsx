@@ -298,7 +298,7 @@ const MyProfileScreen = () => {
                           ? profileData.gender.charAt(0).toUpperCase() + profileData.gender.slice(1)
                           : "Not set"
                       },
-                      { icon: User, label: "Ethnicity", value: profileData?.ethnicity ?? "Not set" },
+                      { icon: User, label: "Ethnicity", value: profileData?.ethnicity ? profileData.ethnicity : "Not set" },
                       { icon: Ruler, label: "Height", value: profileData?.height_cm ? `${profileData.height_cm} cm` : "Not set" },
                       { icon: Scale, label: "Weight", value: profileData?.weight_kg ? `${profileData.weight_kg} kg` : "Not set" },
                     ].map((item) => (
