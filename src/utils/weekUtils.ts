@@ -55,6 +55,22 @@ export function getTodayDateString(): string {
   return new Date().toISOString().split('T')[0];
 }
 
+export function markToolCompleteToday(
+  tool: 'phq4' | 'affect' | 'focus' | 'sleep'
+): void {
+  localStorage.setItem(
+    `mshm_${tool}_completed_today`,
+    getTodayDateString()
+  );
+}
+
+export function isToolCompleteToday(
+  tool: 'phq4' | 'affect' | 'focus' | 'sleep'
+): boolean {
+  const stored = localStorage.getItem(`mshm_${tool}_completed_today`);
+  return stored === getTodayDateString();
+}
+
 export function getQuadrantFromValues(valence: number, arousal: number): string {
   if (valence >= 6 && arousal >= 6) return 'Happy-Energised';
   if (valence >= 6 && arousal <= 5) return 'Calm-Relaxed';
@@ -62,3 +78,44 @@ export function getQuadrantFromValues(valence: number, arousal: number): string 
   if (valence <= 5 && arousal <= 5) return 'Depressed-Fatigued';
   return 'Neutral';
 }
+
+export function recordToolLog(tool: 'affect' | 'focus'): void {
+  localStorage.setItem(
+    `mshm_${tool}_last_log`,
+    Date.now().toString()
+  );
+}
+
+export function getTimeSinceLastLog(tool: 'affect' | 'focus'): number {
+  const stored = localStorage.getItem(`mshm_${tool}_last_log`);
+  if (!stored) return Infinity;
+  return Date.now() - parseInt(stored);
+}
+
+export function canLogNow(tool: 'affect' | 'focus', intervalHours: number): boolean {
+  const timeSinceLastLog = getTimeSinceLastLog(tool);
+  const intervalMs = intervalHours * 60 * 60 * 1000;
+  return timeSinceLastLog >= intervalMs;
+}
+
+export function getTimeUntilNextLog(tool: 'affect' | 'focus', intervalHours: number): number {
+  const timeSinceLastLog = getTimeSinceLastLog(tool);
+  const intervalMs = intervalHours * 60 * 60 * 1000;
+  const remaining = intervalMs - timeSinceLastLog;
+  return remaining > 0 ? remaining : 0;
+}
+
+export function formatTimeRemaining(ms: number): string {
+  if (ms <= 0) return 'Ready';
+  const hours = Math.floor(ms / (60 * 60 * 1000));
+  const minutes = Math.floor((ms % (60 * 60 * 1000)) / (60 * 1000));
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  return `${minutes}m`;
+}
+
+export const TOOL_FREQUENCIES = {
+  affect: 1,   // hourly
+  focus: 4,    // 4-hourly
+} as const;

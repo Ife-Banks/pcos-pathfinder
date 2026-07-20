@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Sun, Moon, Activity, TrendingUp, Calendar, AlertCircle, MessageCircle,
-  ChevronRight, Bell, User, Heart, BarChart3, ClipboardCheck, Loader2, Check, Camera, LogOut
+  ChevronRight, Bell, User, Heart, BarChart3, ClipboardCheck, Loader2, Check, Camera, LogOut, Wrench, Timer
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/context/NotificationContext";
@@ -14,7 +14,7 @@ import { dashboardService, UserProfile, PredictionData } from "@/services/dashbo
 import { checkinService } from "@/services/checkinService";
 import { menstrualService, CriterionFlags } from "@/services/menstrualService";
 import { apiClient } from "@/services/apiClient";
-import { isToolCompleteThisWeek, getCurrentWeekKey } from "@/utils/weekUtils";
+import { isToolCompleteThisWeek, getCurrentWeekKey, isToolCompleteToday } from "@/utils/weekUtils";
 import logo from "@/assets/logo.png";
 import { AnimatePresence } from "framer-motion";
 
@@ -366,6 +366,9 @@ const DashboardScreen = () => {
   const mfgComplete = isToolCompleteThisWeek('mfg');
   const phq4Complete = isToolCompleteThisWeek('phq4');
 
+  const dailyToolsComplete = isToolCompleteToday('phq4') && isToolCompleteToday('sleep');
+  const dailyContinuousComplete = isToolCompleteToday('affect') && isToolCompleteToday('focus');
+
   const fetchPrediction = useCallback(async (silent = false) => {
     if (!silent) setPredictionLoading(true);
     try {
@@ -708,6 +711,26 @@ const DashboardScreen = () => {
   }
 
   quickActions.push(
+    {
+      icon: Timer,
+      title: dailyContinuousComplete ? "Daily Continuous check-in done ✓" : "Daily Continuous check-in",
+      subtitle: dailyContinuousComplete ? "All hourly tracking complete" : "Hourly tracking & 4-hourly tracking",
+      route: "/daily-continuous",
+      gradient: "bg-indigo-500",
+      urgent: false,
+      dotColor: dailyContinuousComplete ? '#27AE60' : '#F59E0B',
+      bgTint: dailyContinuousComplete ? 'bg-green-50 border-green-200' : undefined,
+    },
+    {
+      icon: Wrench,
+      title: dailyToolsComplete ? "Daily Tools check-in done ✓" : "Daily Tools check-in",
+      subtitle: dailyToolsComplete ? "All daily tools complete" : "Mood, sleep, focus and mental wellness",
+      route: "/daily-tools",
+      gradient: "gradient-clinical",
+      urgent: false,
+      dotColor: dailyToolsComplete ? '#27AE60' : '#F59E0B',
+      bgTint: dailyToolsComplete ? 'bg-green-50 border-green-200' : undefined,
+    },
     { icon: ClipboardCheck, title: "Weekly Tools", subtitle: getWeeklyToolsSubtitle(), route: "/weekly-tools", gradient: "gradient-primary", urgent: !mfgComplete || !phq4Complete },
     { icon: BarChart3, title: "Risk Trends", subtitle: "View your history", route: "/risk-trend", gradient: "gradient-clinical", urgent: false },
     { icon: Camera, title: "Measure HRV", subtitle: "Capture heart rate variability", route: "/rppg-capture", gradient: "bg-blue-500", urgent: false },
@@ -1044,20 +1067,23 @@ const DashboardScreen = () => {
                 </div>
               </div>
               <div className="bg-white rounded-xl border border-gray-200 p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <Activity className="h-5 w-5" style={{ color: TEAL_PRIMARY }} />
-                  <p className="text-sm text-gray-600 font-semibold">Check-in Streak</p>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Activity className="h-5 w-5" style={{ color: TEAL_PRIMARY }} />
+                    <p className="text-sm text-teal-700 font-bold">Check-in Streak</p>
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-bold font-display text-amber-500">{streakDays}</span>
+                    <span className="text-2xl font-bold text-black-900">/30</span>
+                    <span className="text-lg text-black-500">days</span>
+                  </div>
                 </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold font-display text-gray-900">{streakDays}</span>
-                  <span className="text-lg text-gray-500">days</span>
-                </div>
-                <div className="flex gap-1.5 mt-3">
-                  {[1, 2, 3, 4, 5, 6, 7].map((d) => (
+                <div className="grid grid-cols-8 gap-x-1 gap-y-3 mt-3">
+                  {Array.from({ length: 30 }, (_, i) => i + 1).map((d) => (
                     <div
                       key={d}
-                      className="h-2 flex-1 rounded-full"
-                      style={d <= streakDays ? { backgroundColor: TEAL_PRIMARY } : { backgroundColor: '#E5E7EB' }}
+                      className="h-2 rounded-full"
+                      style={d <= streakDays ? { backgroundColor: TEAL_PRIMARY } : { backgroundColor: '#b4bac6' }}
                     />
                   ))}
                 </div>
@@ -1192,12 +1218,14 @@ const DashboardScreen = () => {
             <button
               key={item.label}
               onClick={() => navigate(item.route)}
-              className={`flex flex-col items-center gap-1 px-3 py-1 transition-colors ${
-                item.active ? "text-teal-600" : "text-gray-500 hover:text-gray-800 "
+              className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all duration-150 ${
+                item.active
+                  ? "text-teal-800 bg-teal-100/70"
+                  : "text-gray-600 hover:text-teal-800 hover:bg-teal-100"
               }`}
             >
-              <item.icon className="h-5 w-5" />
-              <span className="text-[10px] font-display font-semibold">{item.label}</span>
+              <item.icon className="h-6 w-6" />
+              <span className="text-xs font-display font-extrabold">{item.label}</span>
               {item.active && <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: TEAL_PRIMARY }} />}
             </button>
           ))}

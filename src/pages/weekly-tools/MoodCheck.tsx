@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import apiClient from "@/services/apiClient";
 import { moodService } from "@/services/moodService";
-import { markToolComplete, getTodayDateString, getQuadrantFromValues } from "@/utils/weekUtils";
+import { markToolComplete, getTodayDateString, getQuadrantFromValues, recordToolLog } from "@/utils/weekUtils";
 
 const triggerMoodPredictions = async () => {
   await Promise.allSettled([
@@ -62,6 +62,7 @@ const MoodCheck = () => {
         quadrant: response.data.affect_quadrant,
       });
       setStep('results');
+      recordToolLog('affect');
       triggerMoodPredictions();
     } catch (err: any) {
       toast({
@@ -76,7 +77,7 @@ const MoodCheck = () => {
 
   const handleDone = () => {
     markToolComplete('affect');
-    navigate('/weekly-tools');
+    navigate('/daily-continuous');
   };
 
   const renderForm = () => (
@@ -172,7 +173,7 @@ const MoodCheck = () => {
       <div className="px-6 pt-8 pb-6" style={{ backgroundColor: PURPLE }}>
         <div className="flex items-center gap-3">
           <button
-  onClick={() => navigate("/weekly-tools")}
+  onClick={() => navigate("/daily-continuous")}
   className="flex items-center justify-center gap-2 text-white transition duration-200 ease-in-out rounded-full px-3 py-2 hover:bg-white hover:text-purple-600 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
 >
   <ArrowLeft className="w-5 h-5" />

@@ -1,6 +1,6 @@
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Outlet } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Outlet, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -82,7 +82,7 @@ import AdminUsersScreen from "./pages/admin/AdminUsersScreen";
 import AdminUserDetailScreen from "./pages/admin/AdminUserDetailScreen";
 import AdminAddUserScreen from "./pages/admin/AdminAddUserScreen";
 import AdminFacilitiesScreen from "./pages/admin/AdminFacilitiesScreen";
-import AdminAddFacilityScreen from "./pages/admin/AdminAddFacilityScreen";
+
 import AdminFacilityDetailScreen from "./pages/admin/AdminFacilityDetailScreen";
 import AdminStaffScreen from "./pages/admin/AdminStaffScreen";
 import AdminCheckInsScreen from "./pages/admin/AdminCheckInsScreen";
@@ -102,7 +102,15 @@ import LGACreatePHCScreen from "./pages/lga/LGACreatePHCScreen";
 import AdminLGAAccountsScreen from "./pages/admin/AdminLGAAccountsScreen";
 import AdminCreateLGAAccountScreen from "./pages/admin/AdminCreateLGAAccountScreen";
 import AdminCSVUploadScreen from "./pages/admin/AdminCSVUploadScreen";
-import AdminCreateFacilityScreen from "./pages/admin/AdminCreateFacilityScreen";
+// Gov Admin Portal
+import GovAdminLayout from "./components/layout/GovAdminLayout";
+import GovAdminGuard from "./components/GovAdminGuard";
+import GovAdminLoginPage from "./pages/gov-admin/GovAdminLoginPage";
+import GovAdminDashboard from "./pages/gov-admin/GovAdminDashboard";
+import GovFacilitiesScreen from "./pages/gov-admin/GovFacilitiesScreen";
+import GovStaffScreen from "./pages/gov-admin/GovStaffScreen";
+import GovAdminManagementScreen from "./pages/gov-admin/GovAdminManagementScreen";
+
 import PHCPatientDetailScreen from "./pages/phc/PHCPatientDetailScreen";
 import PHCWalkInRegistrationScreen from "./pages/phc/PHCWalkInRegistrationScreen";
 import PHCAdviceInterventionScreen from "./pages/phc/PHCAdviceInterventionScreen";
@@ -141,6 +149,8 @@ import CycleHistory from "./pages/CycleHistory";
 import HirsutismScoring from "./pages/HirsutismScoring";
 import PHQ4Assessment from "./pages/PHQ4Assessment";
 import WeeklyToolsScreen from "./pages/WeeklyToolsScreen";
+import DailyToolsScreen from "./pages/DailyToolsScreen";
+import DailyContinuousScreen from "./pages/DailyContinuousScreen";
 import MentalWellness from "./pages/weekly-tools/MentalWellness";
 import MoodCheck from "./pages/weekly-tools/MoodCheck";
 import FocusMemory from "./pages/weekly-tools/FocusMemory";
@@ -167,6 +177,7 @@ import PatientPanelScreen from "./pages/PatientPanelScreen";
 import PatientDetailScreen from "./pages/PatientDetailScreen";
 import ClinicianExportScreen from "./pages/ClinicianExportScreen";
 // PHC Portal
+import PHCLayout from "./components/phc/PHCLayout";
 import PHCAdviceScreen from "./pages/phc/PHCAdviceScreen";
 // FMC Portal
 import FMCPatientDetailScreen from "./pages/fmc/FMCPatientDetailScreen";
@@ -214,7 +225,7 @@ const App = () => {
                 <Toaster />
                 <Sonner />
                 <ToastContainer />
-                <BrowserRouter>
+                <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                   <Routes>
                     <Route path="/" element={<SplashScreen />} />
                     <Route path="/welcome" element={<WelcomeScreen />} />
@@ -264,15 +275,17 @@ const App = () => {
                     <Route path="/fmc/network-phc" element={<FMCNetworkPHCScreen />} />
                     {/* PHC Routes */}
                     <Route path="/phc/login" element={<PHCStaffLoginScreen />} />
-                    <Route path="/phc/dashboard" element={<PHCMinorRiskDashboardScreen />} />
-                    <Route path="/phc/patients/:id" element={<PHCPatientDetailScreen />} />
-                    <Route path="/phc/register" element={<PHCWalkInRegistrationScreen />} />
-                    <Route path="/phc/advice" element={<PHCAdviceScreen />} />
-                    <Route path="/phc/escalation" element={<PHCEscalationScreen />} />
-                    <Route path="/phc/analytics" element={<PHCAnalyticsScreen />} />
-                    <Route path="/phc/alerts" element={<PHCNotificationsScreen />} />
-                    <Route path="/phc/settings" element={<PHCProfileSettingsScreen />} />
-                    <Route path="/phc/staff" element={<PHCStaffManagementScreen />} />
+                    <Route path="/phc" element={<PHCLayout />}>
+                      <Route path="/phc/dashboard" element={<PHCMinorRiskDashboardScreen />} />
+                      <Route path="/phc/patients/:id" element={<PHCPatientDetailScreen />} />
+                      <Route path="/phc/register" element={<PHCWalkInRegistrationScreen />} />
+                      <Route path="/phc/advice" element={<PHCAdviceScreen />} />
+                      <Route path="/phc/escalation" element={<PHCEscalationScreen />} />
+                      <Route path="/phc/analytics" element={<PHCAnalyticsScreen />} />
+                      <Route path="/phc/alerts" element={<PHCNotificationsScreen />} />
+                      <Route path="/phc/settings" element={<PHCProfileSettingsScreen />} />
+                      <Route path="/phc/staff" element={<PHCStaffManagementScreen />} />
+                    </Route>
                     {/* STH Routes */}
                     <Route path="/sth/login" element={<STHStaffLoginScreen />} />
                     <Route path="/sth/patients" element={<PatientsListScreen facility="sth" facilityName="State Hospital" themeColor="teal" />} />
@@ -349,7 +362,7 @@ const App = () => {
                         <Route path="lga-accounts/create" element={<AdminFacilitiesScreen tab="create-lga-account" />} />
                         <Route path="csv-upload" element={<AdminFacilitiesScreen tab="csv-upload" />} />
                       </Route>
-                      <Route path="facilities/new" element={<AdminAddFacilityScreen />} />
+                      <Route path="facilities/new" element={<Navigate to="/system-admin/facilities?tab=create" replace />} />
                       <Route path="facilities/:id" element={<AdminFacilityDetailScreen />} />
                       <Route path="staff" element={<AdminStaffScreen />} />
                       <Route path="checkins" element={<AdminCheckInsScreen />} />
@@ -368,6 +381,16 @@ const App = () => {
                     <Route path="/lga/phcs" element={<LGAPHCListScreen />} />
                     <Route path="/lga/create-phc" element={<LGACreatePHCScreen />} />
                     <Route path="/lga/settings" element={<div className="p-6"><h1 className="text-2xl font-bold">LGA Settings</h1></div>} />
+                    {/* Gov Admin Portal Routes */}
+                    <Route path="/gov-admin/login" element={<GovAdminLoginPage />} />
+                    <Route path="/gov-admin" element={<GovAdminGuard><GovAdminLayout /></GovAdminGuard>}>
+                      <Route index element={<GovAdminDashboard />} />
+                      <Route path="dashboard" element={<GovAdminDashboard />} />
+                      <Route path="facilities" element={<GovFacilitiesScreen />} />
+                      <Route path="staff" element={<GovStaffScreen />} />
+                      <Route path="admins" element={<GovAdminManagementScreen />} />
+                    </Route>
+
                     {/* Patient Routes */}
                     <Route path="/onboarding" element={<OnboardingScreen />} />
                     <Route element={<Outlet />}>
@@ -399,6 +422,8 @@ const App = () => {
                     <Route path="/weekly-tools/hirsutism" element={<SubscriptionGate require="premium"><HirsutismScoring /></SubscriptionGate>} />
                     <Route path="/phq4" element={<PHQ4Assessment />} />
                     <Route path="/weekly-tools" element={<SubscriptionGate require="premium"><WeeklyToolsScreen /></SubscriptionGate>} />
+                    <Route path="/daily-tools" element={<DailyToolsScreen />} />
+                    <Route path="/daily-continuous" element={<DailyContinuousScreen />} />
                     <Route path="/weekly-tools/mental-wellness" element={<MentalWellness />} />
                     <Route path="/weekly-tools/mood-check" element={<MoodCheck />} />
                     <Route path="/weekly-tools/focus-memory" element={<FocusMemory />} />

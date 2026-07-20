@@ -1,14 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Scissors, ChevronRight, Check, Clock, Activity } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Brain, ChevronRight, Check, Clock, Moon } from "lucide-react";
 import apiClient from "@/services/apiClient";
+import { isToolCompleteToday, markToolCompleteToday } from "@/utils/weekUtils";
 
 interface TodayStatus {
-  mfg_completed?: boolean;
+  phq4_completed?: boolean;
+  sleep_completed?: boolean;
 }
 
-interface WeeklyTool {
+interface DailyTool {
   id: string;
   title: string;
   subtitle: string;
@@ -22,67 +24,93 @@ interface WeeklyTool {
 
 const TEAL_PRIMARY = '#00897B';
 
-const WeeklyToolsScreen = () => {
+const DailyToolsScreen = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [todayStatus, setTodayStatus] = useState<TodayStatus>({});
 
-  const loadWeeklyStatus = useCallback(async () => {
+  const loadDailyStatus = useCallback(async () => {
     const today = new Date().toISOString().split('T')[0];
 
     try {
-      const mfgRes = await apiClient.get('/checkin/mfg/');
-      const mfgData = mfgRes?.data?.data ?? mfgRes?.data ?? {};
-      setTodayStatus({ mfg_completed: (mfgData?.assessed_date ?? '').startsWith(today) });
-    } catch {
-      setTodayStatus({ mfg_completed: false });
+      const res = await apiClient.get('/mood/history');
+      const logs: any[] = res?.data?.data?.logs ?? [];
+      const todayLog = logs.find((l: any) =>
+        typeof l.logDate === 'string' && l.logDate.startsWith(today)
+      ) ?? null;
+
+      const phq4Done = todayLog?.phq4Item1 != null;
+      const sleepDone = todayLog?.sleepSatisfaction != null;
+
+      if (phq4Done) markToolCompleteToday('phq4');
+      if (sleepDone) markToolCompleteToday('sleep');
+
+      setTodayStatus({
+        phq4_completed: phq4Done || isToolCompleteToday('phq4'),
+        sleep_completed: sleepDone || isToolCompleteToday('sleep'),
+      });
+    } catch (err) {
+      console.warn('Mood history failed:', err);
+      setTodayStatus({
+        phq4_completed: isToolCompleteToday('phq4'),
+        sleep_completed: isToolCompleteToday('sleep'),
+      });
     }
   }, []);
 
   useEffect(() => {
-    loadWeeklyStatus();
-  }, [loadWeeklyStatus]);
+    loadDailyStatus();
+  }, [loadDailyStatus]);
 
   useEffect(() => {
-    const handleFocus = () => loadWeeklyStatus();
+    const handleFocus = () => loadDailyStatus();
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, [loadWeeklyStatus]);
+  }, [loadDailyStatus]);
 
-  const getTools = (): WeeklyTool[] => [
+  const getTools = (): DailyTool[] => [
     {
-      id: "mfg",
-      title: "Hirsutism ",
-      subtitle: "Modified Ferriman-Gallwey (mFG)",
-      description: "Quantify hair growth patterns across 8 body zones to assess hyperandrogenism.",
-      icon: Scissors,
-      route: "/weekly-tools/hirsutism",
-      gradient: "gradient-clinical",
-      completed: todayStatus.mfg_completed === true,
-      frequency: "Weekly",
+      id: "phq4",
+      title: "Mental Wellness",
+      subtitle: "How have you been feeling emotionally?",
+      description: "Answer 4 quick questions about your mood and anxiety over the past week.",
+      icon: Brain,
+      route: "/weekly-tools/mental-wellness",
+      gradient: "bg-emerald-500",
+      completed: todayStatus.phq4_completed === true,
+      frequency: "Daily",
+    },
+    {
+      id: "sleep",
+      title: "Sleep Quality",
+      subtitle: "Best looged before bed or first thing after waking.",
+      description: "Rate how rested you feel and how many hours you slept. For the most accurate read, log this in the evening before you turn in, or right after you wake up.",
+      icon: Moon,
+      route: "/weekly-tools/sleep-quality",
+      gradient: "bg-blue-500",
+      completed: todayStatus.sleep_completed === true,
+      frequency: "Daily . nightly",
     },
   ];
 
-  const weeklyTools = getTools();
-  const completedCount = weeklyTools.filter((t) => t.completed).length;
-  const allComplete = weeklyTools.every((t) => t.completed);
+  const dailyTools = getTools();
+  const completedCount = dailyTools.filter((t) => t.completed).length;
+  const allComplete = dailyTools.every((t) => t.completed);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="px-6 pt-8 pb-6" style={{ backgroundColor: TEAL_PRIMARY }}>
         <div className="flex items-center gap-3 mb-1">
           <button
-  onClick={() => navigate("/dashboard")}
-  className="flex items-center justify-center gap-2 text-white transition duration-200 ease-in-out rounded-full px-3 py-2 hover:bg-white hover:text-green-600 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
->
-  <ArrowLeft className="w-5 h-5" />
-  <span className="text-xl font-bold font-[var(--font-display)]">
-    Weekly Tools
-  </span>
-</button>
-          
+            onClick={() => navigate("/dashboard")}
+            className="flex items-center justify-center gap-2 text-white transition duration-200 ease-in-out rounded-full px-3 py-2 hover:bg-white hover:text-green-600 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-xl font-bold font-[var(--font-display)]">
+              Daily Tools
+            </span>
+          </button>
         </div>
-        <p className="text-white/70 text-sm ml-8">Clinical assessments due this week</p>
+        <p className="text-white/70 text-sm ml-8">Quick daily wellness check-ins</p>
       </div>
 
       <div className="px-6 py-6 max-w-lg mx-auto">
@@ -93,8 +121,8 @@ const WeeklyToolsScreen = () => {
             className="rounded-xl p-5 mb-6 border-2"
             style={{ backgroundColor: '#F0FFF4', borderColor: '#27AE60' }}
           >
-            <h3 className="text-lg font-bold text-[#27AE60] mb-2">All weekly check-ins complete! 🎉</h3>
-            <p className="text-sm text-gray-600 mb-4">View your combined mood & cognitive risk analysis</p>
+            <h3 className="text-lg font-bold text-[#27AE60] mb-2">All daily check-ins complete!</h3>
+            <p className="text-sm text-gray-600 mb-4">View your combined wellness analysis</p>
             <button
               onClick={() => navigate('/weekly-tools/results')}
               className="w-full py-3 rounded-lg font-semibold text-white"
@@ -106,7 +134,7 @@ const WeeklyToolsScreen = () => {
         )}
 
         <div className="space-y-4">
-          {weeklyTools.map((tool, idx) => (
+          {dailyTools.map((tool, idx) => (
             <motion.button
               key={tool.id}
               initial={{ opacity: 0, y: 20 }}
@@ -117,17 +145,9 @@ const WeeklyToolsScreen = () => {
             >
               <div className="flex items-start gap-4">
                 <div
-                  className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 ${
-                    tool.gradient === 'gradient-clinical' ? 'gradient-clinical' : tool.gradient
-                  }`}
+                  className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 ${tool.gradient}`}
                 >
-                  {tool.gradient === 'gradient-clinical' ? (
-                    <div className="h-12 w-12 rounded-xl flex items-center justify-center">
-                      <Scissors className="h-6 w-6 text-white" />
-                    </div>
-                  ) : (
-                    <tool.icon className="h-6 w-6 text-white" />
-                  )}
+                  <tool.icon className="h-6 w-6 text-white" />
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -174,13 +194,13 @@ const WeeklyToolsScreen = () => {
           className="mt-6 rounded-xl border border-gray-200 bg-white p-4"
         >
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-gray-700">This Week's Progress</span>
+            <span className="text-sm font-medium text-gray-700">Today's Progress</span>
             <span className="text-xs text-gray-500">
-              {completedCount}/1 completed
+              {completedCount}/2 completed
             </span>
           </div>
           <div className="flex gap-2">
-            {weeklyTools.map((tool) => (
+            {dailyTools.map((tool) => (
               <div
                 key={tool.id}
                 className={`flex-1 h-2 rounded-full ${
@@ -196,4 +216,4 @@ const WeeklyToolsScreen = () => {
   );
 };
 
-export default WeeklyToolsScreen;
+export default DailyToolsScreen;

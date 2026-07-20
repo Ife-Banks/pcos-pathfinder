@@ -64,7 +64,7 @@ const MentalWellness = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="px-6 pt-8 pb-6" style={{ backgroundColor: TEAL_PRIMARY }}>
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/weekly-tools')} className="text-white/80 hover:text-white">
+          <button onClick={() => navigate('/daily-tools')} className="text-white/80 hover:text-white">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-xl font-bold text-white font-[var(--font-display)]">Mental Wellness</h1>
@@ -77,11 +77,11 @@ const MentalWellness = () => {
           animate={{ opacity: 1 }}
         >
           <h2 className="text-xl font-bold text-gray-900 mb-1 font-[var(--font-display)]">Mental Wellness</h2>
-          <p className="text-sm text-gray-500 mb-6">How have you been feeling this week?</p>
+          <p className="text-sm text-gray-500 mb-6">How have you been feeling today?</p>
 
           <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 mb-6">
             <p className="text-xs text-amber-800">
-              Over the last week, how often have you been bothered by the following problems?
+              Over the last day, how often have you been bothered by the following problems?
             </p>
           </div>
 
@@ -90,7 +90,7 @@ const MentalWellness = () => {
               <p className="text-sm font-medium text-gray-700 mb-3" style={{ color: TEAL_PRIMARY }}>
                 GAD-2 Anxiety
               </p>
-              <p className="text-sm text-gray-600 mb-4">1. In the last week, how often have you felt nervous, anxious, or on edge?</p>
+              <p className="text-sm text-gray-600 mb-4">1. Today, how often have you felt nervous, anxious, or on edge?</p>
               <div className="grid grid-cols-2 gap-2">
                 {optionLabels.map((label, idx) => (
                   <button
@@ -111,7 +111,7 @@ const MentalWellness = () => {
             </div>
 
             <div className="rounded-xl border border-gray-200 p-4">
-              <p className="text-sm font-medium text-gray-600 mb-4">2. In the last week, how often have you been unable to stop or control worrying?</p>
+              <p className="text-sm font-medium text-gray-600 mb-4">2. Today, how often have you been unable to stop or control worrying?</p>
               <div className="grid grid-cols-2 gap-2">
                 {optionLabels.map((label, idx) => (
                   <button
@@ -135,7 +135,7 @@ const MentalWellness = () => {
               <p className="text-sm font-medium text-gray-700 mb-3" style={{ color: '#7C3AED' }}>
                 PHQ-2 Depression
               </p>
-              <p className="text-sm text-gray-600 mb-4">3. In the last week, how often have you had little interest or pleasure in doing things?</p>
+              <p className="text-sm text-gray-600 mb-4">3. Today, how often have you had little interest or pleasure in doing things?</p>
               <div className="grid grid-cols-2 gap-2">
                 {optionLabels.map((label, idx) => (
                   <button
@@ -156,7 +156,7 @@ const MentalWellness = () => {
             </div>
 
             <div className="rounded-xl border border-gray-200 p-4">
-              <p className="text-sm font-medium text-gray-600 mb-4">4. In the last week, how often have you felt down, depressed, or hopeless?</p>
+              <p className="text-sm font-medium text-gray-600 mb-4">4. Today, how often have you felt down, depressed, or hopeless?</p>
               <div className="grid grid-cols-2 gap-2">
                 {optionLabels.map((label, idx) => (
                   <button

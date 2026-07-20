@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import apiClient from "@/services/apiClient";
 import { moodService } from "@/services/moodService";
-import { markToolComplete, getTodayDateString } from "@/utils/weekUtils";
+import { markToolComplete, getTodayDateString, recordToolLog } from "@/utils/weekUtils";
 
 const triggerMoodPredictions = async () => {
   await Promise.allSettled([
@@ -40,6 +40,7 @@ const FocusMemory = () => {
       
       setResult({ cognitive_load: response.data.cognitive_load_score });
       setStep('results');
+      recordToolLog('focus');
       triggerMoodPredictions();
     } catch (err: any) {
       toast({
@@ -54,7 +55,7 @@ const FocusMemory = () => {
 
   const handleDone = () => {
     markToolComplete('focus');
-    navigate('/weekly-tools');
+    navigate('/daily-continuous');
   };
 
   const getLoadStatus = (score: number) => {
@@ -184,12 +185,18 @@ const FocusMemory = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="px-6 pt-8 pb-6" style={{ backgroundColor: ORANGE }}>
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/weekly-tools')} className="text-white/80 hover:text-white">
+        <div className="flex items-center gap-3 mb-1">
+          <button
+            onClick={() => navigate('/daily-continuous')}
+            className="flex items-center justify-center gap-2 text-white transition duration-200 ease-in-out rounded-full px-3 py-2 hover:bg-white hover:text-amber-500 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
+          >
             <ArrowLeft className="w-5 h-5" />
+            <span className="text-xl font-bold font-[var(--font-display)]">
+              Focus & Memory
+            </span>
           </button>
-          <h1 className="text-xl font-bold text-white font-[var(--font-display)]">Focus & Memory</h1>
         </div>
+        <p className="text-white/70 text-sm ml-8">Cognitive focus & memory assessment</p>
       </div>
 
       <div className="px-6 py-6 max-w-lg mx-auto">

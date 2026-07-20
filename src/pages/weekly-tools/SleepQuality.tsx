@@ -58,7 +58,7 @@ const SleepQuality = () => {
 
   const handleDone = () => {
     markToolComplete('sleep');
-    navigate('/weekly-tools');
+    navigate('/daily-tools');
   };
 
   const renderForm = () => (
@@ -166,7 +166,7 @@ const SleepQuality = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="px-6 pt-8 pb-6" style={{ backgroundColor: GREEN }}>
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/weekly-tools')} className="text-white/80 hover:text-white">
+          <button onClick={() => navigate('/daily-tools')} className="text-white/80 hover:text-white">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-xl font-bold text-white font-[var(--font-display)]">Sleep Quality</h1>
