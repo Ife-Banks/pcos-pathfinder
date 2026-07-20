@@ -514,20 +514,21 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     const n = buffer.length;
     if (n < 10) return;
 
-    const recent = buffer.slice(-10);
-    const localMean = mean(recent);
-    const localStd = Math.max(2, std(recent));
-    const localRange = Math.max(...recent) - Math.min(...recent);
+    // Normalize signal by recent min/max to handle any amplitude
+    const recent = buffer.slice(-30);
+    const minVal = Math.min(...recent);
+    const maxVal = Math.max(...recent);
+    const range = maxVal - minVal;
+    if (range < 0.5) return; // signal too flat
 
-    // Adaptive threshold: lower multiplier for weak signals
-    const k = localRange < 5 ? 0.15 : 0.3;
-    const threshold = localMean + k * localStd;
-    adaptiveThresholdRef.current = threshold;
+    // Normalized position in [0,1] — 1 = at max, 0 = at min
+    const normalized = (buffer[n - 1] - minVal) / range;
+    adaptiveThresholdRef.current = minVal + 0.7 * range;
 
-    // Local max check (three consecutive rising values)
-    if (buffer[n - 1] > threshold && buffer[n - 1] > buffer[n - 2] && buffer[n - 2] > buffer[n - 3]) {
+    // Peak when signal is in top 30% AND we're at a local max (not still rising)
+    if (normalized > 0.7 && buffer[n - 1] <= buffer[n - 2] && buffer[n - 2] > buffer[n - 3]) {
       const lastPeak = lastPeakTimeRef.current;
-      const minRR = 250; // 240 bpm max
+      const minRR = 300; // 200 bpm max
       if (lastPeak === null || (now - lastPeak) >= minRR) {
         peakTimesRef.current.push(now);
         lastPeakTimeRef.current = now;
