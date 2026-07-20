@@ -178,6 +178,8 @@ import FMCStaffManagementScreen from "./pages/fmc/FMCStaffManagementScreen";
 import FMCClinicianManagementScreen from "./pages/fmc/FMCClinicianManagementScreen";
 import FMCNetworkPHCScreen from "./pages/fmc/FMCNetworkPHCScreen";
 import RppgCaptureScreen from "./pages/RppgCaptureScreen";
+import RppgPassiveSensing from "./pages/RppgPassiveSensing";
+import { RppgCaptureReminder } from "./components/RppgCaptureReminder";
 
 // subcription
 import SubscriptionUpgradeScreen from './pages/SubscriptionUpgradeScreen';
@@ -423,9 +425,11 @@ const App = () => {
                     <Route path="/clinician/patient/:id/export" element={<ClinicianExportScreen />} />
                     {/* Catch-all */}
                     <Route path="/rppg-capture" element={<RppgCaptureScreen />} />
+                    <Route path="/rppg-passive" element={<SubscriptionGate require="active"><RppgPassiveSensing /></SubscriptionGate>} />
                     <Route path="/unauthorized" element={<UnauthorizedScreen />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
+                  <RppgCaptureReminder />
                 </BrowserRouter>
               </TooltipProvider>
             </NotificationProvider>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Sun, Moon, Activity, TrendingUp, Calendar, AlertCircle, MessageCircle,
   ChevronRight, Bell, User, Heart, BarChart3, ClipboardCheck, Loader2, Check, Camera, LogOut
@@ -184,6 +184,15 @@ const expandAbbreviation = (key: string): string => {
   return mapping[key] || key.replace(/_/g, ' ');
 };
 
+const getHrvLabel = (rmssd: number): string => {
+  if (rmssd >= 50) return 'Normal';
+  if (rmssd >= 40) return 'Very Good';
+  if (rmssd >= 30) return 'Good';
+  if (rmssd >= 20) return 'Low';
+  if (rmssd >= 10) return 'Very Low';
+  return 'Extremely Low';
+};
+
 const RiskGauge = ({ score }: { score?: number }) => {
   const safeScore = score ?? 0;
   const tier = getRiskTier(safeScore);
@@ -310,6 +319,7 @@ interface MenstrualSummary {
 
 const DashboardScreen = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { unreadCount } = useNotifications();
   const { user, logout } = useAuth();
 
@@ -708,13 +718,16 @@ const DashboardScreen = () => {
   const isUpdatedToday = predictionAge === 0;
   const hasValidDate = predictionAge !== null;
 
+  const activeRoute = location.pathname;
+
   const navItems = [
-    { icon: Activity, label: "Home", route: "/dashboard", active: true },
-    ...(isFemale ? [{ icon: Calendar, label: "Cycle", route: "/cycle-history", active: false }] : []),
-    { icon: BarChart3, label: "Results", route: "/risk-score", active: false },
-    { icon: MessageCircle, label: "Messages", route: "/messages", active: false },
-    { icon: User, label: "Profile", route: "/profile", active: false },
-  ];
+    { icon: Activity, label: "Home", route: "/dashboard" },
+    ...(isFemale ? [{ icon: Calendar, label: "Cycle", route: "/cycle-history" }] : []),
+    { icon: Heart, label: "Sensing", route: "/rppg-passive" },
+    { icon: BarChart3, label: "Results", route: "/risk-score" },
+    { icon: MessageCircle, label: "Messages", route: "/messages" },
+    { icon: User, label: "Profile", route: "/profile" },
+  ].map(item => ({ ...item, active: activeRoute === item.route }));
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
@@ -1109,6 +1122,11 @@ const DashboardScreen = () => {
               <p className="text-2xl font-bold font-display text-gray-900">
                 {todaySummary?.hrv_rmssd ? `${todaySummary.hrv_rmssd.toFixed(0)}` : '—'}
               </p>
+              {todaySummary?.hrv_rmssd && (
+                <p className="text-xs text-gray-500 mt-0.5 font-medium">
+                  {getHrvLabel(todaySummary.hrv_rmssd)}
+                </p>
+              )}
               <p className="text-sm text-gray-600 mt-1 font-medium">HRV</p>
             </div>
             <div className="p-4 rounded-lg bg-gray-50">

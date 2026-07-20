@@ -35,11 +35,13 @@ const RppgPassiveSensing = () => {
   const [predictions, setPredictions] = useState<RppgV8PredictAllResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [nextCaptureAt, setNextCaptureAt] = useState<number | null>(() => {
-    const stored = localStorage.getItem('nextRppgCaptureAt');
-    return stored ? parseInt(stored, 10) : null;
-  });
+  const [nextCaptureAt, setNextCaptureAt] = useState<number | null>(null);
   const [timeRemaining, setTimeRemaining] = useState('');
+
+  // Clear cooldown on mount so you can test anytime
+  useEffect(() => {
+    localStorage.removeItem('nextRppgCaptureAt');
+  }, []);
 
   useEffect(() => {
     if (!nextCaptureAt) return;

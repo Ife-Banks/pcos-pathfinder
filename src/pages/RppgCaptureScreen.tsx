@@ -25,10 +25,12 @@ const RppgCaptureScreen = () => {
   const [sessionData, setSessionData] = useState<{ payload: RppgV8SessionPayload; prediction?: RppgV8PredictAllResult } | null>(null);
 
   const [captureTimerActive, setCaptureTimerActive] = useState(false);
-  const [nextCaptureAt, setNextCaptureAt] = useState<number | null>(() => {
-    const stored = localStorage.getItem('nextRppgCaptureAt');
-    return stored ? parseInt(stored, 10) : null;
-  });
+  const [nextCaptureAt, setNextCaptureAt] = useState<number | null>(null);
+
+  // Clear cooldown on mount so you can test anytime
+  useEffect(() => {
+    localStorage.removeItem('nextRppgCaptureAt');
+  }, []);
 
   // 4-hour passive sensing timer
   useEffect(() => {
