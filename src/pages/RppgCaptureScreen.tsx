@@ -1,20 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Camera, Activity } from 'lucide-react';
 import RppgCamera from '@/components/RppgCamera';
-import { rppgService, RppgSessionPayload } from '@/services/rppgService';
-import { predictionService } from '@/services/predictionService';
+import { rppgV8Service, RppgV8SessionPayload, RppgV8PredictAllResult } from '@/services/rppgV8Service';
 import { toast } from '@/hooks/use-toast';
 
 const TEAL_PRIMARY = '#00897B';
 
-const getSeverityFromScore = (score: number): string => {
-  if (score >= 0.7) return 'Severe';
-  if (score >= 0.5) return 'Moderate';
-  if (score >= 0.3) return 'Mild';
-  return 'Minimal';
+const formatTrend = (val: number | null): string => {
+  if (val === null || val === undefined) return '--';
+  const dir = val > 0 ? '↑' : val < 0 ? '↓' : '→';
+  return `${dir} ${Math.abs(val).toFixed(2)}`;
 };
 
 const RppgCaptureScreen = () => {
@@ -24,7 +22,34 @@ const RppgCaptureScreen = () => {
   const [captureComplete, setCaptureComplete] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [sessionData, setSessionData] = useState<{ rmssd: number; mean_heart_rate: number } | null>(null);
+  const [sessionData, setSessionData] = useState<{ payload: RppgV8SessionPayload; prediction?: RppgV8PredictAllResult } | null>(null);
+
+  const [captureTimerActive, setCaptureTimerActive] = useState(false);
+  const [nextCaptureAt, setNextCaptureAt] = useState<number | null>(() => {
+    const stored = localStorage.getItem('nextRppgCaptureAt');
+    return stored ? parseInt(stored, 10) : null;
+  });
+
+  // 4-hour passive sensing timer
+  useEffect(() => {
+    if (!captureTimerActive) return;
+    const check = setInterval(() => {
+      const now = Date.now();
+      const next = localStorage.getItem('nextRppgCaptureAt');
+      if (next && parseInt(next, 10) <= now) {
+        setCaptureTimerActive(false);
+        localStorage.removeItem('nextRppgCaptureAt');
+      }
+    }, 10000);
+    return () => clearInterval(check);
+  }, [captureTimerActive]);
+
+  const scheduleNextCapture = useCallback(() => {
+    const next = Date.now() + 4 * 60 * 60 * 1000;
+    localStorage.setItem('nextRppgCaptureAt', next.toString());
+    setNextCaptureAt(next);
+    setCaptureTimerActive(true);
+  }, []);
 
   const handleStartCapture = () => {
     setIsCapturing(true);
@@ -32,69 +57,40 @@ const RppgCaptureScreen = () => {
     setErrors({});
   };
 
-  const handleCaptureComplete = async (metrics: RppgSessionPayload) => {
+  const handleCaptureComplete = async (metrics: RppgV8SessionPayload) => {
+    setIsLoading(true);
+    setErrors({});
+    
+    // Show results immediately even if backend calls fail
+    setSessionData({ payload: metrics });
+    setCaptureComplete(true);
+    setIsCapturing(false);
+
     try {
-      setIsLoading(true);
-      setErrors({});
-      
-      const logResponse = await rppgService.logSession({
+      await rppgV8Service.logSession({
         ...metrics,
         session_type: 'checkin',
       });
-      
-      setSessionData({
-        rmssd: metrics.rmssd,
-        mean_heart_rate: metrics.mean_temp,
-      });
 
+      let allPredictions: RppgV8PredictAllResult | undefined;
       try {
-        const [metabolicCardio, stressReproductive] = await Promise.allSettled([
-          rppgService.predictMetabolicCardio(),
-          rppgService.predictStressReproductive(),
-        ]);
-
-        const predictions: Record<string, { risk_score: number; severity: string }> = {};
-        
-        if (metabolicCardio.status === 'fulfilled') {
-          const mcPreds = metabolicCardio.value.data.predictions;
-          Object.entries(mcPreds).forEach(([key, value]) => {
-            predictions[key] = { risk_score: value, severity: getSeverityFromScore(value) };
-          });
-        }
-
-        if (stressReproductive.status === 'fulfilled') {
-          const srPreds = stressReproductive.value.data.predictions;
-          Object.entries(srPreds).forEach(([key, value]) => {
-            predictions[key] = { risk_score: value, severity: getSeverityFromScore(value) };
-          });
-        }
-
-        if (Object.keys(predictions).length > 0) {
-          await predictionService.escalateRppg(predictions);
-        }
-      } catch (escalateErr) {
-        console.warn('rPPG escalation check failed:', escalateErr);
+        const predRes = await rppgV8Service.predictAll();
+        allPredictions = predRes.data;
+      } catch (predErr) {
+        console.warn('v8 predictAll failed:', predErr);
       }
 
-      setCaptureComplete(true);
-      setIsCapturing(false);
+      if (allPredictions) {
+        setSessionData({ payload: metrics, prediction: allPredictions });
+      }
+
+      scheduleNextCapture();
       toast({
         title: 'HRV Captured',
-        description: 'Your heart rate variability has been measured.',
+        description: 'Your heart rate variability has been measured. Next check-in in 4 hours.',
       });
     } catch (err: any) {
-      const backendErrors: Record<string, string> = {};
-      if (err?.errors) {
-        Object.entries(err.errors).forEach(([field, messages]) => {
-          backendErrors[field] = Array.isArray(messages) 
-            ? messages[0] : String(messages);
-        });
-      }
-      setErrors(
-        Object.keys(backendErrors).length > 0 
-          ? backendErrors 
-          : { general: err?.message || 'Something went wrong.' }
-      );
+      console.warn('Backend save failed (results shown locally):', err);
     } finally {
       setIsLoading(false);
     }
@@ -137,27 +133,90 @@ const RppgCaptureScreen = () => {
               <h2 className="text-xl font-bold text-gray-900 mb-2">Measurement Complete!</h2>
               <p className="text-gray-500 mb-6">Your HRV has been captured successfully.</p>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="text-sm text-gray-500 mb-1">HRV (RMSSD)</p>
-                  <p className="text-2xl font-bold text-gray-900">{sessionData.rmssd.toFixed(1)}</p>
+                  <p className="text-2xl font-bold text-gray-900">{sessionData.payload.rmssd.toFixed(1)}</p>
                   <p className="text-xs text-gray-400">ms</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="text-sm text-gray-500 mb-1">Heart Rate</p>
-                  <p className="text-2xl font-bold text-gray-900">{Math.round(sessionData.mean_heart_rate)}</p>
+                  <p className="text-2xl font-bold text-gray-900">{sessionData.payload.heart_rate}</p>
                   <p className="text-xs text-gray-400">bpm</p>
                 </div>
               </div>
+
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-500 mb-1">HF Power</p>
+                  <p className="text-lg font-bold text-gray-900">{sessionData.payload.hf.toFixed(0)}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-500 mb-1">LF/HF</p>
+                  <p className="text-lg font-bold text-gray-900">{sessionData.payload.lf_hf_ratio.toFixed(2)}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-500 mb-1">HRV (SDNN)</p>
+                  <p className="text-lg font-bold text-gray-900">{sessionData.payload.hrv.toFixed(1)}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-500 mb-1">SpO₂</p>
+                  <p className="text-lg font-bold text-gray-900">{sessionData.payload.estimated_spo2}%</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-500 mb-1">Temp</p>
+                  <p className="text-lg font-bold text-gray-900">{sessionData.payload.skin_temperature}°C</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-500 mb-1">EDA</p>
+                  <p className="text-lg font-bold text-gray-900">{sessionData.payload.mean_eda.toFixed(1)}µS</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-500 mb-1">Resp Rate</p>
+                  <p className="text-lg font-bold text-gray-900">{sessionData.payload.respiratory_rate ?? '--'}</p>
+                  <p className="text-xs text-gray-400">brpm</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-500 mb-1">ASI</p>
+                  <p className="text-lg font-bold text-gray-900">{sessionData.payload.asi?.toFixed(2) ?? '--'}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-500 mb-1">Signal</p>
+                  <p className="text-lg font-bold text-gray-900">{sessionData.payload.signal_quality ?? 0}%</p>
+                </div>
+              </div>
+
+              <div className="text-xs text-gray-400 text-center border-t border-gray-100 pt-3 mt-3">
+                <span className="inline-block mr-4">HR Trend: {formatTrend(sessionData.payload.hr_trend)}</span>
+                <span className="inline-block">RMSSD Trend: {formatTrend(sessionData.payload.rmssd_trend)}</span>
+              </div>
             </div>
 
-            <Button
-              onClick={() => navigate('/dashboard')}
-              className="w-full h-12 rounded-xl text-white font-semibold"
-              style={{ backgroundColor: TEAL_PRIMARY }}
-            >
-              Back to Dashboard
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => {
+                  setCaptureComplete(false);
+                  setSessionData(null);
+                }}
+                variant="outline"
+                className="flex-1 h-12 rounded-xl"
+              >
+                Capture Again
+              </Button>
+              <Button
+                onClick={() => navigate('/rppg-passive')}
+                className="flex-1 h-12 rounded-xl text-white font-semibold"
+                style={{ backgroundColor: TEAL_PRIMARY }}
+              >
+                View Dashboard
+              </Button>
+            </div>
           </motion.div>
         ) : (
           <motion.div
@@ -171,9 +230,14 @@ const RppgCaptureScreen = () => {
                 <div>
                   <h3 className="font-semibold text-teal-900 mb-1">About this measurement</h3>
                   <p className="text-sm text-teal-700">
-                    We'll use your phone camera to measure your heart rate variability (HRV) through 
-                    remote photoplethysmography (rPPG). This takes about 30 seconds.
+                    We'll use your phone camera to measure heart rate variability (HRV), respiratory rate, 
+                    and autonomic function through remote photoplethysmography (rPPG). This takes 2 minutes.
                   </p>
+                  {nextCaptureAt && Date.now() < nextCaptureAt && (
+                    <p className="text-xs text-teal-600 mt-2">
+                      ⏱ Next capture available in {Math.ceil((nextCaptureAt - Date.now()) / 3600000)}h
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
