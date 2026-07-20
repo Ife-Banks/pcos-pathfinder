@@ -511,22 +511,23 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
 
   function detectPeak(now: number, value: number) {
     const buffer = greenBufferRef.current;
-    const times = timeBufferRef.current;
     const n = buffer.length;
     if (n < 10) return;
 
     const recent = buffer.slice(-10);
     const localMean = mean(recent);
-    const localStd = Math.max(5, std(recent));
+    const localStd = Math.max(2, std(recent));
+    const localRange = Math.max(...recent) - Math.min(...recent);
 
-    // Adaptive threshold: mean + 0.3 * std (webcam PPG has small amplitude)
-    const threshold = localMean + 0.3 * localStd;
+    // Adaptive threshold: lower multiplier for weak signals
+    const k = localRange < 5 ? 0.15 : 0.3;
+    const threshold = localMean + k * localStd;
     adaptiveThresholdRef.current = threshold;
 
-    // Check if latest value is a local max and above threshold
+    // Local max check (three consecutive rising values)
     if (buffer[n - 1] > threshold && buffer[n - 1] > buffer[n - 2] && buffer[n - 2] > buffer[n - 3]) {
       const lastPeak = lastPeakTimeRef.current;
-      const minRR = 300; // 200 bpm max
+      const minRR = 250; // 240 bpm max
       if (lastPeak === null || (now - lastPeak) >= minRR) {
         peakTimesRef.current.push(now);
         lastPeakTimeRef.current = now;
