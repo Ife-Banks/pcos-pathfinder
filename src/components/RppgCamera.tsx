@@ -125,14 +125,25 @@ function resampleRRIntervals(
 }
 
 /** Remove peaks that produce physiologically impossible RR intervals. */
-function filterPeaks(peaks: number[]): number[] {
+function filterPeaks(peaks: number[], minRR = 350): number[] {
   if (peaks.length < 2) return peaks;
   const filtered = [peaks[0]];
   for (let i = 1; i < peaks.length; i++) {
     const rr = peaks[i] - filtered[filtered.length - 1];
-    if (rr >= 300 && rr <= 2000) filtered.push(peaks[i]);
+    if (rr >= minRR && rr <= 2000) filtered.push(peaks[i]);
   }
   return filtered;
+}
+
+/** Remove RR interval outliers using median absolute deviation. */
+function filterRRIntervals(rrIntervals: number[]): number[] {
+  if (rrIntervals.length < 6) return rrIntervals;
+  const sorted = [...rrIntervals].sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length * 0.5)];
+  const absDevs = rrIntervals.map(rr => Math.abs(rr - median)).sort((a, b) => a - b);
+  const mad = absDevs[Math.floor(absDevs.length * 0.5)] || 1;
+  const maxDev = 3 * mad;
+  return rrIntervals.filter(rr => Math.abs(rr - median) <= maxDev);
 }
 
 /** Compute LF power (0.04-0.15 Hz) and HF power (0.15-0.40 Hz) from peak times. */
@@ -560,8 +571,9 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     const peaks = peakTimesRef.current;
     if (peaks.length < 3) return;
 
-    // Get last 15 peaks for current HR/RMSSD
-    const recentPeaks = peaks.slice(-15);
+    // Filter peaks then use last 15 for current HR/RMSSD
+    const cleanPeaks = filterPeaks(peaks, 350);
+    const recentPeaks = cleanPeaks.slice(-15);
     const rrIntervals: number[] = [];
     for (let i = 0; i < recentPeaks.length - 1; i++) {
       rrIntervals.push(recentPeaks[i + 1] - recentPeaks[i]);
@@ -569,8 +581,8 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
 
     if (rrIntervals.length < 2) return;
 
-    // Validate RR intervals (300ms - 2000ms)
-    const validRR = rrIntervals.filter(rr => rr >= 300 && rr <= 2000);
+    // Outlier rejection
+    const validRR = filterRRIntervals(rrIntervals);
     if (validRR.length < 2) return;
 
     const avgRR = mean(validRR);
@@ -584,7 +596,6 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     setLiveHRVStatus(computeHRVStatus(roundedRMSSD));
 
     // LF/HF every 5 seconds (~150 frames)
-    const cleanPeaks = filterPeaks(peaks);
     if (frameCountRef.current % 150 === 0 && cleanPeaks.length >= 6) {
       const windowStart = cleanPeaks.length > 30 ? cleanPeaks[cleanPeaks.length - 30] : cleanPeaks[0];
       const windowEnd = cleanPeaks[cleanPeaks.length - 1];
@@ -606,29 +617,33 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     const startTime = captureStartTimeRef.current;
     const endTime = performance.now();
 
-    // RR intervals from all peaks
+    // Filter peaks to remove false positives, then compute RR intervals
+    const cleanPeaks = filterPeaks(peaks, 350);
     const rrIntervals: number[] = [];
-    for (let i = 0; i < peaks.length - 1; i++) {
-      const rr = peaks[i + 1] - peaks[i];
-      if (rr >= 300 && rr <= 2000) rrIntervals.push(rr);
+    for (let i = 0; i < cleanPeaks.length - 1; i++) {
+      const rr = cleanPeaks[i + 1] - cleanPeaks[i];
+      if (rr >= 350 && rr <= 2000) rrIntervals.push(rr);
     }
 
+    // Outlier rejection (MAD-based) to remove remaining false intervals
+    const validRR = filterRRIntervals(rrIntervals);
+
     // HR
-    const avgRR = rrIntervals.length ? mean(rrIntervals) : 600;
+    const avgRR = validRR.length ? mean(validRR) : 600;
     const hr = 60000 / avgRR;
 
     // RMSSD
     let rmssdVal = 35;
-    if (rrIntervals.length >= 3) {
-      const diffs = rrIntervals.slice(1).map((v, i) => (v - rrIntervals[i]) ** 2);
+    if (validRR.length >= 3) {
+      const diffs = validRR.slice(1).map((v, i) => (v - validRR[i]) ** 2);
       rmssdVal = Math.sqrt(mean(diffs));
     }
 
     // SDNN / HRV
-    const hrvVal = rrIntervals.length ? std(rrIntervals) : 30;
+    const hrvVal = validRR.length ? std(validRR) : 30;
 
     // Frequency analysis (using filtered peaks to remove false positives)
-    const fftPeaks = filterPeaks(peaks);
+    const fftPeaks = filterPeaks(peaks, 350);
     const { lfPower, hfPower } = computeFrequencyBands(fftPeaks, startTime, endTime, 4);
     const lfHfRatio = lfPower && hfPower ? parseFloat((lfPower / hfPower).toFixed(4)) : 1.0;
 
@@ -657,8 +672,10 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
       const times = windowMetricsRef.current.map(w => w.time);
       const hrVals = windowMetricsRef.current.map(w => w.hr);
       const rmssdVals = windowMetricsRef.current.map(w => w.rmssd);
-      hrTrend = parseFloat(linregSlope(times, hrVals).toFixed(4));
-      rmssdTrend = parseFloat(linregSlope(times, rmssdVals).toFixed(4));
+      const hrSlope = linregSlope(times, hrVals);
+      const rmssdSlope = linregSlope(times, rmssdVals);
+      hrTrend = Math.abs(hrSlope) > 0.001 ? parseFloat(hrSlope.toFixed(4)) : null;
+      rmssdTrend = Math.abs(rmssdSlope) > 0.001 ? parseFloat(rmssdSlope.toFixed(4)) : null;
     }
 
     // ASI
