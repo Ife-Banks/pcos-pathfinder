@@ -124,6 +124,17 @@ function resampleRRIntervals(
   return resampled.map(v => v - m);
 }
 
+/** Remove peaks that produce physiologically impossible RR intervals. */
+function filterPeaks(peaks: number[]): number[] {
+  if (peaks.length < 2) return peaks;
+  const filtered = [peaks[0]];
+  for (let i = 1; i < peaks.length; i++) {
+    const rr = peaks[i] - filtered[filtered.length - 1];
+    if (rr >= 300 && rr <= 2000) filtered.push(peaks[i]);
+  }
+  return filtered;
+}
+
 /** Compute LF power (0.04-0.15 Hz) and HF power (0.15-0.40 Hz) from peak times. */
 function computeFrequencyBands(
   peakTimes: number[],
@@ -571,11 +582,12 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     setLiveHRVStatus(computeHRVStatus(roundedRMSSD));
 
     // LF/HF every 5 seconds (~150 frames)
-    if (frameCountRef.current % 150 === 0 && peaks.length >= 6) {
-      const windowStart = peaks.length > 30 ? peaks[peaks.length - 30] : peaks[0];
-      const windowEnd = peaks[peaks.length - 1];
+    const cleanPeaks = filterPeaks(peaks);
+    if (frameCountRef.current % 150 === 0 && cleanPeaks.length >= 6) {
+      const windowStart = cleanPeaks.length > 30 ? cleanPeaks[cleanPeaks.length - 30] : cleanPeaks[0];
+      const windowEnd = cleanPeaks[cleanPeaks.length - 1];
       if (windowEnd - windowStart >= 5000) {
-        const { lfPower, hfPower } = computeFrequencyBands(peaks, windowStart, windowEnd, 4);
+        const { lfPower, hfPower } = computeFrequencyBands(cleanPeaks, windowStart, windowEnd, 4);
         const ratio = lfPower / hfPower;
         setLiveLfHf(parseFloat(ratio.toFixed(2)));
       }
@@ -613,12 +625,13 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     // SDNN / HRV
     const hrvVal = rrIntervals.length ? std(rrIntervals) : 30;
 
-    // Frequency analysis
-    const { lfPower, hfPower } = computeFrequencyBands(peaks, startTime, endTime, 4);
+    // Frequency analysis (using filtered peaks to remove false positives)
+    const fftPeaks = filterPeaks(peaks);
+    const { lfPower, hfPower } = computeFrequencyBands(fftPeaks, startTime, endTime, 4);
     const lfHfRatio = lfPower && hfPower ? parseFloat((lfPower / hfPower).toFixed(4)) : 1.0;
 
     // Respiratory rate
-    const respRate = computeRespiratoryRate(peaks, startTime, endTime, 4);
+    const respRate = computeRespiratoryRate(fftPeaks, startTime, endTime, 4);
 
     // AC / DC from green channel
     const greenVals = greenBufferRef.current;
