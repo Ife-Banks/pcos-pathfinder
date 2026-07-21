@@ -83,6 +83,7 @@ const RppgCaptureScreen = () => {
       try {
         const predRes = await rppgV8Service.predictAll();
         allPredictions = predRes.data;
+        console.log('[RppgCapture] predictAll result:', JSON.stringify(allPredictions, null, 2));
       } catch (predErr) {
         console.warn('v8 predictAll failed:', predErr);
       }

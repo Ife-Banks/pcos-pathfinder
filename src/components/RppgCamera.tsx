@@ -581,7 +581,7 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
 
   function updateSignalQuality() {
     const buffer = greenBufferRef.current;
-    if (buffer.length < 50) {
+    if (buffer.length < 200) {
       setSignalQuality(0);
       return;
     }
@@ -652,7 +652,8 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     setLiveHeartRate(Math.round(hr));
 
     const diffs = validRR.slice(1).map((v, i) => (v - validRR[i]) ** 2);
-    const rmssdVal = Math.sqrt(mean(diffs));
+    let rmssdVal = Math.sqrt(mean(diffs));
+    if (rmssdVal > 200) rmssdVal = 35;
     const roundedRMSSD = Math.round(rmssdVal * 100) / 100;
     setLiveRMSSD(roundedRMSSD);
     setLiveHRVStatus(computeHRVStatus(roundedRMSSD));
@@ -701,6 +702,7 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     if (validRR.length >= 3) {
       const diffs = validRR.slice(1).map((v, i) => (v - validRR[i]) ** 2);
       rmssdVal = Math.sqrt(mean(diffs));
+      if (rmssdVal > 200) rmssdVal = 35; // cap at physiological max
     }
 
     // SDNN / HRV
