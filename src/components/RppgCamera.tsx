@@ -1,11 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { RppgV8SessionPayload } from '@/services/rppgV8Service';
 
+export interface ReadinessState {
+  lighting: 'checking' | 'good' | 'too_dark' | 'too_bright';
+  faceDetected: 'checking' | 'yes' | 'no';
+  stability: 'checking' | 'steady' | 'unsteady';
+  allReady: boolean;
+}
+
 interface RppgCameraProps {
   onCaptureComplete: (metrics: RppgV8SessionPayload) => void;
   onCaptureError: (error: string) => void;
   isCapturing: boolean;
   setIsCapturing: (capturing: boolean) => void;
+  showPreview?: boolean;
+  onReadinessChange?: (readiness: ReadinessState) => void;
 }
 
 // ─── Signal Processing Utilities ─────────────────────────────────────
@@ -240,6 +249,8 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
   onCaptureError,
   isCapturing,
   setIsCapturing,
+  showPreview = false,
+  onReadinessChange,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -256,6 +267,14 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [hasVideoReady, setHasVideoReady] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  // Readiness checks
+  const [readiness, setReadiness] = useState<ReadinessState>({
+    lighting: 'checking',
+    faceDetected: 'checking',
+    stability: 'checking',
+    allReady: false,
+  });
 
   const animationFrameRef = useRef<number | null>(null);
   const frameCountRef = useRef(0);
@@ -303,7 +322,7 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
 
   // ─── Camera init ───
   useEffect(() => {
-    if (!isCapturing) {
+    if (!showPreview && !isCapturing) {
       cleanup();
       setHasVideoReady(false);
       return;
@@ -339,31 +358,33 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
 
     startCamera();
     return cleanup;
-  }, [isCapturing, onCaptureError]);
+  }, [showPreview, isCapturing, onCaptureError]);
 
   // ─── Frame processing ───
   useEffect(() => {
-    if (!isCapturing || !hasVideoReady) return;
+    if (!hasVideoReady || (!showPreview && !isCapturing)) return;
 
-    // Reset state
-    frameCountRef.current = 0;
-    greenBufferRef.current = [];
-    timeBufferRef.current = [];
-    peakTimesRef.current = [];
-    lastPeakTimeRef.current = null;
-    adaptiveThresholdRef.current = 0;
-    windowMetricsRef.current = [];
-    lastWindowTimeRef.current = 0;
-    setLiveHeartRate(null);
-    setLiveRMSSD(null);
-    setLiveHRVStatus('');
-    setLiveLfHf(null);
-    captureStartTimeRef.current = performance.now();
-    hasCompletedRef.current = false;
+    if (isCapturing) {
+      // Reset state for new capture
+      frameCountRef.current = 0;
+      greenBufferRef.current = [];
+      timeBufferRef.current = [];
+      peakTimesRef.current = [];
+      lastPeakTimeRef.current = null;
+      adaptiveThresholdRef.current = 0;
+      windowMetricsRef.current = [];
+      lastWindowTimeRef.current = 0;
+      setLiveHeartRate(null);
+      setLiveRMSSD(null);
+      setLiveHRVStatus('');
+      setLiveLfHf(null);
+      captureStartTimeRef.current = performance.now();
+      hasCompletedRef.current = false;
 
-    simEdaRef.current = 1.5 + Math.random() * 1.5;
-    simTempRef.current = 36.0 + Math.random() * 0.8;
-    simSpo2Ref.current = 96 + Math.random() * 3;
+      simEdaRef.current = 1.5 + Math.random() * 1.5;
+      simTempRef.current = 36.0 + Math.random() * 0.8;
+      simSpo2Ref.current = 96 + Math.random() * 3;
+    }
 
     const processFrame = () => {
       const video = videoRef.current;
@@ -406,25 +427,34 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
           timeBufferRef.current.splice(0, excess);
         }
 
-        frameCountRef.current++;
+        if (isCapturing) {
+          // Capture mode: full processing
+          frameCountRef.current++;
 
-        // Every 3 frames (~10fps effective), run peak detection
-        if (frameCountRef.current % 3 === 0) {
-          detectPeak(now, greenMean);
-        }
+          if (frameCountRef.current % 3 === 0) {
+            detectPeak(now, greenMean);
+          }
 
-        // Every 30 frames (~1s), update metrics
-        if (frameCountRef.current % 30 === 0) {
-          updateLiveMetrics(now);
-        }
+          if (frameCountRef.current % 30 === 0) {
+            updateLiveMetrics(now);
+          }
 
-        // Update signal quality every 10 frames
-        if (frameCountRef.current % 10 === 0) {
-          updateSignalQuality();
+          if (frameCountRef.current % 10 === 0) {
+            updateSignalQuality();
+          }
+        } else if (showPreview) {
+          // Preview mode: signal quality + readiness only
+          frameCountRef.current++;
+          if (frameCountRef.current % 10 === 0) {
+            updateSignalQuality();
+            updateReadiness();
+          }
         }
       } catch (_) { /* frame error, skip */ }
 
-      animationFrameRef.current = requestAnimationFrame(processFrame);
+      if (showPreview || isCapturing) {
+        animationFrameRef.current = requestAnimationFrame(processFrame);
+      }
     };
 
     animationFrameRef.current = requestAnimationFrame(processFrame);
@@ -435,7 +465,7 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
         animationFrameRef.current = null;
       }
     };
-  }, [isCapturing, hasVideoReady]);
+  }, [showPreview, isCapturing, hasVideoReady]);
 
   // ─── Timer ───
   useEffect(() => {
@@ -567,6 +597,36 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     else quality = 15;
     signalQualityRef.current = quality;
     setSignalQuality(quality);
+  }
+
+  function updateReadiness() {
+    const buffer = greenBufferRef.current;
+    if (buffer.length < 30) return;
+
+    const recent = buffer.slice(-30);
+    const avg = mean(recent);
+    const range = Math.max(...recent) - Math.min(...recent);
+    const s = std(recent);
+
+    const lighting: ReadinessState['lighting'] =
+      avg < 60 ? 'too_dark' :
+      avg > 200 ? 'too_bright' : 'good';
+
+    const faceDetected: ReadinessState['faceDetected'] =
+      range > 1.5 ? 'yes' : 'no';
+
+    const stability: ReadinessState['stability'] =
+      s < 3 ? 'steady' : 'unsteady';
+
+    const newReadiness = {
+      lighting,
+      faceDetected,
+      stability,
+      allReady: lighting === 'good' && faceDetected === 'yes' && stability === 'steady',
+    };
+
+    setReadiness(newReadiness);
+    onReadinessChange?.(newReadiness);
   }
 
   function updateLiveMetrics(now: number) {
@@ -804,6 +864,44 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
         )}
       </div>
 
+        {showPreview && !isCapturing && (
+          <div className="readiness-overlay">
+            <div className="readiness-header">Position Your Face</div>
+            <div className="readiness-item">
+              <span className={`readiness-icon ${readiness.lighting === 'good' ? 'ready' : readiness.lighting === 'checking' ? 'checking' : 'not-ready'}`}>
+                {readiness.lighting === 'good' ? '✓' : readiness.lighting === 'checking' ? '⋯' : '✗'}
+              </span>
+              <span className="readiness-label">
+                {readiness.lighting === 'good' ? 'Good lighting' :
+                 readiness.lighting === 'too_dark' ? 'Too dark — turn on lights' :
+                 readiness.lighting === 'too_bright' ? 'Too bright — reduce glare' :
+                 'Checking lighting...'}
+              </span>
+            </div>
+            <div className="readiness-item">
+              <span className={`readiness-icon ${readiness.faceDetected === 'yes' ? 'ready' : readiness.faceDetected === 'checking' ? 'checking' : 'not-ready'}`}>
+                {readiness.faceDetected === 'yes' ? '✓' : readiness.faceDetected === 'checking' ? '⋯' : '✗'}
+              </span>
+              <span className="readiness-label">
+                {readiness.faceDetected === 'yes' ? 'Face detected' :
+                 'Move face closer to camera'}
+              </span>
+            </div>
+            <div className="readiness-item">
+              <span className={`readiness-icon ${readiness.stability === 'steady' ? 'ready' : readiness.stability === 'checking' ? 'checking' : 'not-ready'}`}>
+                {readiness.stability === 'steady' ? '✓' : readiness.stability === 'checking' ? '⋯' : '✗'}
+              </span>
+              <span className="readiness-label">
+                {readiness.stability === 'steady' ? 'Hold steady' :
+                 'Hold still — reduce movement'}
+              </span>
+            </div>
+            <div className="readiness-quality">
+              Signal: <span className={signalQuality > 40 ? 'good' : 'poor'}>{signalQuality}%</span>
+            </div>
+          </div>
+        )}
+
       <style>{`
         .rppg-camera { position: relative; width: 100%; max-width: 600px; margin: 0 auto; }
         .camera-container { position: relative; background: #000; border-radius: 12px; overflow: hidden; }
@@ -824,6 +922,15 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
         .metric-value { font-size: 16px; font-weight: bold; }
         .metric-unit { font-size: 8px; opacity: 0.6; }
         .hrv-status { text-align: center; font-size: 11px; margin-top: 4px; padding: 2px 8px; background: rgba(0,0,0,0.3); border-radius: 4px; display: inline-block; width: auto; }
+        .readiness-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(0,0,0,0.6); color: white; gap: 6px; padding: 20px; }
+        .readiness-header { font-size: 14px; font-weight: bold; margin-bottom: 4px; opacity: 0.9; }
+        .readiness-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+        .readiness-icon { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; flex-shrink: 0; }
+        .readiness-icon.ready { background: #4caf50; color: white; }
+        .readiness-icon.not-ready { background: #f44336; color: white; }
+        .readiness-icon.checking { background: rgba(255,255,255,0.2); color: #aaa; }
+        .readiness-label { line-height: 1.3; }
+        .readiness-quality { margin-top: 6px; font-size: 12px; opacity: 0.8; }
       `}</style>
     </div>
   );

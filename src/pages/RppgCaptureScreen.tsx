@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Camera, Activity } from 'lucide-react';
 import RppgCamera from '@/components/RppgCamera';
+import type { ReadinessState } from '@/components/RppgCamera';
 import { rppgV8Service, RppgV8SessionPayload, RppgV8PredictAllResult } from '@/services/rppgV8Service';
 import { toast } from '@/hooks/use-toast';
 
@@ -19,6 +20,7 @@ const RppgCaptureScreen = () => {
   const navigate = useNavigate();
   
   const [isCapturing, setIsCapturing] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
   const [captureComplete, setCaptureComplete] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -26,6 +28,8 @@ const RppgCaptureScreen = () => {
 
   const [captureTimerActive, setCaptureTimerActive] = useState(false);
   const [nextCaptureAt, setNextCaptureAt] = useState<number | null>(null);
+
+  const [readiness, setReadiness] = useState<ReadinessState | null>(null);
 
   // Clear cooldown on mount so you can test anytime
   useEffect(() => {
@@ -54,6 +58,7 @@ const RppgCaptureScreen = () => {
   }, []);
 
   const handleStartCapture = () => {
+    setShowPreview(false);
     setIsCapturing(true);
     setCaptureComplete(false);
     setErrors({});
@@ -102,6 +107,10 @@ const RppgCaptureScreen = () => {
     setErrors({ general: error });
     setIsCapturing(false);
   };
+
+  const handleReadinessChange = useCallback((r: ReadinessState) => {
+    setReadiness(r);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -205,6 +214,8 @@ const RppgCaptureScreen = () => {
                 onClick={() => {
                   setCaptureComplete(false);
                   setSessionData(null);
+                  setShowPreview(true);
+                  setReadiness(null);
                 }}
                 variant="outline"
                 className="flex-1 h-12 rounded-xl"
@@ -235,6 +246,28 @@ const RppgCaptureScreen = () => {
                     We'll use your phone camera to measure heart rate variability (HRV), respiratory rate, 
                     and autonomic function through remote photoplethysmography (rPPG). This takes 2 minutes.
                   </p>
+                  {showPreview && readiness && (
+                    <div className="mt-2 space-y-1 text-xs text-teal-700">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`inline-block w-4 h-4 rounded-full flex items-center justify-center text-white text-[9px] font-bold ${readiness.lighting === 'good' ? 'bg-green-500' : readiness.lighting === 'checking' ? 'bg-gray-300 text-gray-500' : 'bg-red-500'}`}>
+                          {readiness.lighting === 'good' ? '✓' : readiness.lighting === 'checking' ? '⋯' : '✗'}
+                        </span>
+                        <span>Lighting</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`inline-block w-4 h-4 rounded-full flex items-center justify-center text-white text-[9px] font-bold ${readiness.faceDetected === 'yes' ? 'bg-green-500' : 'bg-gray-300 text-gray-500'}`}>
+                          {readiness.faceDetected === 'yes' ? '✓' : '⋯'}
+                        </span>
+                        <span>Face visible</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`inline-block w-4 h-4 rounded-full flex items-center justify-center text-white text-[9px] font-bold ${readiness.stability === 'steady' ? 'bg-green-500' : readiness.stability === 'checking' ? 'bg-gray-300 text-gray-500' : 'bg-red-500'}`}>
+                          {readiness.stability === 'steady' ? '✓' : readiness.stability === 'checking' ? '⋯' : '✗'}
+                        </span>
+                        <span>Hold steady</span>
+                      </div>
+                    </div>
+                  )}
                   {nextCaptureAt && Date.now() < nextCaptureAt && (
                     <p className="text-xs text-teal-600 mt-2">
                       ⏱ Next capture available in {Math.ceil((nextCaptureAt - Date.now()) / 3600000)}h
@@ -249,6 +282,8 @@ const RppgCaptureScreen = () => {
               onCaptureError={handleCaptureError}
               isCapturing={isCapturing}
               setIsCapturing={setIsCapturing}
+              showPreview={showPreview}
+              onReadinessChange={handleReadinessChange}
             />
 
             <div className="pt-4 space-y-3">
@@ -258,10 +293,10 @@ const RppgCaptureScreen = () => {
                   size="xl"
                   className="w-full"
                   onClick={handleStartCapture}
-                  disabled={isCapturing}
+                  disabled={isCapturing || (showPreview && readiness !== null && !readiness.allReady)}
                   style={isCapturing ? {} : { backgroundColor: TEAL_PRIMARY }}
                 >
-                  {isCapturing ? "Capturing..." : "Start Capture"}
+                  {isCapturing ? "Capturing..." : showPreview && readiness && !readiness.allReady ? "Check Conditions First" : "Start Capture"}
                 </Button>
               ) : (
                 <Button
