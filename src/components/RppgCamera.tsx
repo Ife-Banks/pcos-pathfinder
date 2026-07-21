@@ -524,6 +524,9 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     const n = buffer.length;
     if (n < 10) return;
 
+    // Skip if signal quality is too low (avoid detecting noise as peaks)
+    if (signalQualityRef.current < 25) return;
+
     // Normalize signal by recent min/max to handle any amplitude
     const recent = buffer.slice(-30);
     const minVal = Math.min(...recent);
@@ -594,14 +597,16 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     setLiveRMSSD(roundedRMSSD);
     setLiveHRVStatus(computeHRVStatus(roundedRMSSD));
 
-    // LF/HF every 5 seconds (~150 frames)
-    if (frameCountRef.current % 150 === 0 && cleanPeaks.length >= 6) {
-      const windowStart = cleanPeaks.length > 30 ? cleanPeaks[cleanPeaks.length - 30] : cleanPeaks[0];
+    // LF/HF every 10 seconds (~300 frames) using last 60 peaks (~30-60s window)
+    if (frameCountRef.current % 300 === 0 && cleanPeaks.length >= 12) {
+      const windowStart = cleanPeaks.length > 60 ? cleanPeaks[cleanPeaks.length - 60] : cleanPeaks[0];
       const windowEnd = cleanPeaks[cleanPeaks.length - 1];
-      if (windowEnd - windowStart >= 5000) {
+      if (windowEnd - windowStart >= 15000) { // need at least 15s for reliable FFT
         const { lfPower, hfPower } = computeFrequencyBands(cleanPeaks, windowStart, windowEnd, 4);
-        const ratio = lfPower / hfPower;
-        setLiveLfHf(parseFloat(ratio.toFixed(2)));
+        if (hfPower > 0.01) {
+          const ratio = lfPower / hfPower;
+          setLiveLfHf(parseFloat(ratio.toFixed(2)));
+        }
       }
     }
 
