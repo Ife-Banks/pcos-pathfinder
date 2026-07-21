@@ -142,7 +142,7 @@ function filterRRIntervals(rrIntervals: number[]): number[] {
   const median = sorted[Math.floor(sorted.length * 0.5)];
   const absDevs = rrIntervals.map(rr => Math.abs(rr - median)).sort((a, b) => a - b);
   const mad = absDevs[Math.floor(absDevs.length * 0.5)] || 1;
-  const maxDev = 3 * mad;
+  const maxDev = 1.5 * mad;
   return rrIntervals.filter(rr => Math.abs(rr - median) <= maxDev);
 }
 
