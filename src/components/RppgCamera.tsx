@@ -135,15 +135,14 @@ function filterPeaks(peaks: number[], minRR = 350): number[] {
   return filtered;
 }
 
-/** Remove RR interval outliers using median absolute deviation. */
+/** Remove RR interval outliers — keep only intervals within 60–140% of median. */
 function filterRRIntervals(rrIntervals: number[]): number[] {
   if (rrIntervals.length < 6) return rrIntervals;
   const sorted = [...rrIntervals].sort((a, b) => a - b);
   const median = sorted[Math.floor(sorted.length * 0.5)];
-  const absDevs = rrIntervals.map(rr => Math.abs(rr - median)).sort((a, b) => a - b);
-  const mad = absDevs[Math.floor(absDevs.length * 0.5)] || 1;
-  const maxDev = 1.5 * mad;
-  return rrIntervals.filter(rr => Math.abs(rr - median) <= maxDev);
+  const lower = median * 0.6;
+  const upper = median * 1.4;
+  return rrIntervals.filter(rr => rr >= lower && rr <= upper);
 }
 
 /** Compute LF power (0.04-0.15 Hz) and HF power (0.15-0.40 Hz) from peak times. */
