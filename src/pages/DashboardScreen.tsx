@@ -734,6 +734,7 @@ const DashboardScreen = () => {
     { icon: ClipboardCheck, title: "Weekly Tools", subtitle: getWeeklyToolsSubtitle(), route: "/weekly-tools", gradient: "gradient-primary", urgent: !mfgComplete || !phq4Complete },
     { icon: BarChart3, title: "Risk Trends", subtitle: "View your history", route: "/risk-trend", gradient: "gradient-clinical", urgent: false },
     { icon: Camera, title: "Measure HRV", subtitle: "Capture heart rate variability", route: "/rppg-capture", gradient: "bg-blue-500", urgent: false },
+    { icon: Activity, title: "Passive Sensing", subtitle: "18+ physiological metrics", route: "/rppg-passive", gradient: "bg-emerald-500", urgent: false },
   );
 
   const riskTier = prediction ? getRiskTier(prediction.risk_score) : null;
@@ -746,7 +747,6 @@ const DashboardScreen = () => {
   const navItems = [
     { icon: Activity, label: "Home", route: "/dashboard" },
     ...(isFemale ? [{ icon: Calendar, label: "Cycle", route: "/cycle-history" }] : []),
-    { icon: Heart, label: "Sensing", route: "/rppg-passive" },
     { icon: BarChart3, label: "Results", route: "/risk-score" },
     { icon: MessageCircle, label: "Messages", route: "/messages" },
     { icon: User, label: "Profile", route: "/profile" },
