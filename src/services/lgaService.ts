@@ -1,6 +1,12 @@
 import apiClient from '@/services/apiClient';
 
 export const lgaAPI = {
+  listStates: async (countryId?: string) => {
+    const params = countryId ? { country: countryId } : {};
+    const res = await apiClient.get('/centers/states/', { params });
+    return res.data;
+  },
+
   listLgas: async () => {
     const res = await apiClient.get('/centers/lga/');
     return res.data;

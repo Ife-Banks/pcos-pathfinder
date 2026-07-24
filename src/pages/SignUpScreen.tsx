@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
-import logo from "@/assets/logo.png";
 import { authAPI } from "@/services/authService";
+import { useAuth } from "@/context/AuthContext";
+import { Logo } from "@/components/Logo";
 
 const SignUpScreen = () => {
   const navigate = useNavigate();
+  const { user, accessToken, routeAfterLogin } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -20,6 +22,13 @@ const SignUpScreen = () => {
     confirmPassword: "",
     termsAccepted: false,
   });
+
+  useEffect(() => {
+    if (user && accessToken) {
+      const dashboardRoute = routeAfterLogin(user);
+      navigate(dashboardRoute);
+    }
+  }, [user, accessToken, navigate, routeAfterLogin]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -132,7 +141,7 @@ const SignUpScreen = () => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <img src={logo} alt="AI-MSHM" className="h-10 w-10 mb-4" />
+          <Logo variant="circle" className="mb-4" />
           <h1 className="text-2xl font-bold font-display text-foreground">
             Create your account
           </h1>

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import {
   Users, Plus, AlertTriangle, CheckCircle, UserPlus, Copy, Check,
 } from 'lucide-react';
-import PHCLayout from '@/components/phc/PHCLayout';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -141,7 +141,7 @@ export default function PHCStaffManagementScreen() {
   const inactiveCount = staff.filter((s) => !s.is_active).length;
 
   return (
-    <PHCLayout>
+    <>
       <div className="max-w-4xl mx-auto space-y-6 pb-12">
 
         {/* Header */}
@@ -377,6 +377,6 @@ export default function PHCStaffManagementScreen() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </PHCLayout>
+    </>
   );
 }

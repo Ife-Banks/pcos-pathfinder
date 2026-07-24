@@ -5,6 +5,7 @@ import { PlusCircle, ArrowLeft, Loader2, CheckCircle, AlertCircle } from 'lucide
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import PhoneInput from '@/components/ui/PhoneInput';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import LGALayout from '@/components/layout/LGALayout';
@@ -54,8 +55,6 @@ const LGACreatePHCScreen = () => {
     if (!form.address.trim()) newErrors.address = 'Address is required';
     if (!form.phone.trim()) {
       newErrors.phone = 'Phone number is required';
-    } else if (!/^[\d\s+()-]{7,}$/.test(form.phone)) {
-      newErrors.phone = 'Invalid phone number format';
     }
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       newErrors.email = 'Invalid email format';
@@ -199,12 +198,9 @@ const LGACreatePHCScreen = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
+                  <PhoneInput
                     value={form.phone}
-                    onChange={e => handleChange('phone', e.target.value)}
-                    className={errors.phone ? 'border-red-500' : ''}
-                    placeholder="+234..."
+                    onChange={(value) => handleChange('phone', value)}
                   />
                   {errors.phone && <p className="text-sm text-red-500">{errors.phone}</p>}
                 </div>

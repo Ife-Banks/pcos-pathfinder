@@ -8,11 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Eye, EyeOff, Mail, Lock, Building2, ArrowLeft } from "lucide-react";
-import logoImage from "@/assets/logo.png";
-import aimherLogo from "@/assets/AIMHER trademark  only.png";
-import healthLogo from "@/assets/Health  Trademark only-1.png";
 import { useAuth } from "@/context/AuthContext";
 import { authAPI } from "@/services/authService";
+import { Logo } from "@/components/Logo";
 
 const LGALoginScreen = () => {
   const navigate = useNavigate();
@@ -36,7 +34,7 @@ const LGALoginScreen = () => {
 
     try {
       const response = await authAPI.login({ email, password });
-      const responseData = response.data?.data || response.data;
+      const responseData = response?.data || response;
 
       if (responseData?.access && responseData?.refresh) {
         const userData = responseData.user;
@@ -66,7 +64,7 @@ const LGALoginScreen = () => {
             <span className="text-sm font-medium">Back to Home</span>
           </Link>
           <Link to="/welcome">
-            <img src={logoImage} alt="AIMHER" className="h-8 w-auto" />
+            <Logo />
           </Link>
         </div>
       </header>
@@ -80,9 +78,7 @@ const LGALoginScreen = () => {
           <div className="text-center mb-6">
             <Link to="/welcome" className="inline-block mb-3">
               <div className="flex items-center justify-center gap-2">
-                <img src={logoImage} alt="logo" className="h-8 w-auto" />
-                <img src={aimherLogo} alt="AIMHER" className="h-6 w-auto" />
-                <img src={healthLogo} alt="Health" className="h-6 w-auto" />
+                <Logo />
               </div>
             </Link>
             <Badge className="bg-blue-700 text-white mb-3">

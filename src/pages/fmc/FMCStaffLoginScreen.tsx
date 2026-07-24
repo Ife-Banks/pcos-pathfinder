@@ -16,12 +16,10 @@ import {
   HeartPulse,
   ArrowLeft
 } from "lucide-react";
-import logoImage from "@/assets/logo.png";
-import aimherLogo from "@/assets/AIMHER trademark  only.png";
-import healthLogo from "@/assets/Health  Trademark only-1.png";
 import { fmcAPI } from "@/services/fmcService";
 import { useAuth } from "@/context/AuthContext";
 import { FMCLoginForm } from "@/types/fmc";
+import { Logo } from "@/components/Logo";
 
 const FMCLoginScreen = () => {
   const navigate = useNavigate();
@@ -119,7 +117,7 @@ const FMCLoginScreen = () => {
             <span className="text-sm font-medium">Back to Home</span>
           </Link>
           <Link to="/welcome">
-            <img src={logoImage} alt="AIMHER" className="h-8 w-auto" />
+            <Logo />
           </Link>
         </div>
       </header>
@@ -135,9 +133,7 @@ const FMCLoginScreen = () => {
           <div className="text-center mb-6">
             <Link to="/welcome" className="inline-block mb-3">
               <div className="flex items-center justify-center gap-2">
-                <img src={logoImage} alt="logo" className="h-8 w-auto" />
-                <img src={aimherLogo} alt="AIMHER" className="h-6 w-auto" />
-                <img src={healthLogo} alt="Health" className="h-6 w-auto" />
+                <Logo />
               </div>
             </Link>
             <h1 className="text-4xl font-bold text-gray-900">FMC Portal</h1>

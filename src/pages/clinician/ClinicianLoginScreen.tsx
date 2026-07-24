@@ -8,12 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Eye, EyeOff, Shield, User, Mail, Lock, Key, Stethoscope, ArrowLeft } from "lucide-react";
-import logoImage from "@/assets/logo.png";
-import aimherLogo from "@/assets/AIMHER trademark  only.png";
-import healthLogo from "@/assets/Health  Trademark only-1.png";
 import { clinicianAPI } from "@/services/clinicianService";
 import { useAuth } from "@/context/AuthContext";
 import { ClinicianLoginForm } from "@/types/clinician";
+import { Logo } from "@/components/Logo";
 
 const ClinicianLoginScreen = () => {
   const navigate = useNavigate();
@@ -68,7 +66,7 @@ const ClinicianLoginScreen = () => {
     try {
       const response = await clinicianAPI.login(formData);
       
-      const responseData = response.data?.data || response.data;
+      const responseData = response?.data || response;
       const accessToken = responseData?.access;
       const refreshToken = responseData?.refresh;
       const userData = responseData?.user;
@@ -157,7 +155,7 @@ const ClinicianLoginScreen = () => {
             <span className="text-sm font-medium">Back to Home</span>
           </Link>
           <Link to="/welcome">
-            <img src={logoImage} alt="AIMHER" className="h-8 w-auto" />
+            <Logo />
           </Link>
         </div>
       </header>
@@ -173,9 +171,7 @@ const ClinicianLoginScreen = () => {
           <div className="text-center mb-6">
             <Link to="/welcome" className="inline-block mb-3">
               <div className="flex items-center justify-center gap-2">
-                <img src={logoImage} alt="logo" className="h-8 w-auto" />
-                <img src={aimherLogo} alt="AIMHER" className="h-6 w-auto" />
-                <img src={healthLogo} alt="Health" className="h-6 w-auto" />
+                <Logo />
               </div>
             </Link>
             <h1 className="text-4xl font-bold text-gray-900">Clinician Portal</h1>

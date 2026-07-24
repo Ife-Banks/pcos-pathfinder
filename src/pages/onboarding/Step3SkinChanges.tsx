@@ -19,6 +19,8 @@ const Step3SkinChanges = () => {
   useEffect(() => {
     if (profile && profile.has_skin_changes !== null) {
       setHasSkinChanges(profile.has_skin_changes);
+    } else if (profile && profile.acanthosis_nigricans) {
+      setHasSkinChanges(profile.acanthosis_nigricans === 'yes');
     }
   }, [profile]);
 
@@ -34,6 +36,9 @@ const Step3SkinChanges = () => {
       
       await onboardingAPI.saveStep3({
         has_skin_changes: hasSkinChanges,
+        acanthosis_nigricans: hasSkinChanges === true ? 'yes' : 'no',
+        skin_tags: profile?.skin_tags || '',
+        scalp_hair_thinning: profile?.scalp_hair_thinning || '',
       });
       
       // Refresh profile data

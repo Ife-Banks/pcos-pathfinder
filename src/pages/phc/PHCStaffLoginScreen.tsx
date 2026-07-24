@@ -16,11 +16,9 @@ import {
   Building2,
   ArrowLeft
 } from "lucide-react";
-import logoImage from "@/assets/logo.png";
-import aimherLogo from "@/assets/AIMHER trademark  only.png";
-import healthLogo from "@/assets/Health  Trademark only-1.png";
 import { phcAPI } from "@/services/phcService";
 import { useAuth } from "@/context/AuthContext";
+import { Logo } from "@/components/Logo";
 
 const PHCStaffLoginScreen = () => {
   const navigate = useNavigate();
@@ -48,19 +46,23 @@ const PHCStaffLoginScreen = () => {
         password,
       });
 
-      const responseData = response.data?.data || response.data;
+      const responseData = response?.data || response;
       const accessToken = responseData?.access;
       const refreshToken = responseData?.refresh;
       const userData = responseData?.user;
 
-      if (!userData || !['hcc_admin', 'hcc_staff', 'hcc_admin', 'admin'].includes(userData.role)) {
+      if (!userData || !['hcc_admin', 'hcc_staff'].includes(userData.role)) {
         setError("Your account does not have PHC staff access.");
         setIsLoading(false);
         return;
       }
 
       await loginWithTokens(userData, accessToken, refreshToken);
-      navigate('/phc/dashboard');
+      if (userData.must_change_password) {
+        navigate('/change-password');
+      } else {
+        navigate('/phc/dashboard');
+      }
     } catch (err: any) {
       const errorData = err.response?.data;
       const message = errorData?.message || errorData?.detail || JSON.stringify(errorData) || err.message || "Login failed";
@@ -80,7 +82,7 @@ const PHCStaffLoginScreen = () => {
             <span className="text-sm font-medium">Back to Home</span>
           </Link>
           <Link to="/welcome" className="flex items-center gap-2">
-            <img src={logoImage} alt="AIMHER" className="h-8 w-auto" />
+            <Logo />
           </Link>
         </div>
       </header>
@@ -95,9 +97,7 @@ const PHCStaffLoginScreen = () => {
           {/* Logo & Title Section */}
           <div className="text-center mb-6">
             <div className="flex items-center justify-center gap-2 mb-3">
-              <img src={logoImage} alt="logo" className="h-8 w-auto" />
-              <img src={aimherLogo} alt="AIMHER" className="h-6 w-auto" />
-              <img src={healthLogo} alt="Health" className="h-6 w-auto" />
+              <Logo />
             </div>
             <h1 className="text-4xl font-bold text-gray-900">PHC Portal</h1>
             <p className="text-gray-600 text-sm mt-1">Sign in to manage patients</p>

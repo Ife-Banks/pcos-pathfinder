@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import PHCLayout from "@/components/phc/PHCLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
@@ -143,7 +142,7 @@ const PHCAnalyticsScreen = () => {
 
   if (loading) {
     return (
-      <PHCLayout>
+      <>
         <div className="space-y-6">
           <div className="h-8 w-48 bg-gray-200 rounded animate-pulse" />
           <div className="grid grid-cols-4 gap-4">
@@ -157,12 +156,12 @@ const PHCAnalyticsScreen = () => {
             ))}
           </div>
         </div>
-      </PHCLayout>
+      </>
     );
   }
 
   return (
-    <PHCLayout>
+    <>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -398,7 +397,7 @@ const PHCAnalyticsScreen = () => {
           </Card>
         </div>
       </div>
-    </PHCLayout>
+    </>
   );
 };
 

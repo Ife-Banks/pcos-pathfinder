@@ -18,6 +18,8 @@ const Step4MenstrualHistory = () => {
     cycle_length_days: '',
     periods_per_year: '',
     cycle_regularity: '',
+    bleeding_intensity: '',
+    last_period_date: '',
   });
   
   const [isLoading, setIsLoading] = useState(false);
@@ -29,6 +31,8 @@ const Step4MenstrualHistory = () => {
         cycle_length_days: profile.cycle_length_days?.toString() || '',
         periods_per_year: profile.periods_per_year?.toString() || '',
         cycle_regularity: profile.cycle_regularity || '',
+        bleeding_intensity: profile.bleeding_intensity || '',
+        last_period_date: profile.last_period_date || '',
       });
     }
   }, [profile]);
@@ -64,7 +68,9 @@ const Step4MenstrualHistory = () => {
       await onboardingAPI.saveStep4({
         cycle_length_days: parseInt(form.cycle_length_days),
         periods_per_year: parseInt(form.periods_per_year),
-        cycle_regularity: form.cycle_regularity as 'regular' | 'irregular',
+        cycle_regularity: form.cycle_regularity,
+        bleeding_intensity: form.bleeding_intensity || undefined,
+        last_period_date: form.last_period_date || undefined,
       });
       
       // Refresh profile data

@@ -2,9 +2,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Users, Target, Heart, Award, Globe, Shield, Phone, Mail, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import logoImage from "@/assets/logo.png";
-import aimherLogo from "@/assets/AIMHER trademark  only.png";
-import healthLogo from "@/assets/Health  Trademark only-1.png";
+import { Logo } from "@/components/Logo";
 
 const teamMembers = [
   {
@@ -56,9 +54,7 @@ const AboutScreen = () => {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-[1100px] mx-auto px-6 py-4 flex items-center justify-between">
 <div className="flex items-center gap-3">
-              <img src={logoImage} alt="logo" className="h-8 w-auto" />
-              <img src={aimherLogo} alt="AIMHER" className="h-6 w-auto" />
-              <img src={healthLogo} alt="Health" className="h-6 w-auto" />
+              <Logo />
             </div>
           <Button
             variant="ghost"
@@ -252,9 +248,7 @@ const AboutScreen = () => {
       <footer className="bg-teal-950 text-white py-8">
         <div className="max-w-[1100px] mx-auto px-6 text-center">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <img src={logoImage} alt="logo" className="h-6 w-auto" />
-            <img src={aimherLogo} alt="AIMHER" className="h-4 w-auto" />
-            <img src={healthLogo} alt="Health" className="h-4 w-auto" />
+            <Logo variant="compact" />
           </div>
           <p className="text-teal-400 text-sm">
             © 2025 AIMHER Health. All rights reserved.

@@ -21,8 +21,12 @@ import {
   X,
   Eye,
   EyeOff,
+  Pencil,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { settingsService, Device, ProfileData } from "@/services/settingsService";
@@ -33,6 +37,37 @@ import { authAPI } from "@/services/authService";
 import { useAuth } from "@/context/AuthContext";
 
 const TEAL = '#00897B';
+
+const ethnicityLabels: Record<string, string> = {
+  african: "African",
+  asian: "Asian",
+  caucasian: "White / Caucasian",
+  hispanic: "Hispanic / Latino",
+  middle_eastern: "Middle Eastern",
+  other: "Other",
+  prefer_not_to_say: "Prefer not to say",
+};
+
+const nationalityLabels: Record<string, string> = {
+  nigerian: "Nigerian",
+  ghanaian: "Ghanaian",
+  kenyan: "Kenyan",
+  ethiopian: "Ethiopian",
+  south_african: "South African",
+  cameroonian: "Cameroonian",
+  senegalese: "Senegalese",
+  togolese: "Togolese",
+  beninese: "Beninese",
+  ugandan: "Ugandan",
+  tanzanian: "Tanzanian",
+  american: "American (USA)",
+  british: "British (UK)",
+  canadian: "Canadian",
+  indian: "Indian",
+  chinese: "Chinese",
+  other: "Other",
+  prefer_not: "Prefer not to say",
+};
 
 
 
@@ -104,6 +139,22 @@ const MyProfileScreen = () => {
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
+
+  // Profile editing state
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [editForm, setEditForm] = useState({
+    full_name: "",
+    gender: "",
+    nationality: "",
+    ethnicity: "",
+    phone_number: "",
+    date_of_birth: "",
+    height_cm: "",
+    weight_kg: "",
+    blood_group: "",
+    genotype: "",
+  });
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -182,6 +233,56 @@ const MyProfileScreen = () => {
       setPasswordError(err?.message || "Failed to change password. Check your current password.");
     } finally {
       setChangingPassword(false);
+    }
+  };
+
+  const startEditProfile = () => {
+    setEditForm({
+      full_name: userProfile?.full_name || "",
+      gender: profileData?.gender || "",
+      nationality: profileData?.nationality || "",
+      ethnicity: profileData?.ethnicity || "",
+      phone_number: profileData?.phone_number || "",
+      date_of_birth: profileData?.date_of_birth || "",
+      height_cm: profileData?.height_cm?.toString() || "",
+      weight_kg: profileData?.weight_kg?.toString() || "",
+      blood_group: profileData?.blood_group || "",
+      genotype: profileData?.genotype || "",
+    });
+    setEditingProfile(true);
+  };
+
+  const cancelEditProfile = () => {
+    setEditingProfile(false);
+    setEditForm({
+      full_name: "", gender: "", nationality: "", ethnicity: "",
+      phone_number: "", date_of_birth: "", height_cm: "", weight_kg: "",
+      blood_group: "", genotype: "",
+    });
+  };
+
+  const saveEditProfile = async () => {
+    setSavingProfile(true);
+    try {
+      const payload: Record<string, any> = {};
+      if (editForm.full_name.trim()) payload.full_name = editForm.full_name.trim();
+      if (editForm.gender) payload.gender = editForm.gender;
+      if (editForm.nationality) payload.nationality = editForm.nationality;
+      if (editForm.ethnicity) payload.ethnicity = editForm.ethnicity;
+      if (editForm.phone_number) payload.phone_number = editForm.phone_number;
+      if (editForm.date_of_birth) payload.date_of_birth = editForm.date_of_birth;
+      if (editForm.height_cm) payload.height_cm = parseFloat(editForm.height_cm);
+      if (editForm.weight_kg) payload.weight_kg = parseFloat(editForm.weight_kg);
+      if (editForm.blood_group) payload.blood_group = editForm.blood_group;
+      if (editForm.genotype) payload.genotype = editForm.genotype;
+      await settingsService.updateProfile(payload);
+      toast({ title: "Profile updated", description: "Your profile has been saved." });
+      setEditingProfile(false);
+      await fetchData();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message || "Failed to update profile", variant: "destructive" });
+    } finally {
+      setSavingProfile(false);
     }
   };
 
@@ -283,48 +384,146 @@ const MyProfileScreen = () => {
             </motion.div>
 
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-              <h3 className="font-display font-semibold text-xs text-gray-400 uppercase tracking-wider mb-3">
-                Demographics
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-display font-semibold text-xs text-gray-400 uppercase tracking-wider">
+                  Demographics
+                </h3>
+                {!editingProfile ? (
+                  <button onClick={startEditProfile} className="flex items-center gap-1 text-xs font-medium" style={{ color: TEAL }}>
+                    <Pencil className="h-3 w-3" /> Edit
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <button onClick={cancelEditProfile} className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
+                    <button onClick={saveEditProfile} disabled={savingProfile} className="flex items-center gap-1 text-xs font-medium text-white px-2.5 py-1 rounded-lg" style={{ backgroundColor: TEAL }}>
+                      {savingProfile ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} Save
+                    </button>
+                  </div>
+                )}
+              </div>
               <Card className="border border-gray-200">
                 <CardContent className="p-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    {[
-                      { icon: Calendar, label: "Age", value: profileData?.age ? `${profileData.age} years` : "Not set" },
-                      {
-                        icon: Heart,
-                        label: "Gender",
-                        value: profileData?.gender
-                          ? profileData.gender.charAt(0).toUpperCase() + profileData.gender.slice(1)
-                          : "Not set"
-                      },
-                      { icon: User, label: "Ethnicity", value: profileData?.ethnicity ? profileData.ethnicity : "Not set" },
-                      { icon: Ruler, label: "Height", value: profileData?.height_cm ? `${profileData.height_cm} cm` : "Not set" },
-                      { icon: Scale, label: "Weight", value: profileData?.weight_kg ? `${profileData.weight_kg} kg` : "Not set" },
-                    ].map((item) => (
-                      <div key={item.label} className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-lg bg-gray-100 flex items-center justify-center">
-                          <item.icon className="h-4 w-4" style={{ color: TEAL }} />
+                  {editingProfile ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-xs">Full Name</Label>
+                          <Input value={editForm.full_name} onChange={e => setEditForm(p => ({ ...p, full_name: e.target.value }))} className="h-9 text-sm" />
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500">{item.label}</p>
-                          <p className="font-display font-semibold text-sm text-gray-900">{item.value}</p>
+                          <Label className="text-xs">Phone Number</Label>
+                          <Input value={editForm.phone_number} onChange={e => setEditForm(p => ({ ...p, phone_number: e.target.value }))} placeholder="+234..." className="h-9 text-sm" />
                         </div>
                       </div>
-                    ))}
-                  </div>
-                  <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Activity className="h-4 w-4" style={{ color: TEAL }} />
-                      <span className="text-sm text-gray-500">BMI</span>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-xs">Date of Birth</Label>
+                          <Input type="date" value={editForm.date_of_birth} onChange={e => setEditForm(p => ({ ...p, date_of_birth: e.target.value }))} className="h-9 text-sm" />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Gender</Label>
+                          <select value={editForm.gender} onChange={e => setEditForm(p => ({ ...p, gender: e.target.value }))} className="w-full h-9 px-3 border rounded-lg text-sm bg-white">
+                            <option value="">Select</option>
+                            <option value="female">Female</option>
+                            <option value="male">Male</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-xs">Nationality</Label>
+                          <select value={editForm.nationality} onChange={e => setEditForm(p => ({ ...p, nationality: e.target.value }))} className="w-full h-9 px-3 border rounded-lg text-sm bg-white">
+                            <option value="">Select</option>
+                            {Object.entries(nationalityLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <Label className="text-xs">Ethnicity</Label>
+                          <select value={editForm.ethnicity} onChange={e => setEditForm(p => ({ ...p, ethnicity: e.target.value }))} className="w-full h-9 px-3 border rounded-lg text-sm bg-white">
+                            <option value="">Select</option>
+                            {Object.entries(ethnicityLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-xs">Height (cm)</Label>
+                          <Input type="number" value={editForm.height_cm} onChange={e => setEditForm(p => ({ ...p, height_cm: e.target.value }))} placeholder="e.g. 165" className="h-9 text-sm" />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Weight (kg)</Label>
+                          <Input type="number" value={editForm.weight_kg} onChange={e => setEditForm(p => ({ ...p, weight_kg: e.target.value }))} placeholder="e.g. 62" className="h-9 text-sm" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-xs">Blood Group</Label>
+                          <select value={editForm.blood_group} onChange={e => setEditForm(p => ({ ...p, blood_group: e.target.value }))} className="w-full h-9 px-3 border rounded-lg text-sm bg-white">
+                            <option value="">Select</option>
+                            {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(g => <option key={g} value={g}>{g}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <Label className="text-xs">Genotype</Label>
+                          <select value={editForm.genotype} onChange={e => setEditForm(p => ({ ...p, genotype: e.target.value }))} className="w-full h-9 px-3 border rounded-lg text-sm bg-white">
+                            <option value="">Select</option>
+                            {["AA","AS","AC","SS","SC"].map(g => <option key={g} value={g}>{g}</option>)}
+                          </select>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-display font-bold text-gray-900">{computedBmi ?? '—'}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${bmiStatus.bg} ${bmiStatus.text}`}>
-                        {bmiStatus.label}
-                      </span>
-                    </div>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        {[
+                          { icon: Calendar, label: "Age", value: profileData?.age ? `${profileData.age} years` : "Not set" },
+                          {
+                            icon: Heart,
+                            label: "Gender",
+                            value: profileData?.gender
+                              ? profileData.gender.charAt(0).toUpperCase() + profileData.gender.slice(1)
+                              : "Not set"
+                          },
+                          { icon: User, label: "Nationality", value: profileData?.nationality ? (nationalityLabels[profileData.nationality] || profileData.nationality) : "Not set" },
+                          { icon: User, label: "Ethnicity", value: profileData?.ethnicity ? (ethnicityLabels[profileData.ethnicity] || profileData.ethnicity) : "Not set" },
+                          { icon: Ruler, label: "Height", value: profileData?.height_cm ? `${profileData.height_cm} cm` : "Not set" },
+                          { icon: Scale, label: "Weight", value: profileData?.weight_kg ? `${profileData.weight_kg} kg` : "Not set" },
+                        ].map((item) => (
+                          <div key={item.label} className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-lg bg-gray-100 flex items-center justify-center">
+                              <item.icon className="h-4 w-4" style={{ color: TEAL }} />
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">{item.label}</p>
+                              <p className="font-display font-semibold text-sm text-gray-900">{item.value}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Activity className="h-4 w-4" style={{ color: TEAL }} />
+                          <span className="text-sm text-gray-500">BMI</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-display font-bold text-gray-900">{computedBmi ?? '—'}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${bmiStatus.bg} ${bmiStatus.text}`}>
+                            {bmiStatus.label}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-xs text-gray-500">Blood Group</p>
+                          <p className="font-display font-semibold text-sm text-gray-900">{profileData?.blood_group || "Not set"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Genotype</p>
+                          <p className="font-display font-semibold text-sm text-gray-900">{profileData?.genotype || "Not set"}</p>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>

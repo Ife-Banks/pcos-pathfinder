@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Check, Trash2, Bell, Wifi, WifiOff, MessageCircle, AlertTriangle, Activity, Calendar, Moon, Sun } from 'lucide-react';
+import { X, Check, Trash2, Bell, Wifi, WifiOff, MessageCircle, AlertTriangle, Activity, Calendar, Moon, Sun, CreditCard } from 'lucide-react';
 import { useNotifications } from '@/context/NotificationContext';
 import { AppNotification, NotificationType } from '@/types/notifications';
 import { getPriorityColor, formatTimeAgo } from '@/utils/notificationHelpers';
@@ -22,6 +22,7 @@ const getNotificationIcon = (type: NotificationType | string): React.ReactNode =
     wearable_sync: <Activity className="h-5 w-5 text-blue-500" />,
     clinician_msg: <MessageCircle className="h-5 w-5 text-teal-500" />,
     system: <Bell className="h-5 w-5 text-gray-500" />,
+    subscription_expiring: <CreditCard className="h-5 w-5 text-orange-500" />,
   };
   return icons[type] || <Bell className="h-5 w-5 text-gray-500" />;
 };
@@ -94,6 +95,9 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, on
         break;
       case 'open_rppg':
         navigate('/rppg-capture');
+        break;
+      case 'open_subscription':
+        navigate('/settings/subscription');
         break;
       default:
         break;

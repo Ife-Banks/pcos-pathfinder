@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import PHCLayout from "@/components/phc/PHCLayout";
+
 import { 
   Users, 
   Search, 
@@ -199,7 +199,7 @@ const PHCMinorRiskDashboardScreen = () => {
 
   if (loading && records.length === 0) {
     return (
-      <PHCLayout>
+      <>
         <div className="min-h-screen bg-gray-50">
           {/* Header */}
           <div className="bg-white border-b border-gray-200">
@@ -258,12 +258,12 @@ const PHCMinorRiskDashboardScreen = () => {
             </div>
           </div>
         </div>
-      </PHCLayout>
+      </>
     );
   }
 
   return (
-    <PHCLayout>
+    <>
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
         <div className="bg-white border-b border-gray-200">
@@ -487,7 +487,7 @@ const PHCMinorRiskDashboardScreen = () => {
           )}
         </div>
       </div>
-    </PHCLayout>
+    </>
   );
 };
 

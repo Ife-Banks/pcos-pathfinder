@@ -7,7 +7,6 @@ import {
   Mail, Phone, Building, MapPin, Clock, AlertTriangle, CheckCircle,
   UserPlus, Copy,
 } from 'lucide-react';
-import PHCLayout from '@/components/phc/PHCLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -256,11 +255,11 @@ export default function PHCProfileSettingsScreen() {
 
   if (loading) {
     return (
-      <PHCLayout>
+      <>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2E8B57]" />
         </div>
-      </PHCLayout>
+      </>
     );
   }
 
@@ -270,7 +269,7 @@ export default function PHCProfileSettingsScreen() {
   ];
 
   return (
-    <PHCLayout>
+    <>
       <div className="max-w-4xl mx-auto pb-12">
 
         {/* Header */}
@@ -576,6 +575,6 @@ export default function PHCProfileSettingsScreen() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </PHCLayout>
+    </>
   );
 }

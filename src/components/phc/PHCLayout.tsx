@@ -1,5 +1,5 @@
-import { ReactNode, useState, useEffect } from 'react';
-import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useLocation, useNavigate, Link, Outlet } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import {
   Home, Users, UserPlus, MessageCircle, ArrowUpRight,
@@ -21,7 +21,7 @@ const navItems = [
 const getInitials = (name?: string) =>
   name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'AI';
 
-export default function PHCLayout({ children }: { children: ReactNode }) {
+export default function PHCLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -204,7 +204,7 @@ export default function PHCLayout({ children }: { children: ReactNode }) {
       {/* ── Main Content ─────────────────────────────────────────────────── */}
       <main className="md:ml-64 pt-14 pb-20 md:pb-6 min-h-screen">
         <div className="p-4 md:p-6 max-w-7xl mx-auto">
-          {children}
+          <Outlet />
         </div>
       </main>
 

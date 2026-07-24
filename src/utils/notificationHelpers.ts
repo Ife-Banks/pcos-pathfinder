@@ -2,14 +2,15 @@ import { NotificationType, NotificationPriority } from '@/types/notifications';
 
 export const getNotificationIcon = (type: NotificationType): string => {
   const icons: Record<NotificationType, string> = {
-    morning_checkin:  '🌅',
-    evening_checkin:  '🌙',
-    weekly_prompt:    '📋',
-    period_alert:     '🩸',
-    risk_update:      '⚠️',
-    wearable_sync:    '⌚',
-    system:           '📢',
-    clinician_msg:    '👩‍⚕️',
+    morning_checkin:        '🌅',
+    evening_checkin:        '🌙',
+    weekly_prompt:          '📋',
+    period_alert:           '🩸',
+    risk_update:            '⚠️',
+    wearable_sync:          '⌚',
+    system:                 '📢',
+    clinician_msg:          '👩‍⚕️',
+    subscription_expiring:  '💳',
   };
   return icons[type] || '🔔';
 };

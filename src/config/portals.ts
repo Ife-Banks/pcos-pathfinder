@@ -27,11 +27,13 @@ export const PORTAL_OPTIONS: PortalOption[] = [
     sectorKey: "government",
     description: "Primary, State, and Federal healthcare facilities serving communities nationwide",
     subSectors: [
+      { name: "Government Admin Portal", key: "gov-admin", path: "/gov-admin/login", color: "bg-teal-700", description: "LGA/LCDA, State, and Federal admin management for public health facilities" },
       { name: "Primary Health Centre (PHC)", key: "phc", path: "/phc/login", color: "bg-green-600", description: "State-run community healthcare centers" },
       { name: "State General Hospital", key: "sth", path: "/sth/login", color: "bg-teal-600", description: "Secondary care state-run hospitals" },
       { name: "State Teaching Hospital", key: "stth", path: "/stth/login", color: "bg-cyan-600", description: "Teaching hospitals affiliated with state universities" },
       { name: "Federal Medical Centre (FMC)", key: "fmc", path: "/fmc/login", color: "bg-red-600", description: "Federal tertiary healthcare facilities" },
       { name: "Federal Teaching Hospital", key: "fth", path: "/fth/login", color: "bg-purple-600", description: "Teaching hospitals affiliated with federal universities" },
+      
     ],
   },
   {
@@ -77,6 +79,7 @@ export const getPortalByRole = (role: string): SubSector | undefined => {
         pvt: ["pvt_staff", "pvt_admin"],
         ptth: ["ptth_staff", "ptth_admin"],
         patient: ["patient"],
+        "gov-admin": ["lga_admin", "state_admin"],
       };
       return roleMap[ss.key]?.includes(role);
     });

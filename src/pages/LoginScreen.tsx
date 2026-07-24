@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,19 +6,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import logo from "@/assets/logo.png";
-import aimherLogo from "@/assets/AIMHER trademark  only.png";
-import healthLogo from "@/assets/Health  Trademark only-1.png";
 import { authAPI } from "@/services/authService";
 import { useAuth } from "@/context/AuthContext";
+import { Logo } from "@/components/Logo";
 
 const LoginScreen = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, user, accessToken, routeAfterLogin } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showResendVerification, setShowResendVerification] = useState(false);
   const [form, setForm] = useState({ identifier: "", password: "" });
+
+  useEffect(() => {
+    if (user && accessToken) {
+      const dashboardRoute = routeAfterLogin(user);
+      navigate(dashboardRoute);
+    }
+  }, [user, accessToken, navigate, routeAfterLogin]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -125,9 +131,7 @@ const LoginScreen = () => {
           className="mb-8"
         >
           <div className="flex items-center justify-center gap-2 mb-4">
-            <img src={logo} alt="logo" className="h-10 w-auto" />
-            <img src={aimherLogo} alt="AIMHER" className="h-8 w-auto" />
-            <img src={healthLogo} alt="Health" className="h-8 w-auto" />
+            <Logo variant="login" />
           </div>
           <h1 className="text-2xl font-bold font-display text-foreground">Welcome back</h1>
           <p className="text-muted-foreground mt-1">Sign in to continue monitoring your health</p>

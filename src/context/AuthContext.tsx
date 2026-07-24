@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo, ReactNode } from 'react';
 import axios from 'axios';
 import { saveTokens } from '../utils/tokenStorage';
 import { authAPI } from '../services/authService';
@@ -20,6 +20,10 @@ interface User {
   onboarding_step: number; // 0–5
   gender: string | null;
   center_info: any | null;
+  state_id: string | null;
+  state_name: string | null;
+  lga_id: string | null;
+  lga_name: string | null;
   date_joined: string;
   accessToken: string;
 }
@@ -39,11 +43,57 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const INACTIVITY_TIMEOUT = 20 * 60 * 1000; // 20 minutes
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const lastActivityRef = useRef<number>(Date.now());
+  const logoutRef = useRef<() => Promise<void>>(() => Promise.resolve());
+
+  const resetActivityTimer = useCallback(() => {
+    lastActivityRef.current = Date.now();
+  }, []);
+
+  // Activity event listeners to reset the timer
+  useEffect(() => {
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+    
+    const handleActivity = () => {
+      if (user && accessToken) {
+        lastActivityRef.current = Date.now();
+      }
+    };
+
+    events.forEach(event => {
+      document.addEventListener(event, handleActivity, { passive: true });
+    });
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, handleActivity);
+      });
+    };
+  }, [user, accessToken]);
+
+  // Check for inactivity and auto-logout
+  useEffect(() => {
+    if (!user || !accessToken) return;
+
+    const checkInactivity = () => {
+      const elapsed = Date.now() - lastActivityRef.current;
+      if (elapsed >= INACTIVITY_TIMEOUT) {
+        console.log('[AuthContext] Inactivity timeout - logging out');
+        logoutRef.current();
+      }
+    };
+
+    const intervalId = setInterval(checkInactivity, 60 * 1000); // Check every minute
+
+    return () => clearInterval(intervalId);
+  }, [user, accessToken]);
 
   useEffect(() => {
     const restoreSession = async () => {
@@ -131,6 +181,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (user.role === 'patient') {
       try { setSubscription(await subscriptionAPI.getStatus()); } catch {}
     }
+    resetActivityTimer();
     return data;
   };
 
@@ -143,12 +194,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return '/system-admin/dashboard';
     }
     
-    // LGA admin role
-    if (user.role === 'lga_admin') {
-      return '/lga/dashboard';
+    // Gov admin roles (lga_admin, state_admin, sth_admin, stth_admin) → gov-admin portal
+    if (['lga_admin', 'state_admin', 'sth_admin', 'stth_admin'].includes(user.role)) {
+      return '/gov-admin/dashboard';
     }
 
-    if (!['clinician', 'patient', 'fhc_staff', 'fhc_admin', 'hcc_staff', 'hcc_admin', 'lga_admin'].includes(user.role)) return '/role-mismatch';
+    if (!['clinician', 'patient', 'fhc_staff', 'fhc_admin', 'hcc_staff', 'hcc_admin', 'lga_admin', 'state_admin', 'sth_admin', 'stth_admin'].includes(user.role)) return '/role-mismatch';
     
     // FMC roles
     if (user.role === 'fhc_staff' || user.role === 'fhc_admin') {
@@ -194,6 +245,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     window.dispatchEvent(new CustomEvent('auth-expired'));
   };
 
+  // Keep ref updated with latest logout function
+  logoutRef.current = logout;
+
   const loginWithTokens = (userData: any, accessToken: string, refreshToken?: string) => {
     console.log('[AuthContext] loginWithTokens called:', { 
       userData: !!userData, 
@@ -233,9 +287,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       onboarding_step: userData.onboarding_step,
       gender: userData.gender || null,
       center_info: userData.center_info,
+      state_id: userData.state_id || null,
+      state_name: userData.state_name || null,
+      lga_id: userData.lga_id || null,
+      lga_name: userData.lga_name || null,
       date_joined: userData.date_joined,
       accessToken: accessToken
     });
+    resetActivityTimer();
   };
 
   const refreshSubscription = async () => {
@@ -251,8 +310,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
 
+  const value = useMemo(() => ({
+    user, accessToken, subscription, isLoading,
+    login, logout, loginWithTokens, routeAfterLogin,
+    refreshSubscription, refreshUser
+  }), [user, accessToken, subscription, isLoading]);
+
   return (
-    <AuthContext.Provider value={{ user, accessToken, subscription, isLoading, login, logout, loginWithTokens, routeAfterLogin, refreshSubscription, refreshUser }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

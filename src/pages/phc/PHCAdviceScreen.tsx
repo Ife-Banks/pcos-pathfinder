@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import PHCLayout from "@/components/phc/PHCLayout";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -81,11 +81,32 @@ const POLL_INTERVAL = 5000;
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
+// Refs for main component to control ChatTab cleanup
+const wsRef = { current: null as WebSocket | null };
+const pollRef = { current: null as ReturnType<typeof setInterval> | null };
+const convListPollRef = { current: null as ReturnType<typeof setInterval> | null };
+
 export default function PHCAdviceScreen() {
   const [activeTab, setActiveTab] = useState<"chat" | "advice">("chat");
 
+  const handleTabChange = (key: "chat" | "advice") => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+    if (convListPollRef.current) {
+      clearInterval(convListPollRef.current);
+      convListPollRef.current = null;
+    }
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    setActiveTab(key);
+  };
+
   return (
-    <PHCLayout>
+    <>
       {/* Tab Bar */}
       <div className="bg-white border-b border-gray-200 px-6 flex gap-0">
         {([
@@ -94,7 +115,7 @@ export default function PHCAdviceScreen() {
         ] as const).map(({ key, label, icon: Icon }) => (
           <button
             key={key}
-            onClick={() => setActiveTab(key)}
+            onClick={() => handleTabChange(key)}
             className={`flex items-center gap-2 px-5 py-3.5 text-sm font-medium border-b-2 transition-colors ${
               activeTab === key
                 ? "border-[#2E8B57] text-[#2E8B57]"
@@ -107,14 +128,20 @@ export default function PHCAdviceScreen() {
         ))}
       </div>
 
-      {activeTab === "chat" ? <ChatTab /> : <AdviceTab />}
-    </PHCLayout>
+      {activeTab === "chat" ? <ChatTab wsRef={wsRef} pollRef={pollRef} convListPollRef={convListPollRef} /> : <AdviceTab />}
+    </>
   );
 }
 
 // ─── Chat Tab ─────────────────────────────────────────────────────────────────
 
-function ChatTab() {
+interface ChatTabProps {
+  wsRef: React.MutableRefObject<WebSocket | null>;
+  pollRef: React.MutableRefObject<ReturnType<typeof setInterval> | null>;
+  convListPollRef: React.MutableRefObject<ReturnType<typeof setInterval> | null>;
+}
+
+function ChatTab({ wsRef, pollRef, convListPollRef }: ChatTabProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [filteredConversations, setFilteredConversations] = useState<Conversation[]>([]);
   const [selectedConv, setSelectedConv] = useState<Conversation | null>(null);
@@ -129,8 +156,6 @@ function ChatTab() {
   const [templateTab, setTemplateTab] = useState("PCOS");
   const [error, setError] = useState("");
 
-  const wsRef = useRef<WebSocket | null>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const currentConvIdRef = useRef<string | null>(null);
 
@@ -138,6 +163,13 @@ function ChatTab() {
     try { return JSON.parse(atob(localStorage.getItem("access_token")?.split(".")[1] || ""))?.user_id; }
     catch { return null; }
   })();
+
+  const updateAndSortConversations = (convId: string, updates: Partial<Conversation>) => {
+    setConversations(prev => {
+      const next = prev.map(c => c.id === convId ? { ...c, ...updates } : c);
+      return [...next].sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
+    });
+  };
 
   const loadConversations = useCallback(async () => {
     try {
@@ -154,6 +186,13 @@ function ChatTab() {
   }, []);
 
   useEffect(() => { loadConversations(); }, [loadConversations]);
+
+  useEffect(() => {
+    convListPollRef.current = setInterval(() => {
+      loadConversations();
+    }, 10000);
+    return () => { if (convListPollRef.current) clearInterval(convListPollRef.current); };
+  }, [loadConversations]);
 
   useEffect(() => {
     const q = search.toLowerCase();
@@ -210,9 +249,7 @@ function ChatTab() {
               created_at: data.timestamp || new Date().toISOString(),
             };
             setMessages(prev => prev.some(m => m.id === msg.id) ? prev : [...prev.filter(m => !m.pending), msg]);
-            setConversations(prev => prev.map(c =>
-              c.id === convId ? { ...c, last_message: data.message, last_message_at: msg.created_at, unread_count: 0 } : c
-            ));
+            updateAndSortConversations(convId, { last_message: data.message, last_message_at: msg.created_at, unread_count: 0 });
           }
         } catch {}
       };
@@ -247,9 +284,7 @@ function ChatTab() {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ action: "send_message", body: body }));
       setMessages(prev => prev.map(m => m.id === tempId ? { ...m, pending: false } : m));
-      setConversations(prev => prev.map(c =>
-        c.id === selectedConv.id ? { ...c, last_message: body, last_message_at: new Date().toISOString() } : c
-      ));
+      updateAndSortConversations(selectedConv.id, { last_message: body, last_message_at: new Date().toISOString() });
       setSending(false);
       return;
     }
@@ -257,9 +292,7 @@ function ChatTab() {
       const res = await phcAPI.sendPHCMessage(selectedConv.id, body);
       const saved: Message = res?.data || { ...optimistic, id: `http-${Date.now()}`, pending: false };
       setMessages(prev => prev.map(m => m.id === tempId ? { ...saved, pending: false } : m));
-      setConversations(prev => prev.map(c =>
-        c.id === selectedConv.id ? { ...c, last_message: body, last_message_at: saved.created_at } : c
-      ));
+      updateAndSortConversations(selectedConv.id, { last_message: body, last_message_at: saved.created_at });
     } catch {
       setMessages(prev => prev.filter(m => m.id !== tempId));
       setError("Failed to send. Try again.");
@@ -267,7 +300,7 @@ function ChatTab() {
   };
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
-  useEffect(() => () => { wsRef.current?.close(); if (pollRef.current) clearInterval(pollRef.current); }, []);
+  useEffect(() => () => { wsRef.current?.close(); if (pollRef.current) clearInterval(pollRef.current); if (convListPollRef.current) clearInterval(convListPollRef.current); }, []);
 
   const formatTime = (iso: string) => {
     const d = new Date(iso);

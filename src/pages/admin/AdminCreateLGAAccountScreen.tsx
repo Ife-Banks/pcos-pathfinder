@@ -91,17 +91,21 @@ const AdminCreateLGAAccountScreen = () => {
         state_id: form.state_id,
         is_lcda: false,
       });
+      
       const newLga = res?.data || res;
       if (newLga?.id) {
-        setStates(prev => prev.map(s =>
-          s.state_id === form.state_id
-            ? { ...s, lgas: [...s.lgas, { id: newLga.id, name: newLga.name, is_lcda: false }] }
-            : s
-        ));
+        setStates(prev => prev.map(s => {
+          if (s.state_id !== form.state_id) return s;
+          const alreadyExists = s.lgas.some(l => l.id === newLga.id);
+          return alreadyExists
+            ? s
+            : { ...s, lgas: [...s.lgas, { id: newLga.id, name: newLga.name, is_lcda: false }] };
+        }));
         setForm(prev => ({ ...prev, lga_id: newLga.id, lga_custom_name: '' }));
         setCustomLgaName('');
         setAddingCustomLga(false);
       }
+
     } catch (err: any) {
       const msg = err?.response?.data?.detail || err?.response?.data?.message || 'Failed to add custom LGA';
       setCustomLgaError(msg);
@@ -136,16 +140,19 @@ const AdminCreateLGAAccountScreen = () => {
 
     setSubmitting(true);
     try {
-      const payload: any = {
+      let lgaId = form.lga_id;
+      if (!lgaId && form.lga_custom_name) {
+        const customRes = await lgaAPI.createCustomLga({ name: form.lga_custom_name.trim(), state_id: form.state_id, is_lcda: false });
+        const newLga = customRes?.data || customRes;
+        lgaId = newLga?.id;
+        if (!lgaId) throw new Error('Failed to create custom LGA');
+      }
+      const payload = {
         full_name: form.full_name.trim(),
         email: form.email.trim(),
         state_id: form.state_id,
+        lga_id: lgaId,
       };
-      if (form.lga_id) {
-        payload.lga_id = form.lga_id;
-      } else if (form.lga_custom_name) {
-        payload.lga_custom_name = form.lga_custom_name.trim();
-      }
 
       await lgaAPI.createLgaAccount(payload);
       setCreatedEmail(form.email.trim());
@@ -220,7 +227,7 @@ const AdminCreateLGAAccountScreen = () => {
                       <SelectValue placeholder={loadingStates ? 'Loading states...' : 'Select state'} />
                     </SelectTrigger>
                     <SelectContent>
-                      {states.map(s => (
+                      {states.sort((a, b) => a.state_name.localeCompare(b.state_name)).map(s => (
                         <SelectItem key={s.state_id} value={s.state_id}>
                           {s.state_name}
                         </SelectItem>
@@ -250,7 +257,7 @@ const AdminCreateLGAAccountScreen = () => {
                         />
                       </SelectTrigger>
                       <SelectContent>
-                        {filteredLgas.map(lga => (
+                        {filteredLgas.sort((a, b) => a.name.localeCompare(b.name)).map(lga => (
                           <SelectItem key={lga.id} value={lga.id}>
                             {lga.name}{lga.is_lcda ? ' (LCDA)' : ''}
                           </SelectItem>

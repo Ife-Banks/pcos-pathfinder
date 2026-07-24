@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import PhoneInput from '@/components/ui/PhoneInput';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -18,9 +19,12 @@ const Step1PersonalInfo = () => {
   const [form, setForm] = useState({
     full_name: '',
     date_of_birth: '',
+    nationality: '',
     ethnicity: '',
     gender: '',
     phone_number: '',
+    blood_group: '',
+    genotype: '',
   });
   
   const [isLoading, setIsLoading] = useState(false);
@@ -44,9 +48,12 @@ const Step1PersonalInfo = () => {
       setForm({
         full_name: profile.full_name || '',
         date_of_birth: profile.date_of_birth || '',
+        nationality: profile.nationality || '',
         ethnicity: profile.ethnicity || '',
         gender: profile.gender || '',
         phone_number: profile.phone_number || '',
+        blood_group: profile.blood_group || '',
+        genotype: profile.genotype || '',
       });
     }
   }, [profile]);
@@ -67,6 +74,10 @@ const Step1PersonalInfo = () => {
       }
     }
 
+    if (!form.nationality) {
+      newErrors.nationality = 'Please select your nationality';
+    }
+
     if (!form.ethnicity) {
       newErrors.ethnicity = 'Please select your ethnicity';
     }
@@ -77,6 +88,11 @@ const Step1PersonalInfo = () => {
 
     if (!form.phone_number.trim()) {
       newErrors.phone_number = 'Phone number is required';
+    } else {
+      const phoneRegex = /^\+234\d{10}$/;
+      if (!phoneRegex.test(form.phone_number)) {
+        newErrors.phone_number = 'Nigerian phone must be +234 followed by exactly 10 digits';
+      }
     }
 
     setErrors(newErrors);
@@ -98,9 +114,12 @@ const Step1PersonalInfo = () => {
       await onboardingAPI.saveStep1({
         full_name: form.full_name,
         date_of_birth: form.date_of_birth,
+        nationality: form.nationality,
         ethnicity: form.ethnicity,
         gender: form.gender,
         phone_number: form.phone_number,
+        blood_group: form.blood_group || undefined,
+        genotype: form.genotype || undefined,
       });
       
       // Refresh profile and user so onboarding_step is up to date
@@ -127,22 +146,35 @@ const Step1PersonalInfo = () => {
     }
   };
 
-  const ethnicityOptions = [
-    { value: 'white', label: 'White / Caucasian' },
+  const nationalityOptions = [
     { value: 'nigerian', label: 'Nigerian' },
     { value: 'ghanaian', label: 'Ghanaian' },
     { value: 'kenyan', label: 'Kenyan' },
     { value: 'ethiopian', label: 'Ethiopian' },
     { value: 'south_african', label: 'South African' },
-    { value: 'other_african', label: 'Other African' },
-    { value: 'african_american', label: 'African American' },
-    { value: 'caribbean', label: 'Caribbean' },
-    { value: 'hispanic', label: 'Hispanic / Latino' },
-    { value: 'asian', label: 'Asian' },
-    { value: 'south_asian', label: 'South Asian' },
-    { value: 'middle_eastern', label: 'Middle Eastern' },
-    { value: 'mixed', label: 'Mixed / Other' },
+    { value: 'cameroonian', label: 'Cameroonian' },
+    { value: 'senegalese', label: 'Senegalese' },
+    { value: 'togolese', label: 'Togolese' },
+    { value: 'beninese', label: 'Beninese' },
+    { value: 'ugandan', label: 'Ugandan' },
+    { value: 'tanzanian', label: 'Tanzanian' },
+    { value: 'american', label: 'American (USA)' },
+    { value: 'british', label: 'British (UK)' },
+    { value: 'canadian', label: 'Canadian' },
+    { value: 'indian', label: 'Indian' },
+    { value: 'chinese', label: 'Chinese' },
+    { value: 'other', label: 'Other' },
     { value: 'prefer_not', label: 'Prefer not to say' },
+  ];
+
+  const ethnicityOptions = [
+    { value: 'african', label: 'African' },
+    { value: 'asian', label: 'Asian' },
+    { value: 'caucasian', label: 'White / Caucasian' },
+    { value: 'hispanic', label: 'Hispanic / Latino' },
+    { value: 'middle_eastern', label: 'Middle Eastern' },
+    { value: 'other', label: 'Other' },
+    { value: 'prefer_not_to_say', label: 'Prefer not to say' },
   ];
 
   const genderOptions = [
@@ -230,12 +262,9 @@ const Step1PersonalInfo = () => {
 
           <div className="space-y-2">
             <Label htmlFor="phone_number">Phone Number</Label>
-            <Input
-              id="phone_number"
-              type="tel"
-              placeholder="Enter phone number"
+            <PhoneInput
               value={form.phone_number}
-              onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
+              onChange={(value) => setForm({ ...form, phone_number: value })}
             />
             {errors.phone_number && (
               <p className="text-sm text-destructive">{errors.phone_number}</p>
@@ -262,6 +291,26 @@ const Step1PersonalInfo = () => {
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="nationality">Nationality</Label>
+            <select
+              id="nationality"
+              value={form.nationality}
+              onChange={(e) => setForm({ ...form, nationality: e.target.value })}
+              className="w-full p-3 border rounded-md bg-background"
+            >
+              <option value="">Select nationality</option>
+              {nationalityOptions.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            {errors.nationality && (
+              <p className="text-sm text-destructive">{errors.nationality}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="ethnicity">Ethnicity</Label>
             <select
               id="ethnicity"
@@ -279,6 +328,43 @@ const Step1PersonalInfo = () => {
             {errors.ethnicity && (
               <p className="text-sm text-destructive">{errors.ethnicity}</p>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="blood_group">Blood Group</Label>
+            <select
+              id="blood_group"
+              value={form.blood_group}
+              onChange={(e) => setForm({ ...form, blood_group: e.target.value })}
+              className="w-full p-3 border rounded-md bg-background"
+            >
+              <option value="">Select blood group</option>
+              <option value="A+">A+</option>
+              <option value="A-">A-</option>
+              <option value="B+">B+</option>
+              <option value="B-">B-</option>
+              <option value="AB+">AB+</option>
+              <option value="AB-">AB-</option>
+              <option value="O+">O+</option>
+              <option value="O-">O-</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="genotype">Genotype</Label>
+            <select
+              id="genotype"
+              value={form.genotype}
+              onChange={(e) => setForm({ ...form, genotype: e.target.value })}
+              className="w-full p-3 border rounded-md bg-background"
+            >
+              <option value="">Select genotype</option>
+              <option value="AA">AA</option>
+              <option value="AS">AS</option>
+              <option value="AC">AC</option>
+              <option value="SS">SS</option>
+              <option value="SC">SC</option>
+            </select>
           </div>
 
           <div className="pt-4 space-y-3">

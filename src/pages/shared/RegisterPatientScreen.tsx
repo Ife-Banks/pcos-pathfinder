@@ -16,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import PhoneInput from '@/components/ui/PhoneInput';
 import { registerAPI, RegisterPatientData } from '@/services/registerService';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -290,18 +291,11 @@ const RegisterPatientScreen: React.FC<RegisterPatientScreenProps> = ({
               <Label htmlFor="phone">
                 Phone <span className="text-red-500">*</span>
               </Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="+234 800 000 0000"
-                  value={formData.phone}
-                  onChange={handleChange('phone')}
-                  className="pl-10"
-                  disabled={loading}
-                />
-              </div>
+              <PhoneInput
+                value={formData.phone}
+                onChange={(value) => handleChange('phone')(value)}
+                disabled={loading}
+              />
             </div>
 
             {/* Age */}

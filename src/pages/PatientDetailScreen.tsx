@@ -45,7 +45,8 @@ const patientData = {
     height: "165 cm",
     weight: "62 kg",
     bmi: 22.8,
-    ethnicity: "White/Caucasian",
+    nationality: "Nigerian",
+    ethnicity: "Black African",
   },
   
   behavioralData: {

@@ -21,14 +21,17 @@ export const onboardingAPI = {
 
   // PATCH /api/v1/onboarding/step/1/
   // Fields: full_name (string), date_of_birth (YYYY-MM-DD),
-  //         ethnicity (enum — see choices below), gender (male/female), phone_number
+  //         nationality (enum — see choices below), ethnicity (enum — see choices below), gender (male/female), phone_number
   //         Age is computed automatically from date_of_birth
   saveStep1: async (payload: {
     full_name: string;
     date_of_birth: string;
+    nationality: string;
     ethnicity: string;
     gender: string;
     phone_number: string;
+    blood_group?: string;
+    genotype?: string;
   }) => {
     const res = await apiClient.patch(`${BASE}/step/1/`, payload);
     const body = res.data;
@@ -55,6 +58,9 @@ export const onboardingAPI = {
   // Do NOT pre-select Yes or No — user must explicitly choose
   saveStep3: async (payload: {
     has_skin_changes: boolean;
+    acanthosis_nigricans?: string;
+    skin_tags?: string;
+    scalp_hair_thinning?: string;
   }) => {
     const res = await apiClient.patch(`${BASE}/step/3/`, payload);
     const body = res.data;
@@ -67,8 +73,10 @@ export const onboardingAPI = {
   //         cycle_regularity ("regular" | "irregular")
   saveStep4: async (payload: {
     cycle_length_days: number;
-    periods_per_year: number;
-    cycle_regularity: 'regular' | 'irregular';
+    periods_per_year?: number;
+    cycle_regularity: string;
+    bleeding_intensity?: string;
+    last_period_date?: string;
   }) => {
     const res = await apiClient.patch(`${BASE}/step/4/`, payload);
     const body = res.data;

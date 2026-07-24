@@ -16,7 +16,7 @@ import {
   RefreshCw,
   ChevronDown,
 } from "lucide-react";
-import PHCLayout from "@/components/phc/PHCLayout";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -277,7 +277,7 @@ export default function PHCNotificationsScreen() {
   const hasMore = meta ? meta.current_page < meta.total_pages : false;
 
   return (
-    <PHCLayout>
+    <>
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-2xl mx-auto px-4 py-6">
           {/* Header */}
@@ -475,6 +475,6 @@ export default function PHCNotificationsScreen() {
           )}
         </div>
       </div>
-    </PHCLayout>
+    </>
   );
 }

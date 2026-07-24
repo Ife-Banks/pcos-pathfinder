@@ -1,7 +1,7 @@
 export type NotificationType =
   | 'morning_checkin' | 'evening_checkin' | 'weekly_prompt'
   | 'period_alert'    | 'risk_update'      | 'wearable_sync'
-  | 'system'          | 'clinician_msg';
+  | 'system'          | 'clinician_msg'    | 'subscription_expiring';
 
 export type NotificationPriority = 'low' | 'medium' | 'high';
 export type RiskCondition = 'pcos' | 'maternal' | 'cardiovascular';

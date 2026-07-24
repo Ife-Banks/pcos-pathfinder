@@ -10,11 +10,13 @@ import {
   Activity,
   AlertTriangle,
   Clock,
+  Smartphone,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { settingsService, NotificationPreferences } from "@/services/settingsService";
+import { requestPushPermission, removePushSubscription, isPushSubscribed } from "@/services/push";
 import { toast } from "@/hooks/use-toast";
 
 const TEAL = '#00897B';
@@ -24,6 +26,8 @@ const NotificationSettingsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [prefs, setPrefs] = useState<NotificationPreferences | null>(null);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
 
   const fetchPrefs = useCallback(async () => {
     setLoading(true);
@@ -45,7 +49,32 @@ const NotificationSettingsScreen = () => {
 
   useEffect(() => {
     fetchPrefs();
+    // Check current push subscription status
+    isPushSubscribed().then(setPushEnabled).catch(() => {});
   }, [fetchPrefs]);
+
+  const handlePushToggle = async (enabled: boolean) => {
+    setPushLoading(true);
+    try {
+      if (enabled) {
+        const success = await requestPushPermission();
+        if (success) {
+          setPushEnabled(true);
+          toast({ title: 'Browser notifications enabled', description: 'You will receive push notifications.' });
+        } else {
+          toast({ title: 'Permission denied', description: 'Browser notifications were not enabled.', variant: 'destructive' });
+        }
+      } else {
+        await removePushSubscription();
+        setPushEnabled(false);
+        toast({ title: 'Browser notifications disabled' });
+      }
+    } catch {
+      toast({ title: 'Failed to update', description: 'Please try again.', variant: 'destructive' });
+    } finally {
+      setPushLoading(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!prefs) return;
@@ -203,6 +232,7 @@ const NotificationSettingsScreen = () => {
                     { key: 'period_alerts_enabled' as const, icon: Activity, iconBg: 'bg-pink-100', iconColor: 'text-pink-600', title: 'Period Alerts', desc: 'Reminders when your period is approaching' },
                     { key: 'risk_score_updates_enabled' as const, icon: AlertTriangle, iconBg: 'bg-orange-100', iconColor: 'text-orange-600', title: 'Risk Score Updates', desc: 'Notifications when your risk score changes' },
                     { key: 'wearable_sync_reminders' as const, icon: Clock, iconBg: 'bg-blue-100', iconColor: 'text-blue-600', title: 'Wearable Sync Reminders', desc: 'Alert if your device hasn\'t synced in 48 hours' },
+                    { key: 'subscription_expiry_reminders' as const, icon: Bell, iconBg: 'bg-amber-100', iconColor: 'text-amber-600', title: 'Subscription Reminders', desc: 'Alerts before your subscription expires' },
                   ].map((item) => (
                     <div key={item.key} className="flex items-center gap-4 p-4">
                       <div className={`h-10 w-10 rounded-lg ${item.iconBg} flex items-center justify-center shrink-0`}>
@@ -221,6 +251,30 @@ const NotificationSettingsScreen = () => {
                       />
                     </div>
                   ))}
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}>
+              <h3 className="font-display font-semibold text-xs text-gray-400 uppercase tracking-wider mb-3">
+                Delivery
+              </h3>
+              <Card className="border border-gray-200">
+                <CardContent className="p-0 divide-y divide-gray-100">
+                  <div className="flex items-center gap-4 p-4">
+                    <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center shrink-0">
+                      <Smartphone className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-display font-semibold text-gray-900 text-sm">Browser Notifications</p>
+                      <p className="text-xs text-gray-500">Push notifications even when the app is closed</p>
+                    </div>
+                    <Switch
+                      checked={pushEnabled}
+                      disabled={pushLoading}
+                      onCheckedChange={handlePushToggle}
+                    />
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>

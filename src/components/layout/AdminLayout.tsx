@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet, Navigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { adminAPI } from '@/services/adminService';
 import {
@@ -20,21 +20,19 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  UsersRound,
-  Upload,
   PlusSquare,
 } from 'lucide-react';
 
 const FACILITY_SUB_ITEMS = [
   { label: 'All Facilities', icon: Building2, path: '/system-admin/facilities?tab=all', key: 'all-facilities' },
   { label: 'Create Facility', icon: PlusSquare, path: '/system-admin/facilities?tab=create', key: 'create-facility' },
-  { label: 'LGA Accounts', icon: UsersRound, path: '/system-admin/facilities?tab=lga-accounts', key: 'lga-accounts' },
-  { label: 'Create LGA Account', icon: UserPlus, path: '/system-admin/facilities?tab=create-lga-account', key: 'create-lga-account' },
-  { label: 'CSV Upload', icon: Upload, path: '/system-admin/facilities?tab=csv-upload', key: 'csv-upload' },
+  { label: 'Manage Admins', icon: Users, path: '/system-admin/facilities?tab=manage-admins', key: 'manage-admins' },
+  { label: 'Create Admin', icon: UserPlus, path: '/system-admin/facilities?tab=create-admin', key: 'create-admin' },
 ];
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/system-admin/dashboard', key: 'dashboard' },
+  { label: 'Facilities', icon: Building2, path: '/system-admin/facilities?tab=all', key: 'facilities' },
   { label: 'Users', icon: Users, path: '/system-admin/users', key: 'users' },
   { label: 'Staff Management', icon: Shield, path: '/system-admin/staff', key: 'staff' },
   { label: 'Check-Ins', icon: ClipboardCheck, path: '/system-admin/checkins', key: 'checkins' },
@@ -51,9 +49,13 @@ const NAV_ITEMS = [
 const AdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [facilitiesOpen, setFacilitiesOpen] = useState(false);
+
+  if (!user || user.role !== 'admin') {
+    return <Navigate to="/system-admin/login" replace />;
+  }
 
   const path = location.pathname;
 
@@ -113,9 +115,68 @@ const AdminLayout = () => {
 
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {/* Regular nav items */}
           {NAV_ITEMS.map(item => {
             const active = isItemActive(item.path, item.key);
+
+            if (item.key === 'facilities') {
+              return (
+                <div key={item.key}>
+                  {!isCollapsed ? (
+                    <div>
+                      <button
+                        onClick={() => setFacilitiesOpen(v => !v)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                          isFacilitiesSection
+                            ? 'bg-blue-600 text-white'
+                            : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                        }`}
+                      >
+                        <Building2 className="h-5 w-5 flex-shrink-0" />
+                        <span className="flex-1 truncate text-left">Facilities</span>
+                        <ChevronDown
+                          className={`h-4 w-4 flex-shrink-0 transition-transform ${facilitiesOpen ? 'rotate-180' : ''}`}
+                        />
+                      </button>
+
+                      {facilitiesOpen && (
+                        <div className="ml-2 mt-1 space-y-0.5 border-l border-slate-600 pl-3">
+                          {FACILITY_SUB_ITEMS.map(sub => {
+                            const subActive = isFacilitiesSubActive(sub.path);
+                            return (
+                              <button
+                                key={sub.key}
+                                onClick={() => navigate(sub.path)}
+                                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                                  subActive
+                                    ? 'bg-blue-500/30 text-white font-medium'
+                                    : 'text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+                                }`}
+                              >
+                                <sub.icon className="h-4 w-4 flex-shrink-0" />
+                                <span className="truncate">{sub.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => navigate('/system-admin/facilities?tab=all')}
+                      title="Facilities"
+                      className={`w-full flex items-center justify-center px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                        isFacilitiesSection
+                          ? 'bg-blue-600 text-white'
+                          : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                      }`}
+                    >
+                      <Building2 className="h-5 w-5 flex-shrink-0" />
+                    </button>
+                  )}
+                </div>
+              );
+            }
+
             return (
               <button
                 key={item.key}
@@ -132,60 +193,6 @@ const AdminLayout = () => {
               </button>
             );
           })}
-
-          {/* Facilities collapsible group */}
-          {!isCollapsed ? (
-            <div className="pt-2">
-              <button
-                onClick={() => setFacilitiesOpen(v => !v)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                  isFacilitiesSection
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-                }`}
-              >
-                <Building2 className="h-5 w-5 flex-shrink-0" />
-                <span className="flex-1 truncate text-left">Facilities</span>
-                <ChevronDown
-                  className={`h-4 w-4 flex-shrink-0 transition-transform ${facilitiesOpen ? 'rotate-180' : ''}`}
-                />
-              </button>
-
-              {facilitiesOpen && (
-                <div className="ml-2 mt-1 space-y-0.5 border-l border-slate-600 pl-3">
-                  {FACILITY_SUB_ITEMS.map(sub => {
-                    const active = isFacilitiesSubActive(sub.path);
-                    return (
-                      <button
-                        key={sub.key}
-                        onClick={() => navigate(sub.path)}
-                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                          active
-                            ? 'bg-blue-500/30 text-white font-medium'
-                            : 'text-slate-400 hover:bg-slate-700 hover:text-slate-200'
-                        }`}
-                      >
-                        <sub.icon className="h-4 w-4 flex-shrink-0" />
-                        <span className="truncate">{sub.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          ) : (
-            <button
-              onClick={() => navigate('/system-admin/facilities?tab=all')}
-              title="Facilities"
-              className={`w-full flex items-center justify-center px-3 py-2.5 rounded-lg text-sm transition-colors mt-2 ${
-                isFacilitiesSection
-                  ? 'bg-blue-600 text-white'
-                  : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-              }`}
-            >
-              <Building2 className="h-5 w-5" />
-            </button>
-          )}
         </nav>
 
         {/* Footer */}

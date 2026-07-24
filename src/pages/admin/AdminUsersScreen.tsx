@@ -15,7 +15,8 @@ import {
   Eye,
   Trash2,
   UserX,
-  UserCheck
+  UserCheck,
+  Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +32,7 @@ const AdminUsersScreen = () => {
   const [total, setTotal] = useState(0);
   const [selected, setSelected] = useState<string[]>([]);
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [downloadingHRV, setDownloadingHRV] = useState(false);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -86,6 +88,25 @@ const AdminUsersScreen = () => {
     }
   };
 
+  const handleDownloadAllHRV = async () => {
+    setDownloadingHRV(true);
+    try {
+      const blob = await adminAPI.exportHRVData();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'hrv_data_all_patients.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert('Failed to download HRV data: ' + (err?.message || 'Unknown error'));
+    } finally {
+      setDownloadingHRV(false);
+    }
+  };
+
   const getRoleBadge = (role: string, isSuperuser?: boolean) => {
     if (isSuperuser) return <Badge className="bg-purple-100 text-purple-700">Admin</Badge>;
     if (role === 'admin') return <Badge className="bg-purple-100 text-purple-700">Admin</Badge>;
@@ -119,10 +140,15 @@ const AdminUsersScreen = () => {
           <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
           <p className="text-gray-500">Manage all registered users</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => navigate('/system-admin/users/add')}>
-          <Users className="h-4 w-4 mr-2" />
-          Add User
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleDownloadAllHRV} disabled={downloadingHRV}>
+            <Download className="h-4 w-4 mr-2" />{downloadingHRV ? 'Exporting...' : 'Export HRV CSV'}
+          </Button>
+          <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => navigate('/system-admin/users/add')}>
+            <Users className="h-4 w-4 mr-2" />
+            Add User
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

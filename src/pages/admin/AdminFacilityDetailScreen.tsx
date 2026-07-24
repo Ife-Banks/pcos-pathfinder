@@ -12,10 +12,12 @@ import {
   Search,
   Loader2,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import PhoneInput from '@/components/ui/PhoneInput';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { adminAPI, Facility } from '@/services/adminService';
@@ -39,6 +41,10 @@ const AdminFacilityDetailScreen = () => {
   const [userSearchResults, setUserSearchResults] = useState<any[]>([]);
   const [showUserResults, setShowUserResults] = useState(false);
   
+  // Delete
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  
   // Escalation options (would come from API in production)
   const [escalationOptions, setEscalationOptions] = useState<any[]>([]);
 
@@ -46,14 +52,10 @@ const AdminFacilityDetailScreen = () => {
     const fetchFacility = async () => {
       setLoading(true);
       try {
-        const res = await adminAPI.getAllFacilities();
-        const facilitiesData = res?.data?.results || res?.data?.data?.results || [];
-        
-        const found = (facilitiesData as Facility[]).find(f => f.id === id);
-        if (found) {
-          setFacility(found);
-          setEditData(found);
-        }
+        const res = await adminAPI.getFacilityDetail(id!);
+        const facilityData = res?.data || res;
+        setFacility(facilityData);
+        setEditData(facilityData);
       } catch (err) {
         console.error('Failed to load facility:', err);
       } finally {
@@ -128,12 +130,9 @@ const AdminFacilityDetailScreen = () => {
       setIsEditing(false);
       
       // Refresh data
-      const res2 = await adminAPI.getAllFacilities();
-      const facilitiesData = res2?.data?.results || res2?.data?.data?.results || [];
-      const found = (facilitiesData as Facility[]).find(f => f.id === id);
-      if (found) {
-        setFacility(found);
-      }
+      const res2 = await adminAPI.getFacilityDetail(facility.id);
+      const updatedData = res2?.data || res2;
+      setFacility(updatedData);
     } catch (err: any) {
       console.error('Failed to update facility:', err);
       setMessage({ 
@@ -142,6 +141,24 @@ const AdminFacilityDetailScreen = () => {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!facility) return;
+    setDeleting(true);
+    try {
+      await adminAPI.deleteFacility(facility.id);
+      navigate('/system-admin/facilities');
+    } catch (err: any) {
+      console.error('Failed to delete facility:', err);
+      setMessage({ 
+        type: 'error', 
+        text: err.response?.data?.message || err.message || 'Failed to delete facility' 
+      });
+      setShowDeleteConfirm(false);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -228,12 +245,18 @@ const AdminFacilityDetailScreen = () => {
       )}
 
       {/* Edit Button */}
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
         {!isEditing ? (
-          <Button onClick={() => setIsEditing(true)} className="flex items-center gap-2">
-            <Edit className="h-4 w-4" />
-            Edit Facility
-          </Button>
+          <>
+            <Button onClick={() => setIsEditing(true)} className="flex items-center gap-2">
+              <Edit className="h-4 w-4" />
+              Edit Facility
+            </Button>
+            <Button variant="destructive" onClick={() => setShowDeleteConfirm(true)} className="flex items-center gap-2">
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </Button>
+          </>
         ) : (
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => { setIsEditing(false); setEditData(facility); }} disabled={saving}>
@@ -247,6 +270,35 @@ const AdminFacilityDetailScreen = () => {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <Trash2 className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Delete Facility</h3>
+                <p className="text-sm text-gray-500">This action cannot be undone.</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600">
+              Are you sure you want to delete <strong>{facility?.name}</strong>? All associated data will be permanently removed.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} disabled={deleting}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+                {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Delete Facility
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Details Grid */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -308,10 +360,9 @@ const AdminFacilityDetailScreen = () => {
           <div>
             <label className="text-sm text-gray-500">Phone</label>
             {isEditing ? (
-              <Input 
+              <PhoneInput 
                 value={editData.phone || ''} 
-                onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
-                placeholder="Enter phone"
+                onChange={(value) => setEditData({ ...editData, phone: value })}
               />
             ) : (
               <p>{facility.phone || '-'}</p>

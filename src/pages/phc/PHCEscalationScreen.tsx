@@ -5,7 +5,7 @@ import {
   ArrowUpRight, AlertTriangle, CheckCircle, Clock, Search,
   ShieldAlert, ChevronDown, ChevronUp, X, ArrowLeft,
 } from 'lucide-react';
-import PHCLayout from '@/components/phc/PHCLayout';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -173,7 +173,7 @@ export default function PHCEscalationScreen() {
   // ── Success screen ──────────────────────────────────────────────────────────
   if (showSuccess) {
     return (
-      <PHCLayout>
+      <>
         <div className="max-w-xl mx-auto py-16 text-center px-4">
           <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
             <motion.div
@@ -197,13 +197,13 @@ export default function PHCEscalationScreen() {
             </Button>
           </motion.div>
         </div>
-      </PHCLayout>
+      </>
     );
   }
 
   // ── Main screen ─────────────────────────────────────────────────────────────
   return (
-    <PHCLayout>
+    <>
       <div className="max-w-3xl mx-auto px-4 py-6">
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="mb-4 text-gray-600">
           <ArrowLeft className="w-4 h-4 mr-2" />Back
@@ -480,6 +480,6 @@ export default function PHCEscalationScreen() {
           </>
         )}
       </div>
-    </PHCLayout>
+    </>
   );
 }

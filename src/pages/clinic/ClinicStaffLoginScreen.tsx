@@ -18,9 +18,7 @@ import {
 } from "lucide-react";
 import { clinicAPI } from "@/services/portalService";
 import { useAuth } from "@/context/AuthContext";
-import logoImage from "@/assets/logo.png";
-import aimherLogo from "@/assets/AIMHER trademark  only.png";
-import healthLogo from "@/assets/Health  Trademark only-1.png";
+import { Logo } from "@/components/Logo";
 
 const ClinicStaffLoginScreen = () => {
   const navigate = useNavigate();
@@ -48,7 +46,7 @@ const ClinicStaffLoginScreen = () => {
         password,
       });
 
-      const responseData = response.data?.data || response.data;
+      const responseData = response?.data || response;
       const { access, refresh, user } = responseData;
 
       if (!['clinic_admin', 'clinic_staff'].includes(user.role)) {
@@ -107,9 +105,7 @@ const ClinicStaffLoginScreen = () => {
       >
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <img src={logoImage} alt="logo" className="h-10 w-auto" />
-            <img src={aimherLogo} alt="AIMHER" className="h-8 w-auto" />
-            <img src={healthLogo} alt="Health" className="h-8 w-auto" />
+            <Logo variant="staff" />
           </div>
           <Badge className="bg-[#EA580C] text-white mb-4">
             Private Clinic

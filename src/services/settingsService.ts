@@ -23,6 +23,7 @@ export interface NotificationPreferences {
   period_alerts_enabled: boolean;
   risk_score_updates_enabled: boolean;
   wearable_sync_reminders: boolean;
+  subscription_expiry_reminders: boolean;
   do_not_disturb: boolean;
 }
 
@@ -36,9 +37,13 @@ export interface PrivacySettings {
 }
 
 export interface ProfileData {
+  full_name?: string;
+  date_of_birth?: string;
   age: number | null;
   gender: string | null;
+  nationality: string | null;
   ethnicity: string | null;
+  phone_number?: string;
   height_cm: number | null;
   weight_kg: number | null;
   bmi: number | null;
@@ -46,11 +51,20 @@ export interface ProfileData {
   onboarding_step: number;
   onboarding_completed: boolean;
   clinical_data_pct?: number;
+  blood_group: string | null;
+  genotype: string | null;
 }
 
 export const settingsService = {
   getProfile: async (): Promise<{ success: boolean; data: ProfileData }> => {
     const res = await apiClient.get('/onboarding/profile/');
+    const body = res.data;
+    ensureSuccess(body);
+    return body;
+  },
+
+  updateProfile: async (data: Partial<ProfileData>): Promise<{ success: boolean; data: ProfileData }> => {
+    const res = await apiClient.patch('/onboarding/profile/update/', data);
     const body = res.data;
     ensureSuccess(body);
     return body;

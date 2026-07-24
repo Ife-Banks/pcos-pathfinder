@@ -9,6 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useOnboarding } from '@/context/OnboardingContext';
 import { onboardingAPI } from '@/services/onboardingService';
 import { phcAPI } from '@/services/phcService';
+import { lgaAPI } from '@/services/lgaService';
 import apiClient from '@/services/apiClient';
 
 interface PHCCentre {
@@ -22,6 +23,12 @@ interface PHCCentre {
   phone?: string;
 }
 
+interface StateOption {
+  state_id: string;
+  state_name: string;
+  lgas: { id: string; name: string; is_lcda: boolean }[];
+}
+
 const Step7aHealthCentre = () => {
   const navigate = useNavigate();
   const { accessToken, refreshUser } = useAuth();
@@ -31,6 +38,8 @@ const Step7aHealthCentre = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
   
+  const [states, setStates] = useState<StateOption[]>([]);
+  const [loadingStates, setLoadingStates] = useState(true);
   const [formData, setFormData] = useState({
     state: '',
     lga: ''
@@ -45,13 +54,19 @@ const Step7aHealthCentre = () => {
   const [changeRequestDescription, setChangeRequestDescription] = useState('');
   const [submittingChangeRequest, setSubmittingChangeRequest] = useState(false);
 
-  const nigerianStates = [
-    'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue',
-    'Borno', 'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu',
-    'Gombe', 'Imo', 'Jigawa', 'Kaduna', 'Kano', 'Katsina', 'Kebbi',
-    'Kogi', 'Kwara', 'Lagos', 'Nasarawa', 'Niger', 'Ogun', 'Ondo',
-    'Osun', 'Oyo', 'Plateau', 'Rivers', 'Sokoto', 'Taraba', 'Yobe', 'Zamfara', 'FCT'
-  ];
+  useEffect(() => {
+    const fetchStates = async () => {
+      try {
+        const res = await lgaAPI.listLgas();
+        setStates(res?.data?.states || []);
+      } catch (err) {
+        console.error('Failed to load states:', err);
+      } finally {
+        setLoadingStates(false);
+      }
+    };
+    fetchStates();
+  }, []);
 
   useEffect(() => {
     if (!accessToken) {
@@ -322,11 +337,12 @@ const Step7aHealthCentre = () => {
                 id="state"
                 value={formData.state}
                 onChange={(e) => handleInputChange('state', e.target.value)}
+                disabled={loadingStates}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="">Choose your state from the dropdown</option>
-                {nigerianStates.map(state => (
-                  <option key={state} value={state}>{state}</option>
+                <option value="">{loadingStates ? 'Loading states...' : 'Choose your state from the dropdown'}</option>
+                {states.map(s => (
+                  <option key={s.state_id} value={s.state_name}>{s.state_name}</option>
                 ))}
               </select>
             </div>

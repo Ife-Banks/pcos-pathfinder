@@ -6,7 +6,7 @@ import {
   Clock, Calendar, Send, ChevronRight, ShieldAlert, CheckCircle, X,
   AlertCircle
 } from 'lucide-react';
-import PHCLayout from '@/components/phc/PHCLayout';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -231,17 +231,17 @@ export default function PHCPatientDetailScreen() {
 
   if (loading) {
     return (
-      <PHCLayout>
+      <>
         <div className="flex items-center justify-center h-64">
           <Activity className="w-8 h-8 animate-spin text-[#2E8B57]" />
         </div>
-      </PHCLayout>
+      </>
     );
   }
 
   if (error || !record) {
     return (
-      <PHCLayout>
+      <>
         <div className="max-w-5xl mx-auto px-4 py-6">
           <Button variant="ghost" onClick={() => navigate(returnTo)} className="mb-4">
             <ArrowLeft className="w-4 h-4 mr-2" /> Back to Dashboard
@@ -254,11 +254,11 @@ export default function PHCPatientDetailScreen() {
             </CardContent>
           </Card>
         </div>
-      </PHCLayout>
+      </>
     );
   }
 
-  const patient = record.patient as { id: string; full_name: string; email: string } | undefined;
+  const patient = record.patient as { id: string; full_name: string; email: string; nationality?: string | null; ethnicity?: string | null; blood_group?: string | null; genotype?: string | null } | undefined;
   const condition = (record.condition as string) || '';
   const conditionLabel = (record.condition_label as string) || condition;
   const severity = (record.severity as string) || 'low';
@@ -279,7 +279,7 @@ export default function PHCPatientDetailScreen() {
   ];
 
   return (
-    <PHCLayout>
+    <>
       <div className="max-w-5xl mx-auto px-4 py-6">
         {toast && (
           <motion.div
@@ -397,6 +397,96 @@ export default function PHCPatientDetailScreen() {
                       )}
                     </div>
                   ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white">
+              <CardContent className="p-6">
+                <h3 className="font-semibold text-gray-800 mb-4">Basic Data</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                    <span className="text-gray-500">Nationality</span>
+                    <select
+                      value={patient?.nationality || ''}
+                      onChange={(e) => updateRecord({ nationality: e.target.value })}
+                      disabled={updating}
+                      className="font-medium text-gray-900 border border-gray-200 rounded px-2 py-1 text-sm"
+                    >
+                      <option value="">Not set</option>
+                      <option value="nigerian">Nigerian</option>
+                      <option value="ghanaian">Ghanaian</option>
+                      <option value="kenyan">Kenyan</option>
+                      <option value="ethiopian">Ethiopian</option>
+                      <option value="south_african">South African</option>
+                      <option value="cameroonian">Cameroonian</option>
+                      <option value="senegalese">Senegalese</option>
+                      <option value="togolese">Togolese</option>
+                      <option value="beninese">Beninese</option>
+                      <option value="ugandan">Ugandan</option>
+                      <option value="tanzanian">Tanzanian</option>
+                      <option value="american">American (USA)</option>
+                      <option value="british">British (UK)</option>
+                      <option value="canadian">Canadian</option>
+                      <option value="indian">Indian</option>
+                      <option value="chinese">Chinese</option>
+                      <option value="other">Other</option>
+                      <option value="prefer_not">Prefer not to say</option>
+                    </select>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                    <span className="text-gray-500">Ethnicity</span>
+                    <select
+                      value={patient?.ethnicity || ''}
+                      onChange={(e) => updateRecord({ ethnicity: e.target.value })}
+                      disabled={updating}
+                      className="font-medium text-gray-900 border border-gray-200 rounded px-2 py-1 text-sm"
+                    >
+                      <option value="">Not set</option>
+                      <option value="african">African</option>
+                      <option value="asian">Asian</option>
+                      <option value="caucasian">White / Caucasian</option>
+                      <option value="hispanic">Hispanic / Latino</option>
+                      <option value="middle_eastern">Middle Eastern</option>
+                      <option value="other">Other</option>
+                      <option value="prefer_not_to_say">Prefer not to say</option>
+                    </select>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                    <span className="text-gray-500">Blood Group</span>
+                    <select
+                      value={patient?.blood_group || ''}
+                      onChange={(e) => updateRecord({ blood_group: e.target.value })}
+                      disabled={updating}
+                      className="font-medium text-gray-900 border border-gray-200 rounded px-2 py-1 text-sm"
+                    >
+                      <option value="">Not set</option>
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                    </select>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                    <span className="text-gray-500">Genotype</span>
+                    <select
+                      value={patient?.genotype || ''}
+                      onChange={(e) => updateRecord({ genotype: e.target.value })}
+                      disabled={updating}
+                      className="font-medium text-gray-900 border border-gray-200 rounded px-2 py-1 text-sm"
+                    >
+                      <option value="">Not set</option>
+                      <option value="AA">AA</option>
+                      <option value="AS">AS</option>
+                      <option value="AC">AC</option>
+                      <option value="SS">SS</option>
+                      <option value="SC">SC</option>
+                    </select>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -687,6 +777,6 @@ export default function PHCPatientDetailScreen() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </PHCLayout>
+    </>
   );
 }

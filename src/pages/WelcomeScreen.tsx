@@ -8,9 +8,8 @@ import {
   Linkedin, Facebook, Instagram, Dna, Zap, Droplets, Brain, Heart, Wind, AlertTriangle
 } from "lucide-react";
 import { PORTAL_OPTIONS, SubSector } from "@/config/portals";
-import logoImage from "@/assets/logo.png";
-import aimherLogo from "@/assets/AIMHER trademark  only.png";
-import healthLogo from "@/assets/Health  Trademark only-1.png";
+import { useAuth } from "@/context/AuthContext";
+import { Logo } from "@/components/Logo";
 import HeroHeartbeat from "@/components/HeroHeartbeat";
 import heroHealthImage from "@/assets/hero-health.png";
 import monitoringImage from "@/assets/monitoring.png";
@@ -111,6 +110,7 @@ const sectorIconBg: Record<string, string> = {
 
 const WelcomeScreen = () => {
   const navigate = useNavigate();
+  const { user, accessToken, routeAfterLogin } = useAuth();
   const [isNavVisible, setIsNavVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -118,6 +118,13 @@ const WelcomeScreen = () => {
   const marqueeRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll();
   const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (user && accessToken) {
+      const dashboardRoute = routeAfterLogin(user);
+      navigate(dashboardRoute);
+    }
+  }, [user, accessToken, navigate, routeAfterLogin]);
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -204,14 +211,7 @@ const WelcomeScreen = () => {
         }}
       >
         <nav className="max-w-[1100px] mx-auto px-6 h-full flex items-center justify-between">
-          <motion.div
-            className="flex items-center gap-2"
-            whileHover={{ scale: 1.02 }}
-          >
-            <img src={logoImage} alt="logo" className="h-8 w-auto" />
-            <img src={aimherLogo} alt="AIMHER" className="h-6 w-auto" />
-            <img src={healthLogo} alt="Health" className="h-6 w-auto" />
-          </motion.div>
+          <Logo />
 
           {/* Desktop Nav Links */}
           <div className="hidden md:flex items-center gap-8">
@@ -663,9 +663,7 @@ const WelcomeScreen = () => {
               {/* Column 1: Brand */}
               <div>
                 <div className="flex items-center gap-2 mb-4 bg-white rounded-xl px-3 py-2 w-fit">
-                  <img src={logoImage} alt="logo" className="h-8 w-auto" />
-                  <img src={aimherLogo} alt="AIMHER" className="h-6 w-auto" />
-                  <img src={healthLogo} alt="Health" className="h-6 w-auto" />
+                  <Logo variant="compact" />
                 </div>
                 <p className="text-teal-200 text-base mb-6 leading-relaxed">
                   AI-MSHM Clinical Decision Support System for early detection of PMHRS (PMOS & MAMH) and associated cardiometabolic risks.

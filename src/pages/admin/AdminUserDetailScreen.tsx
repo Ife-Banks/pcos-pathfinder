@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, Mail, Building2, Shield, Activity, CheckCircle, XCircle,
-  Edit, Trash2, AlertTriangle, User, Users, Clock, Star, Save, RotateCcw
+  Edit, Trash2, AlertTriangle, User, Users, Clock, Star, Save, RotateCcw, Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +32,7 @@ const AdminUserDetailScreen = () => {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [downloadingHRV, setDownloadingHRV] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -73,12 +74,15 @@ const AdminUserDetailScreen = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      console.log('Saving user:', user);
-      alert('User updated successfully!');
+      const { id, blood_group, genotype, ...rest } = user;
+      const updateData: Record<string, any> = { ...rest };
+      if (blood_group !== undefined) updateData.blood_group = blood_group || null;
+      if (genotype !== undefined) updateData.genotype = genotype || null;
+      await adminAPI.updateUser(id, updateData);
       setOriginalUser(user);
       setHasChanges(false);
     } catch (err: any) {
-      alert('Failed to save: ' + err.message);
+      alert('Failed to save: ' + (err?.message || err?.response?.data?.message || 'Unknown error'));
     } finally {
       setSaving(false);
     }
@@ -87,6 +91,25 @@ const AdminUserDetailScreen = () => {
   const handleReset = () => {
     setUser(originalUser);
     setHasChanges(false);
+  };
+
+  const handleDownloadHRV = async () => {
+    setDownloadingHRV(true);
+    try {
+      const blob = await adminAPI.exportHRVData(id!);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `hrv_data_${user?.full_name || 'user'}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert('Failed to download HRV data: ' + (err?.message || 'Unknown error'));
+    } finally {
+      setDownloadingHRV(false);
+    }
   };
 
   const getRoleBadge = (role: string) => {
@@ -158,6 +181,9 @@ const AdminUserDetailScreen = () => {
           <ArrowLeft className="h-4 w-4 mr-2" />Back to Users
         </Button>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={handleDownloadHRV} disabled={downloadingHRV}>
+            <Download className="h-4 w-4 mr-2" />{downloadingHRV ? 'Downloading...' : 'Export HRV CSV'}
+          </Button>
           {hasChanges && (
             <>
               <Button variant="outline" onClick={handleReset}>
@@ -212,6 +238,91 @@ const AdminUserDetailScreen = () => {
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><User className="h-5 w-5 text-teal-600" />Personal</h2>
           <div className="space-y-1">
             <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-500">Full name</span><span className="text-gray-900">{user.full_name}</span></div>
+          </div>
+        </motion.div>
+
+        {/* Medical Info - Blood Group, Genotype, Nationality, Ethnicity */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><Activity className="h-5 w-5 text-teal-600" />Medical Info</h2>
+          <div className="space-y-1">
+            <div className="flex justify-between py-2 items-center border-b border-gray-100">
+              <span className="text-gray-500">Nationality</span>
+              <select
+                value={user.nationality || ''}
+                onChange={(e) => handleChange('nationality', e.target.value)}
+                className="border rounded px-2 py-1 text-sm"
+              >
+                <option value="">Not set</option>
+                <option value="nigerian">Nigerian</option>
+                <option value="ghanaian">Ghanaian</option>
+                <option value="kenyan">Kenyan</option>
+                <option value="ethiopian">Ethiopian</option>
+                <option value="south_african">South African</option>
+                <option value="cameroonian">Cameroonian</option>
+                <option value="senegalese">Senegalese</option>
+                <option value="togolese">Togolese</option>
+                <option value="beninese">Beninese</option>
+                <option value="ugandan">Ugandan</option>
+                <option value="tanzanian">Tanzanian</option>
+                <option value="american">American (USA)</option>
+                <option value="british">British (UK)</option>
+                <option value="canadian">Canadian</option>
+                <option value="indian">Indian</option>
+                <option value="chinese">Chinese</option>
+                <option value="other">Other</option>
+                <option value="prefer_not">Prefer not to say</option>
+              </select>
+            </div>
+            <div className="flex justify-between py-2 items-center border-b border-gray-100">
+              <span className="text-gray-500">Ethnicity</span>
+              <select
+                value={user.ethnicity || ''}
+                onChange={(e) => handleChange('ethnicity', e.target.value)}
+                className="border rounded px-2 py-1 text-sm"
+              >
+                <option value="">Not set</option>
+                <option value="african">African</option>
+                <option value="asian">Asian</option>
+                <option value="caucasian">White / Caucasian</option>
+                <option value="hispanic">Hispanic / Latino</option>
+                <option value="middle_eastern">Middle Eastern</option>
+                <option value="other">Other</option>
+                <option value="prefer_not_to_say">Prefer not to say</option>
+              </select>
+            </div>
+            <div className="flex justify-between py-2 items-center border-b border-gray-100">
+              <span className="text-gray-500">Blood Group</span>
+              <select
+                value={user.blood_group || ''}
+                onChange={(e) => handleChange('blood_group', e.target.value)}
+                className="border rounded px-2 py-1 text-sm"
+              >
+                <option value="">Not set</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+                <option value="O+">O+</option>
+                <option value="O-">O-</option>
+              </select>
+            </div>
+            <div className="flex justify-between py-2 items-center">
+              <span className="text-gray-500">Genotype</span>
+              <select
+                value={user.genotype || ''}
+                onChange={(e) => handleChange('genotype', e.target.value)}
+                className="border rounded px-2 py-1 text-sm"
+              >
+                <option value="">Not set</option>
+                <option value="AA">AA</option>
+                <option value="AS">AS</option>
+                <option value="AC">AC</option>
+                <option value="SS">SS</option>
+                <option value="SC">SC</option>
+              </select>
+            </div>
           </div>
         </motion.div>
 

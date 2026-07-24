@@ -97,6 +97,11 @@ export const phcAPI = {
     return res.data;
   },
 
+  lookupPatient: async (query: { phone?: string; email?: string }) => {
+    const res = await apiClient.get('/centers/phc/patient-lookup/', { params: query });
+    return res.data;
+  },
+
   registerWalkInComprehensive: async (walkInData: {
     first_name: string;
     last_name: string;
@@ -104,7 +109,12 @@ export const phcAPI = {
     phone?: string;
     date_of_birth?: string;
     gender?: string;
+    nationality?: string;
     ethnicity?: string;
+    blood_group?: string;
+    genotype?: string;
+    condition?: string;
+    severity?: string;
     family_history?: string[];
     height_cm?: number;
     weight_kg?: number;
@@ -118,15 +128,9 @@ export const phcAPI = {
     periods_per_year?: number;
     last_period_date?: string;
     bleeding_intensity?: string;
-    acne_severity?: string;
     night_sweats?: string;
-    breast_soreness?: string;
-    muscle_weakness?: string;
-    cramp_severity?: number;
     fatigue_level?: string;
     high_blood_pressure?: string;
-    abdominal_weight?: string;
-    hypoglycemia_symptoms?: string[];
     consent_given?: boolean;
   }) => {
     const res = await apiClient.post('/centers/phc/walk-in/comprehensive/', walkInData, { timeout: 60000 });

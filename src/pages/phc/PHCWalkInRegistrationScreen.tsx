@@ -2,10 +2,11 @@ import { phcAPI } from '@/services/phcService';
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import PHCLayout from '@/components/phc/PHCLayout';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import PhoneInput from '@/components/ui/PhoneInput';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, ArrowLeft, ArrowRight, User, Ruler, Activity, ClipboardList, ShieldCheck, Copy, Check } from 'lucide-react';
@@ -19,6 +20,10 @@ interface FormData {
   phone: string;
   email: string;
   gender: 'female' | 'male';
+  nationality: string;
+  ethnicity: string;
+  blood_group: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-' | '';
+  genotype: 'AA' | 'AS' | 'AC' | 'SS' | 'SC' | '';
   height_cm: number | null;
   weight_kg: number | null;
   waist_cm: number | null;
@@ -35,7 +40,8 @@ interface FormData {
 
 const initialFormData: FormData = {
   first_name: '', last_name: '', date_of_birth: '', phone: '', email: '',
-  gender: 'female', height_cm: null, weight_kg: null, waist_cm: null,
+  gender: 'female', nationality: '', ethnicity: '', blood_group: '', genotype: '',
+  height_cm: null, weight_kg: null, waist_cm: null,
   acanthosis_nigricans: null, cycle_regularity: null, typical_cycle_length: null,
   last_period_date: '', bleeding_intensity: null, night_sweats: null,
   persistent_fatigue: null, family_history: [], consent: false,
@@ -58,10 +64,57 @@ export default function PHCWalkInRegistrationScreen() {
   const [copied, setCopied] = useState(false);
   const [heightUnit, setHeightUnit] = useState<'cm' | 'ft'>('cm');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lbs'>('kg');
+  const [lookupQuery, setLookupQuery] = useState('');
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupMessage, setLookupMessage] = useState('');
+  const [lookupFound, setLookupFound] = useState(false);
 
   const updateField = <K extends keyof FormData>(key: K, value: FormData[K]) => {
     setForm(prev => ({ ...prev, [key]: value }));
     setErrors(prev => { const n = { ...prev }; delete n[key]; return n; });
+  };
+
+  const handleLookup = async () => {
+    if (!lookupQuery.trim()) return;
+    setLookupLoading(true);
+    setLookupMessage('');
+    setLookupFound(false);
+    try {
+      const isEmail = lookupQuery.includes('@');
+      const params = isEmail ? { email: lookupQuery.trim() } : { phone: lookupQuery.trim() };
+      const res = await phcAPI.lookupPatient(params);
+      const body = res;
+      if (body?.data) {
+        const d = body.data;
+        setForm(prev => ({
+          ...prev,
+          first_name: d.first_name || prev.first_name,
+          last_name: d.last_name || prev.last_name,
+          email: d.email || prev.email,
+          phone: d.phone || prev.phone,
+          date_of_birth: d.date_of_birth || prev.date_of_birth,
+          gender: d.gender || prev.gender,
+          ethnicity: d.ethnicity || prev.ethnicity,
+          height_cm: d.height_cm ?? prev.height_cm,
+          weight_kg: d.weight_kg ?? prev.weight_kg,
+          cycle_regularity: d.cycle_regularity || prev.cycle_regularity,
+          typical_cycle_length: d.typical_cycle_length ?? prev.typical_cycle_length,
+          acanthosis_nigricans: d.has_skin_changes === true ? true : d.has_skin_changes === false ? false : prev.acanthosis_nigricans,
+        }));
+        setLookupFound(true);
+        if (d.registered_hcc) {
+          setLookupMessage(`Patient found and already registered at ${d.registered_hcc}.`);
+        } else {
+          setLookupMessage('Patient found. Fields pre-filled.');
+        }
+      } else {
+        setLookupMessage('No patient found. Fill in the form manually.');
+      }
+    } catch {
+      setLookupMessage('Lookup failed. Fill in the form manually.');
+    } finally {
+      setLookupLoading(false);
+    }
   };
 
   const bmiData = useMemo(() => {
@@ -79,7 +132,12 @@ export default function PHCWalkInRegistrationScreen() {
     form.first_name?.trim() &&
     form.last_name?.trim() &&
     form.email?.trim() &&
-    form.phone?.trim()
+    form.phone?.trim() &&
+    /^\+234\d{10}$/.test(form.phone) &&
+    form.nationality &&
+    form.ethnicity &&
+    form.blood_group &&
+    form.genotype
   );
   const isStep2Valid = true; // Measurements are optional for walk-ins
   const isStep3Valid = true; // Symptoms are optional for walk-ins
@@ -113,24 +171,22 @@ export default function PHCWalkInRegistrationScreen() {
         phone: form.phone,
         date_of_birth: form.date_of_birth || undefined,
         gender: form.gender,
+        nationality: form.nationality || undefined,
+        ethnicity: form.ethnicity || undefined,
+        blood_group: form.blood_group || undefined,
+        genotype: form.genotype || undefined,
+        condition: 'pcos',
+        severity: 'moderate',
         height_cm: form.height_cm ?? undefined,
         weight_kg: form.weight_kg ?? undefined,
         waist_cm: form.waist_cm ?? undefined,
         acanthosis_nigricans: form.acanthosis_nigricans === true ? 'yes' : form.acanthosis_nigricans === false ? 'no' : 'not_sure',
         cycle_regularity: form.cycle_regularity ?? undefined,
         typical_cycle_length: form.gender === 'female' ? form.typical_cycle_length ?? undefined : undefined,
-        periods_per_year: undefined,
         last_period_date: form.gender === 'female' && form.last_period_date ? form.last_period_date : undefined,
         bleeding_intensity: form.bleeding_intensity ? ['spotting', 'light', 'medium', 'heavy'][form.bleeding_intensity - 1] : undefined,
-        acne_severity: undefined,
         night_sweats: form.night_sweats ?? undefined,
-        breast_soreness: undefined,
-        muscle_weakness: undefined,
-        cramp_severity: undefined,
         fatigue_level: form.persistent_fatigue === true ? 'severe' : form.persistent_fatigue === false ? 'none' : undefined,
-        high_blood_pressure: undefined,
-        abdominal_weight: undefined,
-        hypoglycemia_symptoms: [],
         family_history: form.family_history.length > 0 ? form.family_history : [],
         consent_given: true,
       });
@@ -206,6 +262,25 @@ export default function PHCWalkInRegistrationScreen() {
 
   const renderDemographics = () => (
     <div className="space-y-4">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+        <p className="text-sm font-medium text-blue-800">Already have the patient's phone or email? Look them up to pre-fill.</p>
+        <div className="flex gap-2">
+          <Input
+            placeholder="Phone number or email"
+            value={lookupQuery}
+            onChange={e => { setLookupQuery(e.target.value); setLookupMessage(''); setLookupFound(false); }}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleLookup(); } }}
+            className="flex-1"
+          />
+          <Button type="button" variant="outline" size="sm" onClick={handleLookup} disabled={lookupLoading || !lookupQuery.trim()}>
+            {lookupLoading ? 'Looking up...' : 'Look up'}
+          </Button>
+        </div>
+        {lookupMessage && (
+          <p className={`text-sm ${lookupFound ? 'text-green-700' : 'text-gray-600'}`}>{lookupMessage}</p>
+        )}
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="first_name">First Name *</Label>
@@ -223,7 +298,7 @@ export default function PHCWalkInRegistrationScreen() {
       </div>
       <div>
         <Label htmlFor="phone">Phone Number *</Label>
-        <Input id="phone" type="tel" value={form.phone} onChange={e => updateField('phone', e.target.value)} placeholder="Enter phone number" />
+        <PhoneInput value={form.phone} onChange={(value) => updateField('phone', value)} />
       </div>
       <div>
         <Label htmlFor="email">Email Address *</Label>
@@ -235,6 +310,92 @@ export default function PHCWalkInRegistrationScreen() {
           {(['female', 'male' ] as const).map(g => (
             <PillButton key={g} label={g.charAt(0).toUpperCase() + g.slice(1)} selected={form.gender === g} onClick={() => updateField('gender', g)} />
           ))}
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="nationality">Nationality *</Label>
+          <select
+            id="nationality"
+            value={form.nationality}
+            onChange={(e) => updateField('nationality', e.target.value)}
+            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2E8B57] bg-white"
+          >
+            <option value="">Select nationality</option>
+            <option value="nigerian">Nigerian</option>
+            <option value="ghanaian">Ghanaian</option>
+            <option value="kenyan">Kenyan</option>
+            <option value="ethiopian">Ethiopian</option>
+            <option value="south_african">South African</option>
+            <option value="cameroonian">Cameroonian</option>
+            <option value="senegalese">Senegalese</option>
+            <option value="togolese">Togolese</option>
+            <option value="beninese">Beninese</option>
+            <option value="ugandan">Ugandan</option>
+            <option value="tanzanian">Tanzanian</option>
+            <option value="american">American (USA)</option>
+            <option value="british">British (UK)</option>
+            <option value="canadian">Canadian</option>
+            <option value="indian">Indian</option>
+            <option value="chinese">Chinese</option>
+            <option value="other">Other</option>
+            <option value="prefer_not">Prefer not to say</option>
+          </select>
+        </div>
+        <div>
+          <Label htmlFor="ethnicity">Ethnicity *</Label>
+          <select
+            id="ethnicity"
+            value={form.ethnicity}
+            onChange={(e) => updateField('ethnicity', e.target.value)}
+            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2E8B57] bg-white"
+          >
+            <option value="">Select ethnicity</option>
+            <option value="african">African</option>
+            <option value="asian">Asian</option>
+            <option value="caucasian">White / Caucasian</option>
+            <option value="hispanic">Hispanic / Latino</option>
+            <option value="middle_eastern">Middle Eastern</option>
+            <option value="other">Other</option>
+            <option value="prefer_not_to_say">Prefer not to say</option>
+          </select>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="blood_group">Blood Group *</Label>
+          <select
+            id="blood_group"
+            value={form.blood_group}
+            onChange={(e) => updateField('blood_group', e.target.value as FormData['blood_group'])}
+            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2E8B57] bg-white"
+          >
+            <option value="">Select blood group</option>
+            <option value="A+">A+</option>
+            <option value="A-">A-</option>
+            <option value="B+">B+</option>
+            <option value="B-">B-</option>
+            <option value="AB+">AB+</option>
+            <option value="AB-">AB-</option>
+            <option value="O+">O+</option>
+            <option value="O-">O-</option>
+          </select>
+        </div>
+        <div>
+          <Label htmlFor="genotype">Genotype *</Label>
+          <select
+            id="genotype"
+            value={form.genotype}
+            onChange={(e) => updateField('genotype', e.target.value as FormData['genotype'])}
+            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2E8B57] bg-white"
+          >
+            <option value="">Select genotype</option>
+            <option value="AA">AA</option>
+            <option value="AS">AS</option>
+            <option value="AC">AC</option>
+            <option value="SS">SS</option>
+            <option value="SC">SC</option>
+          </select>
         </div>
       </div>
     </div>
@@ -430,6 +591,8 @@ export default function PHCWalkInRegistrationScreen() {
             <p><span className="text-gray-700 font-medium">Phone:</span> {form.phone}</p>
             <p><span className="text-gray-700 font-medium">Email:</span> {form.email || 'Auto-generated'}</p>
             <p><span className="text-gray-700 font-medium">Gender:</span> {form.gender}</p>
+            <p><span className="text-gray-700 font-medium">Blood Group:</span> {form.blood_group || 'N/A'}</p>
+            <p><span className="text-gray-700 font-medium">Genotype:</span> {form.genotype || 'N/A'}</p>
           </div>
         </CardContent>
       </Card>
@@ -493,10 +656,10 @@ export default function PHCWalkInRegistrationScreen() {
     </motion.div>
   );
 
-  if (success) return <PHCLayout><div className="max-w-lg mx-auto">{renderSuccess()}</div></PHCLayout>;
+  if (success) return <><div className="max-w-lg mx-auto">{renderSuccess()}</div></>;
 
   return (
-    <PHCLayout>
+    <>
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Register PHC/Walk-In Patient</h1>
@@ -531,6 +694,6 @@ export default function PHCWalkInRegistrationScreen() {
           )}
         </div>
       </div>
-    </PHCLayout>
+    </>
   );
 }

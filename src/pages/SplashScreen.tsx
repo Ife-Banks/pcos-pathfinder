@@ -1,10 +1,12 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 import logo from "@/assets/logo.png";
 
 const SplashScreen = () => {
   const navigate = useNavigate();
+  const { user, accessToken, routeAfterLogin } = useAuth();
   const prefersReducedMotion = useReducedMotion();
   const [activeTagline, setActiveTagline] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -19,9 +21,14 @@ const SplashScreen = () => {
   );
 
   useEffect(() => {
+    if (user && accessToken) {
+      const dashboardRoute = routeAfterLogin(user);
+      navigate(dashboardRoute);
+      return;
+    }
     const timer = setTimeout(() => navigate("/welcome"), 2500);
     return () => clearTimeout(timer);
-  }, [navigate]);
+  }, [user, accessToken, navigate, routeAfterLogin]);
 
   useEffect(() => {
     if (prefersReducedMotion) return;

@@ -52,6 +52,10 @@ const ChangePasswordScreen = () => {
       setTimeout(() => {
         if (user?.role === 'patient') {
           navigate('/onboarding');
+        } else if (user?.role === 'admin') {
+          navigate('/system-admin/dashboard');
+        } else if (user?.role === 'lga_admin' || user?.role === 'state_admin' || user?.role === 'sth_admin' || user?.role === 'stth_admin') {
+          navigate('/gov-admin/dashboard');
         } else if (user?.role === 'fhc_staff' || user?.role === 'fhc_admin') {
           navigate('/fmc/dashboard');
         } else if (user?.role === 'hcc_staff' || user?.role === 'hcc_admin') {
