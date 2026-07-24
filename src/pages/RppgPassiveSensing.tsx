@@ -14,11 +14,77 @@ const getSeverityColor = (score: number): string => {
   return '#22c55e';
 };
 
+const getPositiveColor = (value: number): string => {
+  if (value >= 70) return '#22c55e';
+  if (value >= 50) return '#eab308';
+  return '#ef4444';
+};
+
+const isRiskTarget = (target: string): boolean => {
+  const t = target.toLowerCase();
+  return t.includes('risk') || t.includes('stress') || t.includes('failure') || t.includes('syndrome');
+};
+
 const getSeverityLabel = (score: number): string => {
   if (score >= 0.7) return 'High';
   if (score >= 0.5) return 'Moderate';
   if (score >= 0.3) return 'Mild';
   return 'Low';
+};
+
+const getRegressionInterpretation = (target: string, value: number): string => {
+  const t = target.toLowerCase();
+  if (t.includes('sleep_quality')) {
+    if (value >= 70) return 'Good sleep quality';
+    if (value >= 50) return 'Moderate — room for improvement';
+    return 'Poor — consider sleep hygiene';
+  }
+  if (t.includes('focus_memory')) {
+    if (value >= 70) return 'Sharp focus & memory';
+    if (value >= 50) return 'Moderate cognitive function';
+    return 'Below average — stress may be impacting focus';
+  }
+  if (t.includes('mental_wellness')) {
+    if (value >= 70) return 'Good mental wellness';
+    if (value >= 50) return 'Moderate — monitor stress levels';
+    return 'Needs attention — consider wellness activities';
+  }
+  if (t.includes('mood_score')) {
+    if (value >= 70) return 'Good mood stability';
+    if (value >= 50) return 'Moderate mood';
+    return 'Mood may be affected — check in with yourself';
+  }
+  if (t.includes('metabolic_syndrome')) {
+    if (value >= 60) return 'Elevated risk — monitor closely';
+    if (value >= 40) return 'Mild risk — maintain healthy habits';
+    return 'Low risk — keep it up';
+  }
+  if (t.includes('t2d') || t.includes('metabolic_risk')) {
+    if (value >= 60) return 'Elevated metabolic risk';
+    if (value >= 40) return 'Mild risk — stay active';
+    return 'Low risk';
+  }
+  if (t.includes('cardiovascular')) {
+    if (value >= 60) return 'Elevated cardiovascular risk';
+    if (value >= 40) return 'Mild risk — HRV supports heart health';
+    return 'Low risk — good cardiac markers';
+  }
+  if (t.includes('heart_failure')) {
+    if (value >= 60) return 'Elevated alert — consult a doctor';
+    if (value >= 40) return 'Mild concern — monitor symptoms';
+    return 'Low risk — no alerts';
+  }
+  if (t.includes('chronic_stress')) {
+    if (value >= 60) return 'High stress — prioritise rest';
+    if (value >= 40) return 'Mild stress — some recovery needed';
+    return 'Low stress — well regulated';
+  }
+  if (t.includes('infertility') || t.includes('reproductive')) {
+    if (value >= 60) return 'Elevated reproductive risk';
+    if (value >= 40) return 'Moderate — monitor cycle patterns';
+    return 'Low risk — reproductive health stable';
+  }
+  return '';
 };
 
 const formatTimeRemaining = (ms: number): string => {
@@ -38,9 +104,22 @@ const RppgPassiveSensing = () => {
   const [nextCaptureAt, setNextCaptureAt] = useState<number | null>(null);
   const [timeRemaining, setTimeRemaining] = useState('');
 
-  // Clear cooldown on mount so you can test anytime
   useEffect(() => {
-    localStorage.removeItem('nextRppgCaptureAt');
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isLocal) {
+      localStorage.removeItem('nextRppgV8CaptureAt');
+      localStorage.removeItem('nextRppgCaptureAt');
+    } else {
+      const stored = localStorage.getItem('nextRppgV8CaptureAt');
+      if (stored) {
+        const ts = parseInt(stored, 10);
+        if (ts > Date.now()) {
+          setNextCaptureAt(ts);
+        } else {
+          localStorage.removeItem('nextRppgV8CaptureAt');
+        }
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -49,7 +128,7 @@ const RppgPassiveSensing = () => {
       const remaining = nextCaptureAt - Date.now();
       if (remaining <= 0) {
         setTimeRemaining('Ready');
-        localStorage.removeItem('nextRppgCaptureAt');
+        localStorage.removeItem('nextRppgV8CaptureAt');
         setNextCaptureAt(null);
       } else {
         setTimeRemaining(formatTimeRemaining(remaining));
@@ -70,19 +149,12 @@ const RppgPassiveSensing = () => {
       ]);
       if (sessionsRes.status === 'fulfilled') {
         const raw = sessionsRes.value.data;
-        console.log('[RppgPassive] Sessions raw response:', JSON.stringify(raw).slice(0, 2000));
-        console.log('[RppgPassive] First session keys:', raw.sessions?.[0] ? Object.keys(raw.sessions[0]) : 'no sessions');
-        console.log('[RppgPassive] First session values:', raw.sessions?.[0] ? JSON.stringify(raw.sessions[0]).slice(0, 1000) : 'no sessions');
         setSessions(raw.sessions);
-      } else {
-        console.warn('[RppgPassive] Sessions fetch rejected:', sessionsRes.reason);
       }
       if (predRes.status === 'fulfilled' && predRes.value) {
-        console.log('[RppgPassive] predictAll succeeded, keys:', Object.keys(predRes.value.data));
         setPredictions(predRes.value.data);
       }
     } catch (err: any) {
-      console.error('[RppgPassive] fetchData error:', err);
       setError(err?.message || 'Failed to load data');
     } finally {
       setLoading(false);
@@ -99,26 +171,12 @@ const RppgPassiveSensing = () => {
     const now = new Date();
     return d.toDateString() === now.toDateString();
   });
-  console.log(`[RppgPassive] ${sessions.length} total sessions, ${todaySessions.length} today`);
-  if (sessions.length > 0) {
-    console.log('[RppgPassive] Latest session capturedAt:', sessions[0].capturedAt, ' | keys:', Object.keys(sessions[0]));
-  }
 
   const avg = (field: keyof RppgV8Session, decimals = 1): string => {
-    if (!todaySessions.length) {
-      console.log(`[RppgPassive] avg("${field}") — no todaySessions`);
-      return '--';
-    }
-    const rawVals = todaySessions.map(s => s[field]);
-    console.log(`[RppgPassive] avg("${field}") raw values:`, JSON.stringify(rawVals));
-    const vals = rawVals.filter((v): v is number => v !== null && v !== undefined);
-    if (!vals.length) {
-      console.warn(`[RppgPassive] avg("${field}") — all values null/undefined`);
-      return '--';
-    }
-    const result = (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(decimals);
-    console.log(`[RppgPassive] avg("${field}") = ${result}`);
-    return result;
+    if (!todaySessions.length) return '--';
+    const vals = todaySessions.map(s => s[field]).filter((v): v is number => v !== null && v !== undefined);
+    if (!vals.length) return '--';
+    return (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(decimals);
   };
 
   const latestSession = sessions.length > 0 ? sessions[0] : null;
@@ -155,7 +213,7 @@ const RppgPassiveSensing = () => {
           </div>
           <div className="flex gap-3">
             <Button
-              onClick={() => navigate('/rppg-capture')}
+              onClick={() => navigate('/rppg-v8-capture')}
               className="flex-1 h-11 rounded-xl text-white font-semibold text-sm"
               style={{ backgroundColor: TEAL_PRIMARY }}
               disabled={!!nextCaptureAt && Date.now() < nextCaptureAt}
@@ -279,15 +337,21 @@ const RppgPassiveSensing = () => {
                   <BarChart3 className="w-4 h-4" style={{ color: TEAL_PRIMARY }} />
                   Regression Scores
                 </h2>
-                <div className="space-y-2">
-                      {Object.entries(predictions.regression ?? {}).map(([target, result]) => {
+                <div className="space-y-3">
+                  {Object.entries(predictions.regression ?? {}).map(([target, result]) => {
                     const ensemble = result?.ensemble;
+                    const interpretation = ensemble != null ? getRegressionInterpretation(target, ensemble) : '';
                     return (
-                      <div key={target} className="flex items-center justify-between py-1">
-                        <span className="text-sm text-gray-700">{target.replace(/_/g, ' ')}</span>
-                        <span className="text-sm font-semibold" style={{ color: getSeverityColor(ensemble ?? 0) }}>
-                          {ensemble != null ? (ensemble * 100).toFixed(0) + '%' : '--'}
-                        </span>
+                      <div key={target} className="py-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-700">{target.replace(/_/g, ' ')}</span>
+                          <span className="text-sm font-semibold" style={{ color: isRiskTarget(target) ? getSeverityColor((ensemble ?? 0) / 100) : getPositiveColor(ensemble ?? 0) }}>
+                            {ensemble != null ? ensemble.toFixed(2) + '%' : '--'}
+                          </span>
+                        </div>
+                        {interpretation && (
+                          <p className="text-xs text-gray-400 mt-0.5 ml-1">{interpretation}</p>
+                        )}
                       </div>
                     );
                   })}
@@ -377,7 +441,7 @@ const RppgPassiveSensing = () => {
                 <h3 className="text-lg font-semibold text-gray-600 mb-2">No Sessions Yet</h3>
                 <p className="text-sm text-gray-400 mb-6">Capture your first rPPG measurement to see insights here.</p>
                 <Button
-                  onClick={() => navigate('/rppg-capture')}
+                  onClick={() => navigate('/rppg-v8-capture')}
                   className="h-12 rounded-xl text-white font-semibold"
                   style={{ backgroundColor: TEAL_PRIMARY }}
                 >
