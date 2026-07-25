@@ -733,8 +733,9 @@ const DashboardScreen = () => {
     },
     { icon: ClipboardCheck, title: "Weekly Tools", subtitle: getWeeklyToolsSubtitle(), route: "/weekly-tools", gradient: "gradient-primary", urgent: !mfgComplete || !phq4Complete },
     { icon: BarChart3, title: "Risk Trends", subtitle: "View your history", route: "/risk-trend", gradient: "gradient-clinical", urgent: false },
-    { icon: Camera, title: "Measure HRV", subtitle: "Capture heart rate variability", route: "/rppg-capture", gradient: "bg-blue-500", urgent: false },
-    { icon: Activity, title: "Passive Sensing", subtitle: "18+ physiological metrics", route: "/rppg-passive", gradient: "bg-emerald-500", urgent: false },
+    { icon: Activity, title: "rPPG Passive Sensing", subtitle: "Capture Raw rPPG Signals - More 18 physiological metrics", route: "/rppg-passive", gradient: "bg-emerald-500", urgent: false },
+    { icon: Camera, title: "Measure rPPG HRV", subtitle: "Capture heart rate variability", route: "/rppg-capture", gradient: "bg-blue-500", urgent: false },
+    
   );
 
   const riskTier = prediction ? getRiskTier(prediction.risk_score) : null;
