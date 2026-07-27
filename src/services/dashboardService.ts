@@ -35,6 +35,38 @@ export interface PredictionData {
   computed_at: string;
   data_completeness_pct: number;
   missing_inputs_count: number;
+  // Unified per-disease scores from weighted ensemble
+  unified_disease_scores?: {
+    [disease: string]: {
+      unified_score: number;
+      severity: string;
+      contributing_models: number;
+      model_contributions: {
+        [model: string]: {
+          score: number;
+          weight: number;
+        };
+      };
+    };
+  };
+  clinical_rules_triggered?: string[];
+  weights_used?: {
+    [disease: string]: {
+      [model: string]: number;
+    };
+  };
+  calculation_breakdown?: {
+    base_scores?: { [disease: string]: number };
+    boost_applied?: number;
+    clinical_rules_details?: any[];
+    data_quality?: { [model: string]: number };
+  };
+  severity_flags?: {
+    ovulatory_dysfunction?: boolean;
+    hyperandrogenism?: boolean;
+    metabolic_stress?: boolean;
+    pcom_suspected?: boolean;
+  };
   // Combined Symptom + Menstrual (for dashboard display)
   menstrual_risks?: {
     Infertility: number;
@@ -146,8 +178,12 @@ export const dashboardService = {
       const res = await apiClient.get('/predictions/pcos/');
       const body = res.data;
       
+      console.log('[getMLPredictions] API response status:', res.status, 'body keys:', Object.keys(body || {}));
+      console.log('[getMLPredictions] body:', JSON.stringify(body).substring(0, 500));
+      
       // Check if response is success (even if data is null)
       if (!body || body.status === 'error') {
+        console.log('[getMLPredictions] Early return: body is null or status error');
         return {
           success: true,
           status: 200,
@@ -159,6 +195,7 @@ export const dashboardService = {
       const pcosData = body.data;
       
       if (!pcosData) {
+        console.log('[getMLPredictions] Early return: pcosData is null/undefined');
         return {
           success: true,
           status: 200,
@@ -167,11 +204,21 @@ export const dashboardService = {
         };
       }
 
+      console.log('[getMLPredictions] pcosData keys:', Object.keys(pcosData));
+
       // Extract predictions from all 4 models
       const symptomPreds = pcosData.all_predictions?.symptom_intensity || {};
       const menstrualPreds = pcosData.all_predictions?.menstrual || {};
       const rppgPreds = pcosData.all_predictions?.rppg || {};
       const moodPreds = pcosData.all_predictions?.mood || {};
+
+      console.log('[getMLPredictions] unified_disease_scores:', JSON.stringify(pcosData.unified_disease_scores, null, 2));
+      console.log('[getMLPredictions] weights_used:', JSON.stringify(pcosData.weights_used, null, 2));
+      console.log('[getMLPredictions] clinical_rules_triggered:', pcosData.clinical_rules_triggered);
+      console.log('[getMLPredictions] risk_score:', pcosData.risk_score, 'risk_tier:', pcosData.risk_tier);
+      console.log('[getMLPredictions] all_predictions keys:', Object.keys(pcosData.all_predictions || {}));
+      console.log('[getMLPredictions] data_completeness_pct:', pcosData.data_completeness_pct);
+      console.log('[getMLPredictions] data_layers_used:', pcosData.data_layers_used);
 
       const combinedData: PredictionData = {
         id: pcosData.id,
@@ -180,6 +227,12 @@ export const dashboardService = {
         computed_at: pcosData.computed_at,
         data_completeness_pct: pcosData.data_completeness_pct || 85,
         missing_inputs_count: 2,
+        // Unified per-disease scores from weighted ensemble (server-side, replaces client MAX-merge)
+        unified_disease_scores: pcosData.unified_disease_scores || undefined,
+        clinical_rules_triggered: pcosData.clinical_rules_triggered || undefined,
+        weights_used: pcosData.weights_used || undefined,
+        calculation_breakdown: pcosData.calculation_breakdown || undefined,
+        severity_flags: pcosData.severity_flags || undefined,
         // Symptom Intensity predictions - use risk_score (continuous 0-1)
         symptom_intensity_risks: {
           Infertility: symptomPreds.Infertility?.risk_score || 0,
@@ -189,36 +242,45 @@ export const dashboardService = {
           T2D: symptomPreds.T2D?.risk_score || 0,
           CVD: symptomPreds.CVD?.risk_score || 0,
         },
-        // Combined Symptom + Menstrual (for dashboard display) - use risk_score
-        menstrual_risks: {
-          Infertility: Math.max(
-            symptomPreds.Infertility?.risk_score || 0,
-            menstrualPreds.Infertility?.risk_score || 0
-          ),
-          Dysmenorrhea: Math.max(
-            symptomPreds.Dysmenorrhea?.risk_score || 0,
-            menstrualPreds.Dysmenorrhea?.risk_score || 0
-          ),
-          PMDD: Math.max(
-            symptomPreds.PMDD?.risk_score || 0,
-            menstrualPreds.PMDD?.risk_score || 0,
-            moodPreds.PMDD?.risk_score || 0
-          ),
-          Endometrial_Cancer: Math.max(
-            symptomPreds.Endometrial?.risk_score || 0,
-            menstrualPreds.Endometrial?.risk_score || 0
-          ),
-          T2D: Math.max(
-            symptomPreds.T2D?.risk_score || 0,
-            menstrualPreds.T2D?.risk_score || 0,
-            moodPreds.T2D_Mood?.risk_score || 0
-          ),
-          CVD: Math.max(
-            symptomPreds.CVD?.risk_score || 0,
-            menstrualPreds.CVD?.risk_score || 0,
-            moodPreds.CVD_Mood?.risk_score || 0
-          ),
-        },
+        // Unified per-disease scores from server-side weighted ensemble (replaces client-side MAX-merge)
+        menstrual_risks: pcosData.unified_disease_scores
+          ? {
+              Infertility: pcosData.unified_disease_scores.Infertility?.unified_score ?? 0,
+              Dysmenorrhea: pcosData.unified_disease_scores.Dysmenorrhea?.unified_score ?? 0,
+              PMDD: pcosData.unified_disease_scores.PMDD?.unified_score ?? 0,
+              Endometrial_Cancer: pcosData.unified_disease_scores.Endometrial?.unified_score ?? 0,
+              T2D: pcosData.unified_disease_scores.T2D?.unified_score ?? 0,
+              CVD: pcosData.unified_disease_scores.CVD?.unified_score ?? 0,
+            }
+          : {
+              Infertility: Math.max(
+                symptomPreds.Infertility?.risk_score || 0,
+                menstrualPreds.Infertility?.risk_score || 0
+              ),
+              Dysmenorrhea: Math.max(
+                symptomPreds.Dysmenorrhea?.risk_score || 0,
+                menstrualPreds.Dysmenorrhea?.risk_score || 0
+              ),
+              PMDD: Math.max(
+                symptomPreds.PMDD?.risk_score || 0,
+                menstrualPreds.PMDD?.risk_score || 0,
+                moodPreds.PMDD?.risk_score || 0
+              ),
+              Endometrial_Cancer: Math.max(
+                symptomPreds.Endometrial?.risk_score || 0,
+                menstrualPreds.Endometrial?.risk_score || 0
+              ),
+              T2D: Math.max(
+                symptomPreds.T2D?.risk_score || 0,
+                menstrualPreds.T2D?.risk_score || 0,
+                moodPreds.T2D_Mood?.risk_score || 0
+              ),
+              CVD: Math.max(
+                symptomPreds.CVD?.risk_score || 0,
+                menstrualPreds.CVD?.risk_score || 0,
+                moodPreds.CVD_Mood?.risk_score || 0
+              ),
+            },
         // rPPG + Mood (for dashboard display) - use risk_score, preserve nulls
         rppg_risks: {
           metabolic: {
@@ -259,6 +321,7 @@ export const dashboardService = {
           data: null as any
         };
       }
+      console.error('[getMLPredictions] ERROR:', error?.response?.status, error?.response?.data || error?.message);
       // Silently return null for other errors (like 404 from production backend)
       return {
         success: false,

@@ -196,6 +196,7 @@ const PCOSRiskScore = () => {
     symptom_intensity: { name: "Symptom Intensity", color: "#00897B", bg: "bg-teal-50", icon: "📝" },
     menstrual: { name: "Menstrual Health", color: "#7C3AED", bg: "bg-purple-50", icon: "🩺" },
     rppg: { name: "rPPG Camera", color: "#2563EB", bg: "bg-blue-50", icon: "📷" },
+    rppg_v8: { name: "rPPG V8", color: "#0EA5E9", bg: "bg-sky-50", icon: "📸" },
     mood: { name: "Mood Analysis", color: "#F59E0B", bg: "bg-amber-50", icon: "🧠" },
   };
 
@@ -282,13 +283,14 @@ const PCOSRiskScore = () => {
                     </div>
                   ))}
                   {/* Show missing layers */}
-                  {['symptom', 'menstrual', 'rppg', 'mood'].filter(
+                  {['symptom', 'menstrual', 'rppg', 'rppg_v8', 'mood'].filter(
                     layer => !comprehensive.data_layers_used?.includes(layer)
                   ).map((layer) => {
                     const labels: Record<string, {name: string, icon: string, desc: string}> = {
                       symptom: { name: 'Symptom Check-ins', icon: '📋', desc: 'Complete daily check-ins' },
                       menstrual: { name: 'Menstrual Tracking', icon: '🩺', desc: 'Log period data' },
                       rppg: { name: 'rPPG / HRV', icon: '❤️', desc: 'Measure heart rate variability' },
+                      rppg_v8: { name: 'rPPG V8 Camera', icon: '📸', desc: 'Advanced camera-based rPPG' },
                       mood: { name: 'Mood Tracking', icon: '🧠', desc: 'Complete mood assessments' },
                     };
                     const info = labels[layer];

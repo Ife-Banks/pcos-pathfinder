@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Sun, Moon, Activity, TrendingUp, Calendar, AlertCircle, MessageCircle,
-  ChevronRight, Bell, User, Heart, BarChart3, ClipboardCheck, Loader2, Check, Camera, LogOut, Wrench, Timer
+  ChevronRight, ChevronDown, ChevronUp, Bell, User, Heart, BarChart3, ClipboardCheck, Loader2, Check, Camera, LogOut, Wrench, Timer
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/context/NotificationContext";
@@ -193,6 +193,28 @@ const getHrvLabel = (rmssd: number): string => {
   return 'Extremely Low';
 };
 
+const getUnifiedSeverityColor = (severity: string): string => {
+  switch (severity) {
+    case 'Extreme': return '#dc2626';
+    case 'Severe': return '#ea580c';
+    case 'Moderate': return '#d97706';
+    case 'Mild': return '#2563eb';
+    case 'Minimal': return '#16a34a';
+    default: return '#6b7280';
+  }
+};
+
+const getUnifiedSeverityBg = (severity: string): string => {
+  switch (severity) {
+    case 'Extreme': return '#fef2f2';
+    case 'Severe': return '#fff7ed';
+    case 'Moderate': return '#fffbeb';
+    case 'Mild': return '#eff6ff';
+    case 'Minimal': return '#f0fdf4';
+    default: return '#f9fafb';
+  }
+};
+
 const RiskGauge = ({ score }: { score?: number }) => {
   const safeScore = score ?? 0;
   const tier = getRiskTier(safeScore);
@@ -346,6 +368,7 @@ const DashboardScreen = () => {
   const [menstrualSummary, setMenstrualSummary] = useState<MenstrualSummary | null>(null);
   const [todaySummary, setTodaySummary] = useState<TodaySummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showModelDetail, setShowModelDetail] = useState(false);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const pollingAttempts = useRef(0);
 
@@ -934,8 +957,10 @@ const DashboardScreen = () => {
               )}
             </motion.div>
 
-            {/* New ML Predictions Section - All 4 Models */}
-            {prediction && (prediction.symptom_intensity_risks || prediction.menstrual_risks || prediction.rppg_risks) && (
+            {/* Downstream Disease Risk Prediction — Unified */}
+            {prediction && (prediction.unified_disease_scores || prediction.symptom_intensity_risks || prediction.menstrual_risks || prediction.rppg_risks) && (
+              <>
+              {(() => { console.log('[Dashboard] prediction keys:', Object.keys(prediction)); console.log('[Dashboard] unified_disease_scores:', prediction.unified_disease_scores); console.log('[Dashboard] risk_score:', prediction.risk_score, 'risk_tier:', prediction.risk_tier); return null; })()}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -944,109 +969,168 @@ const DashboardScreen = () => {
               >
                 <h3 className="font-display font-bold text-gray-900 mb-3 text-base">Downstream Disease Risk Prediction</h3>
 
-                <div className="space-y-4">
-                  {/* 1. Symptom Intensity */}
-                  {prediction.symptom_intensity_risks && (
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm">📝</span>
-                        <p className="text-sm font-semibold text-gray-800">Symptom Intensity</p>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2 text-sm">
-                        {Object.entries(prediction.symptom_intensity_risks).map(([key, value]) => (
-                          <div key={key} className="text-center p-3 bg-teal-50 rounded-lg">
-                            <div className="font-semibold text-gray-800">{expandAbbreviation(key)}</div>
-                            <div className="text-teal-700 font-bold mt-1">{(value * 100).toFixed(0)}%</div>
+                {/* Unified per-disease scores */}
+                {prediction.unified_disease_scores && Object.keys(prediction.unified_disease_scores).length > 0 && (
+                  <div className="space-y-2 mb-4">
+                    {Object.entries(prediction.unified_disease_scores)
+                      .sort(([, a], [, b]) => b.unified_score - a.unified_score)
+                      .map(([disease, data]) => (
+                        <div
+                          key={disease}
+                          className="flex items-center gap-3 p-3 rounded-xl border border-gray-100"
+                          style={{ backgroundColor: getUnifiedSeverityBg(data.severity) }}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-semibold text-gray-800 truncate">
+                                {expandAbbreviation(disease)}
+                              </span>
+                              <span
+                                className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white"
+                                style={{ backgroundColor: getUnifiedSeverityColor(data.severity) }}
+                              >
+                                {data.severity}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <div className="flex-1 bg-white/60 rounded-full h-1.5 overflow-hidden">
+                                <div
+                                  className="h-full rounded-full transition-all"
+                                  style={{
+                                    width: `${Math.min(100, data.unified_score * 100)}%`,
+                                    backgroundColor: getUnifiedSeverityColor(data.severity),
+                                  }}
+                                />
+                              </div>
+                              <span className="text-xs font-bold text-gray-700 w-12 text-right">
+                                {(data.unified_score * 100).toFixed(0)}%
+                              </span>
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 2. Menstrual Health */}
-                  {prediction.menstrual_risks && (
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm">🩺</span>
-                        <p className="text-sm font-semibold text-blue-800">Menstrual Health</p>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2 text-sm">
-                        {Object.entries(prediction.menstrual_risks).map(([key, value]) => (
-                          <div key={key} className="text-center p-3 bg-purple-50 rounded-lg">
-                            <div className="font-semibold text-gray-800">{expandAbbreviation(key)}</div>
-                            <div className="text-purple-700 font-bold mt-1">{(value * 100).toFixed(0)}%</div>
+                          <div className="text-[10px] text-gray-500 shrink-0 text-right">
+                            {data.contributing_models} model{data.contributing_models !== 1 ? 's' : ''}
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                        </div>
+                      ))}
+                  </div>
+                )}
 
-                  {/* 3. rPPG Camera */}
-                  {prediction.rppg_risks && (
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm">📷</span>
-                        <p className="text-sm font-semibold text-amber-500">rPPG/HRV</p>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-  <div className="p-3 bg-blue-50 rounded-lg text-center">
-    <div className="text-sm text-black-800 font-bold">Cardiovascular Disease:</div>
-    <div className="font-bold text-blue-800">
-      {prediction.rppg_risks.metabolic?.CVD != null
-        ? `${(prediction.rppg_risks.metabolic.CVD * 100).toFixed(0)}%`
-        : `${prediction.rppg_status?.metabolic_cardio?.current_span_days ?? 0}/${prediction.rppg_status?.metabolic_cardio?.required_span_days ?? 30} days · No result yet`}
-    </div>
-  </div>
+                {/* Per-model breakdown (collapsible) */}
+                {(prediction.symptom_intensity_risks || prediction.menstrual_risks || prediction.rppg_risks) && (
+                  <div>
+                    <button
+                      onClick={() => setShowModelDetail(!showModelDetail)}
+                      className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors w-full"
+                    >
+                      {showModelDetail ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      <span>Per-Model Breakdown</span>
+                    </button>
 
-  <div className="p-3 bg-blue-50 rounded-lg text-center">
-    <div className="text-sm text-black-800 font-bold">Type 2 Diabetes:</div>
-    <div className="font-bold text-blue-800">
-      {prediction.rppg_risks.metabolic?.T2D != null
-        ? `${(prediction.rppg_risks.metabolic.T2D * 100).toFixed(0)}%`
-        : `${prediction.rppg_status?.metabolic_cardio?.current_span_days ?? 0}/${prediction.rppg_status?.metabolic_cardio?.required_span_days ?? 30} days · No result yet`}
-    </div>
-  </div>
-
-  <div className="p-3 bg-indigo-50 rounded-lg text-center">
-    <div className="text-sm text-black-800 font-bold">Stress:</div>
-    <div className="font-bold text-indigo-800">
-      {prediction.rppg_status?.stress_reproductive?.status === 'pending'
-        ? `${prediction.rppg_status.stress_reproductive.current_span_days ?? 0}/${prediction.rppg_status.stress_reproductive.required_span_days ?? 7}d`
-        : `${((prediction.rppg_risks.reproductive?.Stress || 0) * 100).toFixed(0)}%`}
-    </div>
-  </div>
-
-  <div className="p-3 bg-indigo-50 rounded-lg text-center">
-    <div className="text-sm text-black-800 font-bold">Infertility:</div>
-    <div className="font-bold text-indigo-800">
-      {prediction.rppg_status?.stress_reproductive?.status === 'pending'
-        ? `${prediction.rppg_status.stress_reproductive.current_span_days ?? 0}/${prediction.rppg_status.stress_reproductive.required_span_days ?? 7}d`
-        : `${((prediction.rppg_risks.reproductive?.Infertility || 0) * 100).toFixed(0)}%`}
-    </div>
-  </div>
-  </div>
-                    </div>
-                  )}
-
-                  {/* 4. Mood Analysis */}
-                  {prediction.rppg_risks?.mood && (
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm">🧠</span>
-                        <p className="text-sm font-semibold text-[#9615b3]">Mood Analysis</p>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        {Object.entries(prediction.rppg_risks.mood).slice(0, 3).map(([key, value]) => (
-                          <div key={key} className="text-center p-3 bg-amber-50 rounded-lg">
-                            <div className="font-semibold text-gray-800 text-sm">{expandAbbreviation(key)}</div>
-                            <div className="text-amber-700 font-bold mt-1 text-base">{(value * 100).toFixed(0)}%</div>
+                    {showModelDetail && (
+                      <div className="space-y-4 mt-3">
+                        {/* 1. Symptom Intensity */}
+                        {prediction.symptom_intensity_risks && (
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-sm">📝</span>
+                              <p className="text-sm font-semibold text-gray-800">Symptom Intensity</p>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 text-sm">
+                              {Object.entries(prediction.symptom_intensity_risks).map(([key, value]) => (
+                                <div key={key} className="text-center p-3 bg-teal-50 rounded-lg">
+                                  <div className="font-semibold text-gray-800">{expandAbbreviation(key)}</div>
+                                  <div className="text-teal-700 font-bold mt-1">{(value * 100).toFixed(0)}%</div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        ))}
+                        )}
+
+                        {/* 2. Menstrual Health */}
+                        {prediction.menstrual_risks && (
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-sm">🩺</span>
+                              <p className="text-sm font-semibold text-blue-800">Menstrual Health</p>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 text-sm">
+                              {Object.entries(prediction.menstrual_risks).map(([key, value]) => (
+                                <div key={key} className="text-center p-3 bg-purple-50 rounded-lg">
+                                  <div className="font-semibold text-gray-800">{expandAbbreviation(key)}</div>
+                                  <div className="text-purple-700 font-bold mt-1">{(value * 100).toFixed(0)}%</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 3. rPPG Camera */}
+                        {prediction.rppg_risks && (
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-sm">📷</span>
+                              <p className="text-sm font-semibold text-amber-500">rPPG/HRV</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="p-3 bg-blue-50 rounded-lg text-center">
+                                <div className="text-sm text-black-800 font-bold">Cardiovascular Disease:</div>
+                                <div className="font-bold text-blue-800">
+                                  {prediction.rppg_risks.metabolic?.CVD != null
+                                    ? `${(prediction.rppg_risks.metabolic.CVD * 100).toFixed(0)}%`
+                                    : `${prediction.rppg_status?.metabolic_cardio?.current_span_days ?? 0}/${prediction.rppg_status?.metabolic_cardio?.required_span_days ?? 30} days · No result yet`}
+                                </div>
+                              </div>
+                              <div className="p-3 bg-blue-50 rounded-lg text-center">
+                                <div className="text-sm text-black-800 font-bold">Type 2 Diabetes:</div>
+                                <div className="font-bold text-blue-800">
+                                  {prediction.rppg_risks.metabolic?.T2D != null
+                                    ? `${(prediction.rppg_risks.metabolic.T2D * 100).toFixed(0)}%`
+                                    : `${prediction.rppg_status?.metabolic_cardio?.current_span_days ?? 0}/${prediction.rppg_status?.metabolic_cardio?.required_span_days ?? 30} days · No result yet`}
+                                </div>
+                              </div>
+                              <div className="p-3 bg-indigo-50 rounded-lg text-center">
+                                <div className="text-sm text-black-800 font-bold">Stress:</div>
+                                <div className="font-bold text-indigo-800">
+                                  {prediction.rppg_status?.stress_reproductive?.status === 'pending'
+                                    ? `${prediction.rppg_status.stress_reproductive.current_span_days ?? 0}/${prediction.rppg_status.stress_reproductive.required_span_days ?? 7}d`
+                                    : `${((prediction.rppg_risks.reproductive?.Stress || 0) * 100).toFixed(0)}%`}
+                                </div>
+                              </div>
+                              <div className="p-3 bg-indigo-50 rounded-lg text-center">
+                                <div className="text-sm text-black-800 font-bold">Infertility:</div>
+                                <div className="font-bold text-indigo-800">
+                                  {prediction.rppg_status?.stress_reproductive?.status === 'pending'
+                                    ? `${prediction.rppg_status.stress_reproductive.current_span_days ?? 0}/${prediction.rppg_status.stress_reproductive.required_span_days ?? 7}d`
+                                    : `${((prediction.rppg_risks.reproductive?.Infertility || 0) * 100).toFixed(0)}%`}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 4. Mood Analysis */}
+                        {prediction.rppg_risks?.mood && (
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-sm">🧠</span>
+                              <p className="text-sm font-semibold text-[#9615b3]">Mood Analysis</p>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                              {Object.entries(prediction.rppg_risks.mood).slice(0, 3).map(([key, value]) => (
+                                <div key={key} className="text-center p-3 bg-amber-50 rounded-lg">
+                                  <div className="font-semibold text-gray-800 text-sm">{expandAbbreviation(key)}</div>
+                                  <div className="text-amber-700 font-bold mt-1 text-base">{(value * 100).toFixed(0)}%</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
               </motion.div>
+              </>
             )}
 
             <motion.div

@@ -143,13 +143,13 @@ function filterPeaks(peaks: number[], minRR = 350): number[] {
   return filtered;
 }
 
-/** Remove RR interval outliers — keep only intervals within 60–140% of median. */
+/** Remove RR interval outliers — keep only intervals within 50–180% of median. */
 function filterRRIntervals(rrIntervals: number[]): number[] {
-  if (rrIntervals.length < 6) return rrIntervals;
+  if (rrIntervals.length < 4) return rrIntervals;
   const sorted = [...rrIntervals].sort((a, b) => a - b);
   const median = sorted[Math.floor(sorted.length * 0.5)];
-  const lower = median * 0.6;
-  const upper = median * 1.4;
+  const lower = median * 0.5;
+  const upper = median * 1.8;
   return rrIntervals.filter(rr => rr >= lower && rr <= upper);
 }
 
@@ -160,7 +160,7 @@ function computeFrequencyBands(
   endTime: number,
   fs: number,
 ): { lfPower: number; hfPower: number } {
-  if (peakTimes.length < 4 || endTime - startTime < 5000) {
+  if (peakTimes.length < 3 || endTime - startTime < 8000) {
     return { lfPower: 0, hfPower: 0 };
   }
 
@@ -186,6 +186,11 @@ function computeFrequencyBands(
     else if (freq >= 0.15 && freq <= 0.40) hfPower += power;
   }
 
+  // Normalize to proper PSD in ms²: one-sided spectrum (×2) + Hann window correction (/ 0.375)
+  const normFactor = 2 / (n * 0.375);
+  lfPower *= normFactor;
+  hfPower *= normFactor;
+
   return { lfPower: lfPower || 0.001, hfPower: hfPower || 0.001 };
 }
 
@@ -196,7 +201,7 @@ function computeRespiratoryRate(
   endTime: number,
   fs: number,
 ): number | null {
-  if (peakTimes.length < 4 || endTime - startTime < 10000) return null;
+  if (peakTimes.length < 3 || endTime - startTime < 8000) return null;
   const resampled = resampleRRIntervals(peakTimes, startTime, endTime, fs);
   if (resampled.length < 8) return null;
 
@@ -286,7 +291,6 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
   const timeBufferRef = useRef<number[]>([]);
   const peakTimesRef = useRef<number[]>([]);
   const lastPeakTimeRef = useRef<number | null>(null);
-  const adaptiveThresholdRef = useRef<number>(0);
 
   // Windowed metrics for trend
   const windowMetricsRef = useRef<{ time: number; hr: number; rmssd: number }[]>([]);
@@ -369,7 +373,6 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
       timeBufferRef.current = [];
       peakTimesRef.current = [];
       lastPeakTimeRef.current = null;
-      adaptiveThresholdRef.current = 0;
       windowMetricsRef.current = [];
       lastWindowTimeRef.current = 0;
       setLiveHeartRate(null);
@@ -418,20 +421,16 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
         greenBufferRef.current.push(greenMean);
         timeBufferRef.current.push(now);
 
-        // Keep last 900 samples (~30s at 30fps)
         if (greenBufferRef.current.length > 900) {
           const excess = greenBufferRef.current.length - 900;
           greenBufferRef.current.splice(0, excess);
           timeBufferRef.current.splice(0, excess);
         }
 
-        if (isCapturing) {
-          // Capture mode: full processing
+          if (isCapturing) {
           frameCountRef.current++;
 
-          if (frameCountRef.current % 3 === 0) {
-            detectPeak(now, greenMean);
-          }
+          detectPeak(now, greenMean);
 
           if (frameCountRef.current % 30 === 0) {
             updateLiveMetrics(now);
@@ -488,10 +487,12 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
       if (now - lastWindowTimeRef.current >= 10000) {
         const peaks = peakTimesRef.current;
         if (peaks.length >= 3) {
-          const rrIntervals: number[] = [];
-          for (let i = Math.max(0, peaks.length - 20); i < peaks.length - 1; i++) {
-            rrIntervals.push(peaks[i + 1] - peaks[i]);
+    const cleanPeaks = filterPeaks(peaks, 350);
+          const rawRR: number[] = [];
+          for (let i = Math.max(0, cleanPeaks.length - 20); i < cleanPeaks.length - 1; i++) {
+            rawRR.push(cleanPeaks[i + 1] - cleanPeaks[i]);
           }
+          const rrIntervals = filterRRIntervals(rawRR);
           if (rrIntervals.length >= 2) {
             const diffs = rrIntervals.slice(1).map((v, i) => (v - rrIntervals[i]) ** 2);
             const wRMSSD = Math.sqrt(mean(diffs));
@@ -531,9 +532,9 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
   function extractGreenMean(imageData: ImageData): number {
     const { data, width, height } = imageData;
     const centerX = Math.floor(width / 2);
-    const centerY = Math.floor(height / 2);
-    const radius = Math.min(80, Math.floor(Math.min(width, height) / 3));
-    const step = 4;
+    const centerY = Math.floor(height * 0.35);
+    const radius = Math.min(180, Math.floor(Math.min(width, height) / 2.5));
+    const step = 2;
     let sum = 0, count = 0;
 
     for (let y = centerY - radius; y < centerY + radius; y += step) {
@@ -547,54 +548,76 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     return count > 0 ? sum / count : 128;
   }
 
-  function detectPeak(now: number, value: number) {
-    const buffer = greenBufferRef.current;
-    const n = buffer.length;
-    if (n < 10) return;
+  function detectPeak(_now: number, _value: number) {
+    const buf = greenBufferRef.current;
+    const n = buf.length;
+    if (n < 60) return;
 
-    // Skip if signal quality is too low (avoid detecting noise as peaks)
-    if (signalQualityRef.current < 25) return;
+    if (signalQualityRef.current < 10) return;
 
-    // Normalize signal by recent min/max to handle any amplitude
-    const recent = buffer.slice(-30);
-    const minVal = Math.min(...recent);
-    const maxVal = Math.max(...recent);
+    const dc = mean(buf.slice(n - 60));
+
+    const windowSlice = buf.slice(n - 60);
+    const minVal = Math.min(...windowSlice) - dc;
+    const maxVal = Math.max(...windowSlice) - dc;
     const range = maxVal - minVal;
-    if (range < 0.5) return; // signal too flat
+    if (range < 0.1) return;
 
-    // Normalized position in [0,1] — 1 = at max, 0 = at min
-    const normalized = (buffer[n - 1] - minVal) / range;
-    adaptiveThresholdRef.current = minVal + 0.7 * range;
+    const lookback = 30;
+    const start = n - lookback;
+    let peakAc = -Infinity;
+    let peakIdx = 0;
+    let minAc = Infinity;
+    for (let i = start; i < n; i++) {
+      const ac = buf[i] - dc;
+      if (ac > peakAc) { peakAc = ac; peakIdx = i - start; }
+      if (ac < minAc) minAc = ac;
+    }
 
-    // Peak when signal is in top 30% AND we're at a local max (not still rising)
-    if (normalized > 0.7 && buffer[n - 1] <= buffer[n - 2] && buffer[n - 2] > buffer[n - 3]) {
+    const peakTime = timeBufferRef.current[start + peakIdx];
+    const signalDrop = peakAc - minAc;
+    const peakNotAtEdge = peakIdx >= 3 && peakIdx <= lookback - 4;
+    const positiveExcursion = peakAc > 0;
+    const aboveThreshold = peakAc > minVal + 0.15 * range;
+    const hasFallen = signalDrop > range * 0.15;
+
+    if (frameCountRef.current % 30 === 0) {
+      console.log(`[peak] maxAc=${peakAc.toFixed(3)} minAc=${minAc.toFixed(3)} idx=${peakIdx}/${lookback} range=${range.toFixed(3)} drop=${signalDrop.toFixed(3)} atEdge=${!peakNotAtEdge} positive=${positiveExcursion} above=${aboveThreshold} fallen=${hasFallen} peaks=${peakTimesRef.current.length}`);
+    }
+
+    if (peakNotAtEdge && positiveExcursion && aboveThreshold && hasFallen) {
       const lastPeak = lastPeakTimeRef.current;
-      const minRR = 300; // 200 bpm max
-      if (lastPeak === null || (now - lastPeak) >= minRR) {
-        peakTimesRef.current.push(now);
-        lastPeakTimeRef.current = now;
+      const minRR = 350;
+      if (!lastPeak || (peakTime - lastPeak) >= minRR) {
+        peakTimesRef.current.push(peakTime);
+        lastPeakTimeRef.current = peakTime;
+        console.log(`[peak] PEAK #${peakTimesRef.current.length}: peakAc=${peakAc.toFixed(3)} peakTime=${(peakTime / 1000).toFixed(1)}s rr=${lastPeak ? (peakTime - lastPeak).toFixed(0) + 'ms' : 'first'}`);
       }
     }
   }
 
   function updateSignalQuality() {
-    const buffer = greenBufferRef.current;
-    if (buffer.length < 200) {
+    const buf = greenBufferRef.current;
+    if (buf.length < 60) {
       setSignalQuality(0);
       return;
     }
-    const recent = buffer.slice(-200);
-    const r = Math.max(...recent) - Math.min(...recent);
-    const s = std(recent);
-    // Higher range and std = good pulsatile signal
+    const winSize = Math.min(buf.length, 120);
+    const win = buf.slice(buf.length - winSize);
+    const dc = mean(win);
+    const ac = win.map(v => v - dc);
+    const r = Math.max(...ac) - Math.min(...ac);
+    const s = std(ac);
     let quality = 0;
-    if (r > 8 && s > 2.5) quality = 85;
-    else if (r > 5 && s > 1.5) quality = 70;
-    else if (r > 3 && s > 1.0) quality = 50;
-    else if (r > 1.5) quality = 30;
-    else quality = 15;
+    if (r > 1.5 && s > 0.6) quality = 85;
+    else if (r > 1.0 && s > 0.4) quality = 70;
+    else if (r > 0.6 && s > 0.25) quality = 55;
+    else if (r > 0.3 && s > 0.15) quality = 40;
+    else if (r > 0.15) quality = 25;
+    else quality = 10;
     signalQualityRef.current = quality;
     setSignalQuality(quality);
+    console.log(`[signalQuality] q=${quality} r=${r.toFixed(3)} s=${s.toFixed(3)} dc=${dc.toFixed(2)} bufLen=${buf.length}`);
   }
 
   function updateReadiness() {
@@ -626,45 +649,48 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     const peaks = peakTimesRef.current;
     if (peaks.length < 3) return;
 
-    // Filter peaks then use last 15 for current HR/RMSSD
     const cleanPeaks = filterPeaks(peaks, 350);
-    const recentPeaks = cleanPeaks.slice(-15);
-    const rrIntervals: number[] = [];
+    const recentPeaks = cleanPeaks.slice(-20);
+    const rawRR: number[] = [];
     for (let i = 0; i < recentPeaks.length - 1; i++) {
-      rrIntervals.push(recentPeaks[i + 1] - recentPeaks[i]);
+      rawRR.push(recentPeaks[i + 1] - recentPeaks[i]);
     }
+
+    const rrIntervals = filterRRIntervals(rawRR);
 
     if (rrIntervals.length < 2) return;
 
-    // Outlier rejection
-    const validRR = filterRRIntervals(rrIntervals);
-    if (validRR.length < 2) return;
-
-    const avgRR = mean(validRR);
+    const avgRR = mean(rrIntervals);
+    if (avgRR < 300 || avgRR > 2000) return;
     const hr = 60000 / avgRR;
     setLiveHeartRate(Math.round(hr));
 
-    const diffs = validRR.slice(1).map((v, i) => (v - validRR[i]) ** 2);
-    let rmssdVal = Math.sqrt(mean(diffs));
-    if (rmssdVal > 200) rmssdVal = 35;
-    const roundedRMSSD = Math.round(rmssdVal * 100) / 100;
-    setLiveRMSSD(roundedRMSSD);
-    setLiveHRVStatus(computeHRVStatus(roundedRMSSD));
+    if (rrIntervals.length >= 3) {
+      const diffs = rrIntervals.slice(1).map((v, i) => (v - rrIntervals[i]) ** 2);
+      const rmssdVal = Math.sqrt(mean(diffs));
+      const clamped = Math.min(rmssdVal, 200);
+      const roundedRMSSD = Math.round(clamped * 100) / 100;
+      setLiveRMSSD(roundedRMSSD);
+      setLiveHRVStatus(computeHRVStatus(roundedRMSSD));
+    }
 
-    // LF/HF every 10 seconds (~300 frames) using last 60 peaks (~30-60s window)
-    if (frameCountRef.current % 300 === 0 && cleanPeaks.length >= 12) {
-      const windowStart = cleanPeaks.length > 60 ? cleanPeaks[cleanPeaks.length - 60] : cleanPeaks[0];
+    if (frameCountRef.current % 60 === 0) {
+      console.log(`[liveMetrics] cleanPeaks=${cleanPeaks.length} rawRR=${rawRR.length} rrFiltered=${rrIntervals.length} avgRR=${avgRR.toFixed(0)} hr=${Math.round(hr)}`);
+    }
+
+    if (cleanPeaks.length >= 4) {
+      const windowSize = Math.min(cleanPeaks.length, 40);
+      const windowStart = cleanPeaks[cleanPeaks.length - windowSize];
       const windowEnd = cleanPeaks[cleanPeaks.length - 1];
-      if (windowEnd - windowStart >= 15000) { // need at least 15s for reliable FFT
+      if (windowEnd - windowStart >= 5000) {
         const { lfPower, hfPower } = computeFrequencyBands(cleanPeaks, windowStart, windowEnd, 4);
-        if (hfPower > 0.01) {
+        if (hfPower > 0.01 && lfPower > 0.01) {
           const ratio = lfPower / hfPower;
           setLiveLfHf(parseFloat(ratio.toFixed(2)));
         }
       }
     }
 
-    // Simulated values drift slightly
     setLiveSpo2(Math.round(simSpo2Ref.current));
     setLiveTemp(parseFloat(simTempRef.current.toFixed(1)));
     setLiveEda(parseFloat(simEdaRef.current.toFixed(1)));
@@ -675,56 +701,56 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     const startTime = captureStartTimeRef.current;
     const endTime = performance.now();
 
-    // Filter peaks to remove false positives, then compute RR intervals
     const cleanPeaks = filterPeaks(peaks, 350);
-    const rrIntervals: number[] = [];
+    const rawRR: number[] = [];
     for (let i = 0; i < cleanPeaks.length - 1; i++) {
       const rr = cleanPeaks[i + 1] - cleanPeaks[i];
-      if (rr >= 350 && rr <= 2000) rrIntervals.push(rr);
+      if (rr >= 400 && rr <= 1500) rawRR.push(rr);
     }
 
-    // Outlier rejection (MAD-based) to remove remaining false intervals
-    const validRR = filterRRIntervals(rrIntervals);
+    const rrIntervals = filterRRIntervals(rawRR);
 
-    // HR
-    const avgRR = validRR.length ? mean(validRR) : 600;
+    console.log(`[finalMetrics] peaks=${peaks.length} cleanPeaks=${cleanPeaks.length} rawRR=${rawRR.length} filteredRR=${rrIntervals.length}`);
+
+    const avgRR = rrIntervals.length ? mean(rrIntervals) : 600;
     const hr = 60000 / avgRR;
 
-    // RMSSD
-    let rmssdVal = 35;
-    if (validRR.length >= 3) {
-      const diffs = validRR.slice(1).map((v, i) => (v - validRR[i]) ** 2);
-      rmssdVal = Math.sqrt(mean(diffs));
-      if (rmssdVal > 200) rmssdVal = 35; // cap at physiological max
+    let rmssdVal: number | null = null;
+    if (rrIntervals.length >= 3) {
+      const diffs = rrIntervals.slice(1).map((v, i) => (v - rrIntervals[i]) ** 2);
+      rmssdVal = Math.min(Math.sqrt(mean(diffs)), 200);
     }
 
-    // SDNN / HRV
-    const hrvVal = validRR.length ? std(validRR) : 30;
+    const hrvVal = rrIntervals.length >= 3 ? std(rrIntervals) : null;
 
-    // Frequency analysis (using filtered peaks to remove false positives)
-    const fftPeaks = filterPeaks(peaks, 350);
-    const { lfPower, hfPower } = computeFrequencyBands(fftPeaks, startTime, endTime, 4);
-    const lfHfRatio = lfPower && hfPower ? parseFloat((lfPower / hfPower).toFixed(4)) : 1.0;
+    let lfPower = 0, hfPower = 0;
+    let lfHfRatio: number | null = null;
+    if (cleanPeaks.length >= 6 && endTime - startTime >= 10000) {
+      const fb = computeFrequencyBands(cleanPeaks, startTime, endTime, 4);
+      lfPower = fb.lfPower;
+      hfPower = fb.hfPower;
+      if (hfPower > 0.01 && lfPower > 0.01) {
+        lfHfRatio = parseFloat((lfPower / hfPower).toFixed(4));
+      }
+    }
 
-    // Respiratory rate
-    const respRate = computeRespiratoryRate(fftPeaks, startTime, endTime, 4);
+    let respRate: number | null = null;
+    if (cleanPeaks.length >= 6 && endTime - startTime >= 8000) {
+      respRate = computeRespiratoryRate(cleanPeaks, startTime, endTime, 4);
+    }
 
-    // AC / DC from green channel
     const greenVals = greenBufferRef.current;
     const ac = greenVals.length ? Math.max(...greenVals) - Math.min(...greenVals) : 20;
     const dc = greenVals.length ? mean(greenVals) : 128;
     const acDcRatio = dc > 0 ? parseFloat((ac / dc).toFixed(6)) : 0.02;
     const pulseAmp = parseFloat((ac / 255).toFixed(4));
 
-    // Signal quality (final)
     const quality = signalQualityRef.current;
 
-    // Simulated values
     const spo2 = Math.round(simSpo2Ref.current);
     const skinTemp = parseFloat(simTempRef.current.toFixed(1));
     const meanEda = parseFloat(simEdaRef.current.toFixed(2));
 
-    // HR trend and RMSSD trend from windowed metrics
     let hrTrend: number | null = null;
     let rmssdTrend: number | null = null;
     if (windowMetricsRef.current.length >= 2) {
@@ -737,15 +763,14 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
       rmssdTrend = Math.abs(rmssdSlope) > 0.001 ? parseFloat(rmssdSlope.toFixed(4)) : null;
     }
 
-    // ASI
-    const asi = computeASI(rmssdVal, meanEda, skinTemp);
+    const asi = computeASI(rmssdVal ?? 50, meanEda, skinTemp);
 
     const payload: RppgV8SessionPayload = {
-      rmssd: Math.round(rmssdVal * 100) / 100,
-      hf: parseFloat(hfPower.toFixed(4)),
-      lf_hf_ratio: lfHfRatio,
+      rmssd: rmssdVal !== null ? Math.round(rmssdVal * 100) / 100 : 0,
+      hf: lfPower > 0 ? parseFloat(hfPower.toFixed(4)) : 0,
+      lf_hf_ratio: lfHfRatio ?? 0,
       heart_rate: Math.round(hr),
-      hrv: Math.round(hrvVal * 100) / 100,
+      hrv: hrvVal !== null ? Math.round(hrvVal * 100) / 100 : 0,
       estimated_spo2: spo2,
       skin_temperature: skinTemp,
       hr_trend: hrTrend,

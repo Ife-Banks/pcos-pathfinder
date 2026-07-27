@@ -159,7 +159,7 @@ const RppgV8CaptureScreen = () => {
                 </div>
                 <div className="bg-gray-50 rounded-xl p-3 text-center">
                   <p className="text-xs text-gray-500">RMSSD</p>
-                  <p className="text-xl font-bold text-gray-900">{p.rmssd.toFixed(1)}</p>
+                  <p className="text-xl font-bold text-gray-900">{p.rmssd > 0 ? p.rmssd.toFixed(1) : '--'}</p>
                   <p className="text-[10px] text-gray-400">ms</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-3 text-center">
@@ -179,12 +179,12 @@ const RppgV8CaptureScreen = () => {
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-gray-50 rounded-xl p-3 text-center">
                   <p className="text-xs text-gray-500">HF Power</p>
-                  <p className="text-lg font-bold text-gray-900">{p.hf?.toFixed(1) ?? '--'}</p>
+                  <p className="text-lg font-bold text-gray-900">{p.hf > 0 ? p.hf.toFixed(1) : '--'}</p>
                   <p className="text-[10px] text-gray-400">ms²</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-3 text-center">
                   <p className="text-xs text-gray-500">LF/HF</p>
-                  <p className="text-lg font-bold text-gray-900">{p.lf_hf_ratio?.toFixed(2) ?? '--'}</p>
+                  <p className="text-lg font-bold text-gray-900">{p.lf_hf_ratio > 0 ? p.lf_hf_ratio.toFixed(2) : '--'}</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-3 text-center">
                   <p className="text-xs text-gray-500">Resp Rate</p>
