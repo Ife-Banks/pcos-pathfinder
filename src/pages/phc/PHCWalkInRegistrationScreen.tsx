@@ -210,8 +210,20 @@ export default function PHCWalkInRegistrationScreen() {
       console.error('Registration error status:', err.response?.status);
       console.error('Registration error data:', JSON.stringify(err.response?.data, null, 2));
       const data = err.response?.data as Record<string, unknown> | undefined;
-      const msg = (data?.message || data?.detail || err.message || 'Registration failed. Please try again.') as string;
-      setSubmitError(`Error ${err.response?.status || ''}: ${msg}`);
+      const backendErrors = data?.errors as Record<string, string[]> | undefined;
+
+      let errorMessage = '';
+      if (backendErrors && Object.keys(backendErrors).length > 0) {
+        // Parse field-level validation errors
+        const fieldMessages = Object.entries(backendErrors).map(([field, msgs]) => {
+          const label = field.charAt(0).toUpperCase() + field.slice(1).replace(/_/g, ' ');
+          return `${label}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`;
+        });
+        errorMessage = fieldMessages.join('\n');
+      } else {
+        errorMessage = (data?.message || data?.detail || err.message || 'Registration failed. Please try again.') as string;
+      }
+      setSubmitError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -666,7 +678,15 @@ export default function PHCWalkInRegistrationScreen() {
           <p className="text-gray-700 font-medium">Create a new patient record for a walk-in visit</p>
         </div>
         {renderStepIndicator()}
-        {submitError && <Alert variant="destructive" className="mb-4"><AlertDescription>{submitError}</AlertDescription></Alert>}
+        {submitError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>
+              {submitError.split('\n').map((line, i) => (
+                <p key={i} className={i > 0 ? 'mt-1' : ''}>{line}</p>
+              ))}
+            </AlertDescription>
+          </Alert>
+        )}
         <AnimatePresence mode="wait">
           <motion.div key={step} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
             <Card className="mb-6"><CardContent className="pt-4">
