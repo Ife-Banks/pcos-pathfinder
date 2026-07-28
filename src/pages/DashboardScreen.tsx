@@ -159,7 +159,6 @@ const expandAbbreviation = (key: string): string => {
     'Stroke_Mood': 'Stroke',
     'Anxiety': 'Anxiety',
     'Depression': 'Depression',
-    'ChronicStress': 'Chronic Stress',
     'Insomnia': 'Insomnia',
     'Bipolar': 'Bipolar Disorder',
     'Schizophrenia': 'Schizophrenia',
