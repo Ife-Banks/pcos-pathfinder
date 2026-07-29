@@ -80,13 +80,21 @@ const RiskScoreTrend = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiClient.get('/predictions/history/');
+      const res = await apiClient.get('/predictions/comprehensive/history/');
       const body = res.data;
       if (body.status !== 'success') {
         throw body;
       }
-      const payload = body.results ?? body;
-      const data = Array.isArray(payload) ? payload : [];
+      const payload = body.data ?? body;
+      const data: PredictionRecord[] = Array.isArray(payload)
+        ? payload.map((r: any) => ({
+            id: r.id,
+            risk_score: r.final_risk_score ?? 0,
+            risk_tier: r.risk_tier ?? "unknown",
+            computed_at: r.computed_at,
+            data_completeness_pct: r.data_completeness_pct,
+          }))
+        : [];
       setHistory(data);
     } catch (err: any) {
       if (err?.response?.status === 401 || err?.status === 401) {

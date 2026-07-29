@@ -1095,7 +1095,7 @@ const DashboardScreen = () => {
                   const wellnessKeys = ['Sleep_Quality', 'Focus_Memory', 'Mental_Wellness', 'Mood_Score'];
                   const v8wellness = prediction.rppg_v8_risks || {};
                   const diseaseGroups: { title: string; keys: string[] }[] = [
-                    { title: 'Mental Health', keys: [...wellnessKeys, 'ChronicStress', 'PMDD'] },
+                    { title: 'Mental Health', keys: [...wellnessKeys, 'Anxiety', 'Depression', 'ChronicStress', 'PMDD'] },
                     { title: 'Metabolic Health', keys: ['T2D', 'Metabolic'] },
                     { title: 'Cardiovascular & Neurological Health', keys: ['CVD', 'Stroke', 'HeartFailure'] },
                     { title: 'Reproductive Health', keys: ['Infertility', 'Endometrial', 'Dysmenorrhea'] },
