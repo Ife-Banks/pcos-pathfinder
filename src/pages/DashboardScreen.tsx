@@ -1106,7 +1106,7 @@ const DashboardScreen = () => {
                         if (items.length === 0) return null;
                         return (
                           <div key={group.title}>
-                            <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">{group.title}</h4>
+                            <h4 className="text-sm font-extrabold text-gray-800 uppercase tracking-wider mb-3">{group.title}</h4>
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                               {items.map(({ key, data, w }) => {
                                 if (w) {
@@ -1166,14 +1166,14 @@ const DashboardScreen = () => {
                                           <span className="text-xs font-bold text-gray-900 truncate">
                                             {expandAbbreviation(key)}
                                           </span>
-                                          <span className="text-[9px] font-semibold text-gray-500 bg-white/70 px-1.5 py-0.5 rounded-full shrink-0">
-                                            {data.contributing_models || 1} Health Indices
-                                          </span>
                                           <span
                                             className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white shadow-sm shrink-0"
                                             style={{ backgroundColor: getUnifiedSeverityColor(data.severity) }}
                                           >
                                             {data.severity}
+                                          </span>
+                                          <span className="text-[9px] font-semibold text-gray-500 bg-white/70 px-1.5 py-0.5 rounded-full shrink-0">
+                                            {data.contributing_models || 1} Health Indices
                                           </span>
                                         </div>
                                         <div className="flex items-center gap-1.5 mt-1">
