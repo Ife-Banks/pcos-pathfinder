@@ -111,6 +111,11 @@ export interface PredictionData {
       explanation: string;
     };
   };
+  /** rPPG V8 camera-based regression predictions (10 targets + _meta) */
+  rppg_v8_risks?: {
+    [key: string]: any;
+  };
+  rppg_v8_n_sessions?: number;
   /** Metadata about rPPG prediction availability (pending vs available) */
   rppg_status?: {
     metabolic_cardio?: {
@@ -206,10 +211,11 @@ export const dashboardService = {
 
       console.log('[getMLPredictions] pcosData keys:', Object.keys(pcosData));
 
-      // Extract predictions from all 4 models
+      // Extract predictions from all 5 models
       const symptomPreds = pcosData.all_predictions?.symptom_intensity || {};
       const menstrualPreds = pcosData.all_predictions?.menstrual || {};
       const rppgPreds = pcosData.all_predictions?.rppg || {};
+      const rppgV8Preds = pcosData.all_predictions?.rppg_v8 || {};
       const moodPreds = pcosData.all_predictions?.mood || {};
 
       console.log('[getMLPredictions] unified_disease_scores:', JSON.stringify(pcosData.unified_disease_scores, null, 2));
@@ -302,6 +308,8 @@ export const dashboardService = {
           },
         },
         rppg_status: pcosData.rppg_status,
+        rppg_v8_risks: Object.keys(rppgV8Preds).length > 0 ? rppgV8Preds : undefined,
+        rppg_v8_n_sessions: rppgV8Preds._meta?.nSessions || undefined,
         last_updated: new Date().toISOString()
       };
 

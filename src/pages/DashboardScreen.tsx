@@ -59,13 +59,23 @@ const getGreeting = () => {
   return "Good morning";
 };
 
-  const getDaysSince = (dateStr: string) => {
+  const getRelativeTime = (dateStr: string): string | null => {
   if (!dateStr || dateStr === "") return null;
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) return null;
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
-  return Math.floor(diffMs / 86400000);
+  if (diffMs < 0) return 'just now';
+  const seconds = Math.floor(diffMs / 1000);
+  if (seconds < 60) return `${seconds} sec${seconds !== 1 ? 's' : ''} ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min${minutes !== 1 ? 's' : ''} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hr${hours !== 1 ? 's' : ''} ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} day${days !== 1 ? 's' : ''} ago`;
+  const months = Math.floor(days / 30);
+  return `${months} month${months !== 1 ? 's' : ''} ago`;
 };
 
 const getCompletenessColor = (pct: number) => {
@@ -184,6 +194,16 @@ const expandAbbreviation = (key: string): string => {
     'VD': 'Volume of Distribution',
     'CL': 'Clearance',
     'F': 'Bioavailability',
+    'Cardiovascular_Disease': 'Cardiovascular Disease',
+    'Type_2_Diabetes': 'Type 2 Diabetes',
+    'Metabolic_Syndrome': 'Metabolic Syndrome',
+    'Heart_Failure': 'Heart Failure',
+    'Chronic_Stress': 'Chronic Stress',
+    'Infertility': 'Infertility',
+    'Sleep_Quality': 'Sleep Quality',
+    'Focus_Memory': 'Focus & Memory',
+    'Mental_Wellness': 'Mental Wellness',
+    'Mood_Score': 'Mood Check',
   };
   return mapping[key] || key.replace(/_/g, ' ');
 };
@@ -219,6 +239,28 @@ const getUnifiedSeverityBg = (severity: string): string => {
   }
 };
 
+const getWellnessColor = (severity: string): string => {
+  switch (severity) {
+    case 'Excellent': return '#16a34a';
+    case 'Good': return '#0d9488';
+    case 'Moderate': return '#d97706';
+    case 'Below Average': return '#ea580c';
+    case 'Poor': return '#dc2626';
+    default: return '#6b7280';
+  }
+};
+
+const getWellnessBg = (severity: string): string => {
+  switch (severity) {
+    case 'Excellent': return '#f0fdf4';
+    case 'Good': return '#f0fdfa';
+    case 'Moderate': return '#fffbeb';
+    case 'Below Average': return '#fff7ed';
+    case 'Poor': return '#fef2f2';
+    default: return '#f9fafb';
+  }
+};
+
 const getDiseaseIcon = (disease: string): React.ReactNode => {
   const iconClass = "w-5 h-5 shrink-0";
   switch (disease) {
@@ -231,6 +273,10 @@ const getDiseaseIcon = (disease: string): React.ReactNode => {
     case 'PMDD': return <Moon className={iconClass} style={{ color: '#7c3aed' }} />;
     case 'Dysmenorrhea': return <Thermometer className={iconClass} style={{ color: '#ea580c' }} />;
     case 'Endometrial': return <Stethoscope className={iconClass} style={{ color: '#be185d' }} />;
+    case 'Sleep_Quality': return <Moon className={iconClass} style={{ color: '#0891b2' }} />;
+    case 'Focus_Memory': return <Brain className={iconClass} style={{ color: '#7c3aed' }} />;
+    case 'Mental_Wellness': return <Heart className={iconClass} style={{ color: '#059669' }} />;
+    case 'Mood_Score': return <Sun className={iconClass} style={{ color: '#d97706' }} />;
     case 'Anxiety': return <Smile className={iconClass} style={{ color: '#ca8a04' }} />;
     case 'Depression': return <Frown className={iconClass} style={{ color: '#6d28d9' }} />;
     case 'Stroke': return <Zap className={iconClass} style={{ color: '#dc2626' }} />;
@@ -253,6 +299,27 @@ const getDiseaseBorderColor = (severity: string): string => {
     case 'Minimal': return '#16a34a';
     default: return '#d1d5db';
   }
+};
+
+const fatigueLabel = (v: number): string => {
+  if (v <= 3) return 'Low';
+  if (v <= 6) return 'Moderate';
+  return 'High';
+};
+
+const moodLabel = (v: number): string => {
+  if (v <= 2) return 'Normal';
+  if (v <= 5) return 'Mild';
+  if (v <= 8) return 'Moderate';
+  return 'Severe';
+};
+
+const riskSeverityLabel = (v: number): string => {
+  if (v < 0.20) return 'Minimal';
+  if (v < 0.40) return 'Mild';
+  if (v < 0.60) return 'Moderate';
+  if (v < 0.80) return 'Severe';
+  return 'Extreme';
 };
 
 const RiskGauge = ({ score }: { score?: number }) => {
@@ -370,6 +437,16 @@ interface TodaySummary {
   hrv_rmssd: number | null;
   fatigue_vas: number | null;
   mood_score: number | null;
+  cardiovascular_score?: number | null;
+  cardiovascular_severity?: string;
+  infertility_score?: number | null;
+  infertility_severity?: string;
+  t2d_score?: number | null;
+  t2d_severity?: string;
+  chronic_stress_score?: number | null;
+  chronic_stress_severity?: string;
+  depression_score?: number | null;
+  depression_severity?: string;
 }
 
 interface MenstrualSummary {
@@ -795,15 +872,14 @@ const DashboardScreen = () => {
       bgTint: dailyToolsComplete ? 'bg-green-50 border-green-200' : undefined,
     },
     { icon: ClipboardCheck, title: "Weekly Tools", subtitle: getWeeklyToolsSubtitle(), route: "/weekly-tools", gradient: "gradient-primary", urgent: !mfgComplete || !phq4Complete },
-    { icon: BarChart3, title: "Risk Trends", subtitle: "View your history", route: "/risk-trend", gradient: "gradient-clinical", urgent: false },
     { icon: Activity, title: "Measure rPPG HRV", subtitle: "rPPG Passive Sensing(Capture Raw rPPG Signals - More 18 physiological metrics)", route: "/rppg-passive", gradient: "bg-emerald-500", urgent: false },
     { icon: Camera, title: "Measure HRV", subtitle: "Capture heart rate variability", route: "/rppg-capture", gradient: "bg-blue-500", urgent: false },
+     { icon: BarChart3, title: "Risk Trends", subtitle: "View your history", route: "/risk-trend", gradient: "gradient-clinical", urgent: false }
     
   );
 
   const riskTier = prediction ? getRiskTier(prediction.risk_score) : null;
-  const predictionAge = prediction ? getDaysSince(prediction.computed_at) : null;
-  const isUpdatedToday = predictionAge === 0;
+  const predictionAge = prediction ? getRelativeTime(prediction.computed_at) : null;
   const hasValidDate = predictionAge !== null;
 
   const activeRoute = location.pathname;
@@ -823,7 +899,7 @@ const DashboardScreen = () => {
         animate={{ opacity: 1, y: 0 }}
         className="sticky top-0 z-10 bg-white/80 backdrop-blur-lg border-b border-gray-200 px-6 py-4"
       >
-        <div className="flex items-center justify-between max-w-2xl mx-auto">
+        <div className="flex items-center justify-between max-w-6xl mx-auto">
           <div className="flex items-center gap-3">
             <img src={logo} alt="AI-MSHM" className="h-10 w-10" />
             <div>
@@ -903,7 +979,7 @@ const DashboardScreen = () => {
         </div>
       </motion.header>
       <TrialBanner />
-      <div className="flex-1 px-6 py-6 max-w-2xl mx-auto w-full space-y-6">
+      <div className="flex-1 px-6 py-6 max-w-6xl mx-auto w-full space-y-6">
         {refreshing && (
           <div className="flex items-center justify-center py-2">
             <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
@@ -972,7 +1048,7 @@ const DashboardScreen = () => {
                 <h2 className="font-display font-bold text-gray-900 text-lg">{riskScoreTitle}</h2>
                 {prediction && hasValidDate && (
                   <span className="text-xs text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full font-medium">
-                    {isUpdatedToday ? 'Updated today' : `Updated ${predictionAge} day${predictionAge !== 1 ? 's' : ''} ago`}
+                    Updated {predictionAge}
                   </span>
                 )}
               </div>
@@ -1012,57 +1088,121 @@ const DashboardScreen = () => {
                   Downstream Diseases Risk Prediction
                 </h3>
 
-                {/* Unified per-disease scores */}
-                {prediction.unified_disease_scores && Object.keys(prediction.unified_disease_scores).length > 0 && (
-                  <div className="space-y-3 mb-5">
-                    {Object.entries(prediction.unified_disease_scores)
-                      .sort(([, a], [, b]) => b.unified_score - a.unified_score)
-                      .map(([disease, data]) => (
-                        <div
-                          key={disease}
-                          className="flex items-center gap-3 p-4 rounded-xl border-l-4 shadow-sm"
-                          style={{
-                            backgroundColor: getUnifiedSeverityBg(data.severity),
-                            borderLeftColor: getDiseaseBorderColor(data.severity),
-                          }}
-                        >
-                          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-white/80 shadow-sm shrink-0">
-                            {getDiseaseIcon(disease)}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-base font-bold text-gray-900 truncate">
-                                {expandAbbreviation(disease)}
-                              </span>
-                              <span
-                                className="text-xs font-bold px-2 py-0.5 rounded-full text-white shadow-sm"
-                                style={{ backgroundColor: getUnifiedSeverityColor(data.severity) }}
-                              >
-                                {data.severity}
-                              </span>
+                {/* Unified per-disease scores — grouped grid */}
+                {prediction.unified_disease_scores && Object.keys(prediction.unified_disease_scores).length > 0 && (() => {
+                  const wellnessKeys = ['Sleep_Quality', 'Focus_Memory', 'Mental_Wellness', 'Mood_Score'];
+                  const v8wellness = prediction.rppg_v8_risks || {};
+                  const diseaseGroups: { title: string; keys: string[] }[] = [
+                    { title: 'Mental Health', keys: [...wellnessKeys, 'ChronicStress', 'PMDD'] },
+                    { title: 'Metabolic Health', keys: ['T2D', 'Metabolic'] },
+                    { title: 'Cardiovascular & Neurological', keys: ['CVD', 'Stroke', 'HeartFailure'] },
+                    { title: 'Reproductive Health', keys: ['Infertility', 'Endometrial', 'Dysmenorrhea'] },
+                  ];
+                  const scores = prediction.unified_disease_scores!;
+                  return (
+                    <div className="mb-5 space-y-6">
+                      {diseaseGroups.map(group => {
+                        const items = group.keys.filter(k => scores[k] || v8wellness[k]).map(k => ({ key: k, data: scores[k], w: v8wellness[k] }));
+                        if (items.length === 0) return null;
+                        return (
+                          <div key={group.title}>
+                            <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">{group.title}</h4>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                              {items.map(({ key, data, w }) => {
+                                if (w) {
+                                  const score = w.raw_score ?? (w.risk_score != null ? w.risk_score * 100 : null);
+                                  const sev = w.severity || 'Moderate';
+                                  return (
+                                    <div
+                                      key={key}
+                                      className="flex items-center gap-2 p-3 rounded-xl border-l-4 shadow-sm"
+                                      style={{
+                                        backgroundColor: getWellnessBg(sev),
+                                        borderLeftColor: getWellnessColor(sev),
+                                      }}
+                                    >
+                                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/80 shadow-sm shrink-0">
+                                        {getDiseaseIcon(key)}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-xs font-bold text-gray-900 truncate">
+                                            {expandAbbreviation(key)}
+                                          </span>
+                                          <span className="text-[9px] font-semibold text-gray-500 bg-white/70 px-1.5 py-0.5 rounded-full shrink-0 ml-auto">
+                                            1 Health Index
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 mt-1">
+                                          <span className="text-sm font-extrabold text-gray-900">
+                                            {score != null ? `${score.toFixed(1)}%` : '—'}
+                                          </span>
+                                          <span
+                                            className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white shadow-sm shrink-0"
+                                            style={{ backgroundColor: getWellnessColor(sev) }}
+                                          >
+                                            {sev}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                if (data) {
+                                  return (
+                                    <div
+                                      key={key}
+                                      className="flex items-center gap-2 p-3 rounded-xl border-l-4 shadow-sm"
+                                      style={{
+                                        backgroundColor: getUnifiedSeverityBg(data.severity),
+                                        borderLeftColor: getDiseaseBorderColor(data.severity),
+                                      }}
+                                    >
+                                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/80 shadow-sm shrink-0">
+                                        {getDiseaseIcon(key)}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-xs font-bold text-gray-900 truncate">
+                                            {expandAbbreviation(key)}
+                                          </span>
+                                          <span className="text-[9px] font-semibold text-gray-500 bg-white/70 px-1.5 py-0.5 rounded-full shrink-0">
+                                            {data.contributing_models || 1} Health Indices
+                                          </span>
+                                          <span
+                                            className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white shadow-sm shrink-0"
+                                            style={{ backgroundColor: getUnifiedSeverityColor(data.severity) }}
+                                          >
+                                            {data.severity}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 mt-1">
+                                          <div className="flex-1 bg-white/70 rounded-full h-1.5 overflow-hidden shadow-inner">
+                                            <div
+                                              className="h-full rounded-full transition-all duration-500"
+                                              style={{
+                                                width: `${Math.min(100, data.unified_score * 100)}%`,
+                                                backgroundColor: getUnifiedSeverityColor(data.severity),
+                                              }}
+                                            />
+                                          </div>
+                                          <span className="text-xs font-extrabold text-gray-800 w-10 text-right">
+                                            {(data.unified_score * 100).toFixed(0)}%
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })}
                             </div>
-                            <div className="flex items-center gap-2 mt-1.5">
-                              <div className="flex-1 bg-white/70 rounded-full h-2 overflow-hidden shadow-inner">
-                                <div
-                                  className="h-full rounded-full transition-all duration-500"
-                                  style={{
-                                    width: `${Math.min(100, data.unified_score * 100)}%`,
-                                    backgroundColor: getUnifiedSeverityColor(data.severity),
-                                  }}
-                                />
-                              </div>
-                              <span className="text-sm font-extrabold text-gray-800 w-14 text-right">
-                                {(data.unified_score * 100).toFixed(0)}%
-                              </span>
-                            </div>
                           </div>
-                          <div className="text-xs font-semibold text-gray-500 shrink-0 text-right bg-white/60 px-2 py-1 rounded-lg">
-                            {data.contributing_models} model{data.contributing_models !== 1 ? 's' : ''}
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                )}
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
 
                 {/* Per-model breakdown (collapsible) */}
                 {(prediction.symptom_intensity_risks || prediction.menstrual_risks || prediction.rppg_risks) && (
@@ -1183,7 +1323,68 @@ const DashboardScreen = () => {
                           </div>
                         )}
 
-                        {/* 4. Mood Analysis */}
+                        {/* 4. rPPG V8 Camera */}
+                        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-sky-100">
+                              <Camera className="w-5 h-5 text-sky-600" />
+                            </div>
+                            <p className="text-base font-bold text-gray-900">rPPG V8 Camera</p>
+                            {prediction.rppg_v8_n_sessions != null && (
+                              <span className="ml-auto text-xs font-medium text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full">
+                                {prediction.rppg_v8_n_sessions} session{prediction.rppg_v8_n_sessions !== 1 ? 's' : ''}
+                              </span>
+                            )}
+                          </div>
+                          {prediction.rppg_v8_risks && Object.keys(prediction.rppg_v8_risks).filter(k => k !== '_meta').length > 0 ? (
+                            <div className="grid grid-cols-2 gap-3">
+                              {Object.entries(prediction.rppg_v8_risks)
+                                .filter(([key]) => key !== '_meta')
+                                .map(([key, entry]) => {
+                                  const rawScore = entry.raw_score ?? 0;
+                                  const severity = entry.severity || '';
+                                  const isWellness = ['Sleep_Quality', 'Focus_Memory', 'Mental_Wellness', 'Mood_Score'].includes(key);
+                                  const borderColor = isWellness
+                                    ? rawScore >= 80 ? 'border-emerald-200' :
+                                      rawScore >= 60 ? 'border-blue-200' :
+                                      rawScore >= 40 ? 'border-amber-200' : 'border-red-200'
+                                    : rawScore >= 60 ? 'border-red-200' :
+                                      rawScore >= 40 ? 'border-orange-200' :
+                                      rawScore >= 20 ? 'border-amber-200' : 'border-emerald-200';
+                                  const bgColor = isWellness
+                                    ? rawScore >= 80 ? 'bg-emerald-50' :
+                                      rawScore >= 60 ? 'bg-blue-50' :
+                                      rawScore >= 40 ? 'bg-amber-50' : 'bg-red-50'
+                                    : rawScore >= 60 ? 'bg-red-50' :
+                                      rawScore >= 40 ? 'bg-orange-50' :
+                                      rawScore >= 20 ? 'bg-amber-50' : 'bg-emerald-50';
+                                  const textColor = isWellness
+                                    ? rawScore >= 80 ? 'text-emerald-700' :
+                                      rawScore >= 60 ? 'text-blue-700' :
+                                      rawScore >= 40 ? 'text-amber-700' : 'text-red-700'
+                                    : rawScore >= 60 ? 'text-red-700' :
+                                      rawScore >= 40 ? 'text-orange-700' :
+                                      rawScore >= 20 ? 'text-amber-700' : 'text-emerald-700';
+                                  return (
+                                    <div key={key} className={`p-3 rounded-xl text-center border ${bgColor} ${borderColor}`}>
+                                      <div className="text-sm font-bold text-gray-800">{expandAbbreviation(key)}</div>
+                                      <div className={`font-extrabold text-lg mt-1 ${textColor}`}>
+                                        {rawScore.toFixed(2)}%
+                                      </div>
+                                      {severity && <div className="text-xs font-medium text-gray-500 mt-0.5">{severity}</div>}
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          ) : (
+                            <div className="text-center py-4 px-4 bg-sky-50 rounded-xl border border-sky-100">
+                              <p className="text-sm font-semibold text-sky-700">No rPPG V8 data yet</p>
+                              <p className="text-xs text-sky-600 mt-1">Capture an rPPG V8 session from the Tools page to see your advanced camera-based predictions</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 5. Mood Analysis */}
                         {prediction.rppg_risks?.mood && (
                           <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
                             <div className="flex items-center gap-2 mb-3">
@@ -1304,32 +1505,94 @@ const DashboardScreen = () => {
           className="bg-white rounded-2xl border border-gray-200 p-5"
         >
           <h3 className="font-display font-bold text-gray-900 mb-4 text-lg">Today's Summary</h3>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div className="p-4 rounded-lg bg-gray-50">
-              <Heart className="h-5 w-5 mx-auto mb-2 text-teal-500" />
-              <p className="text-2xl font-bold font-display text-gray-900">
+          <div className="grid grid-cols-4 gap-3 text-center">
+            <div className="p-3 rounded-lg bg-gray-50">
+              <Heart className="h-4 w-4 mx-auto mb-1.5 text-teal-500" />
+              <p className="text-xl font-bold font-display text-gray-900">
                 {todaySummary?.hrv_rmssd ? `${todaySummary.hrv_rmssd.toFixed(0)}` : '—'}
               </p>
-              {todaySummary?.hrv_rmssd && (
-                <p className="text-xs text-gray-500 mt-0.5 font-medium">
+              {todaySummary?.hrv_rmssd ? (
+                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">
                   {getHrvLabel(todaySummary.hrv_rmssd)}
                 </p>
-              )}
-              <p className="text-sm text-gray-600 mt-1 font-medium">HRV</p>
+              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
+              <p className="text-xs text-gray-600 mt-1 font-medium">HRV</p>
             </div>
-            <div className="p-4 rounded-lg bg-gray-50">
-              <TrendingUp className="h-5 w-5 mx-auto mb-2 text-amber-500" />
-              <p className="text-2xl font-bold font-display text-gray-900">
+            <div className="p-3 rounded-lg bg-gray-50">
+              <TrendingUp className="h-4 w-4 mx-auto mb-1.5 text-amber-500" />
+              <p className="text-xl font-bold font-display text-gray-900">
                 {todaySummary?.fatigue_vas ? `${todaySummary.fatigue_vas.toFixed(1)}` : morningComplete ? '✓' : '—'}
               </p>
-              <p className="text-sm text-gray-600 mt-1 font-medium">Fatigue</p>
+              {todaySummary?.fatigue_vas ? (
+                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">
+                  {fatigueLabel(todaySummary.fatigue_vas)}
+                </p>
+              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
+              <p className="text-xs text-gray-600 mt-1 font-medium">Fatigue</p>
             </div>
-            <div className="p-4 rounded-lg bg-gray-50">
-              <Sun className="h-5 w-5 mx-auto mb-2 text-purple-500" />
-              <p className="text-2xl font-bold font-display text-gray-900">
+            <div className="p-3 rounded-lg bg-gray-50">
+              <Sun className="h-4 w-4 mx-auto mb-1.5 text-purple-500" />
+              <p className="text-xl font-bold font-display text-gray-900">
                 {todaySummary?.mood_score ? `${todaySummary.mood_score.toFixed(0)}` : '—'}
               </p>
-              <p className="text-sm text-gray-600 mt-1 font-medium">Mood</p>
+              {todaySummary?.mood_score ? (
+                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">
+                  {moodLabel(todaySummary.mood_score)}
+                </p>
+              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
+              <p className="text-xs text-gray-600 mt-1 font-medium">Mood</p>
+            </div>
+            <div className="p-3 rounded-lg" style={{ backgroundColor: prediction?.unified_disease_scores?.CVD ? getUnifiedSeverityBg(prediction.unified_disease_scores.CVD.severity) : '#f9fafb' }}>
+              <HeartPulse className="h-4 w-4 mx-auto mb-1.5" style={{ color: prediction?.unified_disease_scores?.CVD ? getUnifiedSeverityColor(prediction.unified_disease_scores.CVD.severity) : '#9ca3af' }} />
+              <p className="text-xl font-bold font-display text-gray-900">
+                {prediction?.unified_disease_scores?.CVD ? `${(prediction.unified_disease_scores.CVD.unified_score * 100).toFixed(0)}` : '—'}
+              </p>
+              {prediction?.unified_disease_scores?.CVD ? (
+                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">{prediction.unified_disease_scores.CVD.severity}</p>
+              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
+              <p className="text-xs text-gray-600 mt-1 font-medium">Cardiovascular</p>
+            </div>
+            <div className="p-3 rounded-lg" style={{ backgroundColor: prediction?.unified_disease_scores?.Infertility ? getUnifiedSeverityBg(prediction.unified_disease_scores.Infertility.severity) : '#f9fafb' }}>
+              <Target className="h-4 w-4 mx-auto mb-1.5" style={{ color: prediction?.unified_disease_scores?.Infertility ? getUnifiedSeverityColor(prediction.unified_disease_scores.Infertility.severity) : '#9ca3af' }} />
+              <p className="text-xl font-bold font-display text-gray-900">
+                {prediction?.unified_disease_scores?.Infertility ? `${(prediction.unified_disease_scores.Infertility.unified_score * 100).toFixed(0)}` : '—'}
+              </p>
+              {prediction?.unified_disease_scores?.Infertility ? (
+                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">{prediction.unified_disease_scores.Infertility.severity}</p>
+              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
+              <p className="text-xs text-gray-600 mt-1 font-medium">Infertility</p>
+            </div>
+            <div className="p-3 rounded-lg" style={{ backgroundColor: prediction?.unified_disease_scores?.T2D ? getUnifiedSeverityBg(prediction.unified_disease_scores.T2D.severity) : '#f9fafb' }}>
+              <Droplets className="h-4 w-4 mx-auto mb-1.5" style={{ color: prediction?.unified_disease_scores?.T2D ? getUnifiedSeverityColor(prediction.unified_disease_scores.T2D.severity) : '#9ca3af' }} />
+              <p className="text-xl font-bold font-display text-gray-900">
+                {prediction?.unified_disease_scores?.T2D ? `${(prediction.unified_disease_scores.T2D.unified_score * 100).toFixed(0)}` : '—'}
+              </p>
+              {prediction?.unified_disease_scores?.T2D ? (
+                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">{prediction.unified_disease_scores.T2D.severity}</p>
+              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
+              <p className="text-xs text-gray-600 mt-1 font-medium">Type 2 Diabetes</p>
+            </div>
+            <div className="p-3 rounded-lg" style={{ backgroundColor: prediction?.unified_disease_scores?.ChronicStress ? getUnifiedSeverityBg(prediction.unified_disease_scores.ChronicStress.severity) : '#f9fafb' }}>
+              <Brain className="h-4 w-4 mx-auto mb-1.5" style={{ color: prediction?.unified_disease_scores?.ChronicStress ? getUnifiedSeverityColor(prediction.unified_disease_scores.ChronicStress.severity) : '#9ca3af' }} />
+              <p className="text-xl font-bold font-display text-gray-900">
+                {prediction?.unified_disease_scores?.ChronicStress ? `${(prediction.unified_disease_scores.ChronicStress.unified_score * 100).toFixed(0)}` : '—'}
+              </p>
+              {prediction?.unified_disease_scores?.ChronicStress ? (
+                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">{prediction.unified_disease_scores.ChronicStress.severity}</p>
+              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
+              <p className="text-xs text-gray-600 mt-1 font-medium">Chronic Stress</p>
+            </div>
+            <div className="p-3 rounded-lg bg-gray-50">
+              <Frown className="h-4 w-4 mx-auto mb-1.5 text-gray-400" />
+              <p className="text-xl font-bold font-display text-gray-900">
+                {prediction?.rppg_risks?.mood?.Depression ? `${(prediction.rppg_risks.mood.Depression * 100).toFixed(0)}` : '—'}
+              </p>
+              {prediction?.rppg_risks?.mood?.Depression ? (
+                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">
+                  {riskSeverityLabel(prediction.rppg_risks.mood.Depression)}
+                </p>
+              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
+              <p className="text-xs text-gray-600 mt-1 font-medium">Depression</p>
             </div>
           </div>
 
@@ -1375,7 +1638,7 @@ const DashboardScreen = () => {
       </div>
 
       <nav className="sticky bottom-0 bg-white/90 backdrop-blur-lg border-t border-gray-200 px-6 py-3">
-        <div className="flex justify-around max-w-2xl mx-auto">
+        <div className="flex justify-around max-w-6xl mx-auto">
           {navItems.map((item) => (
             <button
               key={item.label}

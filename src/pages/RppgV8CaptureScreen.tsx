@@ -94,6 +94,18 @@ const RppgV8CaptureScreen = () => {
       });
     } catch (err: any) {
       console.warn('Backend save failed (results shown locally):', err);
+      // Show validation errors from Node.js
+      if (err?.errors?.length) {
+        setErrors({
+          general: 'Validation errors: ' + err.errors
+            .slice(0, 3)
+            .map((e: any) => `${e.field}: ${e.message}`)
+            .join('; ')
+            + (err.errors.length > 3 ? ` (+${err.errors.length - 3} more)` : ''),
+        });
+      } else if (err?.message) {
+        setErrors({ general: err.message });
+      }
     } finally {
       setIsLoading(false);
     }
