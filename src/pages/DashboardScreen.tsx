@@ -873,7 +873,7 @@ const DashboardScreen = () => {
       bgTint: dailyToolsComplete ? 'bg-green-50 border-green-200' : undefined,
     },
     { icon: ClipboardCheck, title: "Weekly Tools", subtitle: getWeeklyToolsSubtitle(), route: "/weekly-tools", gradient: "gradient-primary", urgent: !mfgComplete || !phq4Complete },
-    { icon: Activity, title: "Measure rPPG HRV", subtitle: "rPPG Passive Sensing(Capture Raw rPPG Signals - More 18 physiological metrics)", route: "/rppg-passive", gradient: "bg-emerald-500", urgent: false },
+    { icon: Activity, title: "Measure rPPG HRV", subtitle: "rPPG Passive Sensing (Capture Raw rPPG Signals - More than 18 physiological metrics)", route: "/rppg-passive", gradient: "bg-emerald-500", urgent: false },
     { icon: Camera, title: "Measure HRV", subtitle: "Capture heart rate variability", route: "/rppg-capture", gradient: "bg-blue-500", urgent: false },
      { icon: BarChart3, title: "Risk Trends", subtitle: "View your history", route: "/risk-trend", gradient: "gradient-clinical", urgent: false }
     
@@ -1130,16 +1130,25 @@ const DashboardScreen = () => {
                                           <span className="text-xs font-bold text-gray-900 truncate">
                                             {expandAbbreviation(key)}
                                           </span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 mt-1">
-                                          <span className="text-sm font-extrabold text-gray-900">
-                                            {score != null ? `${score.toFixed(1)}%` : '—'}
-                                          </span>
                                           <span
                                             className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white shadow-sm shrink-0"
                                             style={{ backgroundColor: getWellnessColor(sev) }}
                                           >
                                             {sev}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 mt-1">
+                                          <div className="flex-1 bg-white/70 rounded-full h-1.5 overflow-hidden shadow-inner">
+                                            <div
+                                              className="h-full rounded-full transition-all duration-500"
+                                              style={{
+                                                width: `${Math.min(100, score ?? 0)}%`,
+                                                backgroundColor: getWellnessColor(sev),
+                                              }}
+                                            />
+                                          </div>
+                                          <span className="text-xs font-extrabold text-gray-800 w-10 text-right">
+                                            {score != null ? `${score.toFixed(0)}%` : '—'}
                                           </span>
                                         </div>
                                         <div className="mt-1">
