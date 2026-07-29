@@ -32,6 +32,14 @@ const RppgV8CaptureScreen = () => {
   const [nextCaptureAt, setNextCaptureAt] = useState<number | null>(null);
 
   const [readiness, setReadiness] = useState<ReadinessState | null>(null);
+  const [showBypass, setShowBypass] = useState(false);
+
+  useEffect(() => {
+    if (!showPreview) return;
+    setShowBypass(false);
+    const timer = setTimeout(() => setShowBypass(true), 5000);
+    return () => clearTimeout(timer);
+  }, [showPreview]);
 
   useEffect(() => {
     localStorage.removeItem('nextRppgV8CaptureAt');
@@ -387,10 +395,10 @@ const RppgV8CaptureScreen = () => {
                   size="xl"
                   className="w-full"
                   onClick={handleStartCapture}
-                  disabled={isCapturing || (showPreview && readiness !== null && !readiness.allReady)}
+                  disabled={isCapturing || (showPreview && readiness !== null && !readiness.allReady && !showBypass)}
                   style={isCapturing ? {} : { backgroundColor: TEAL_PRIMARY }}
                 >
-                  {isCapturing ? "Capturing..." : showPreview && readiness && !readiness.allReady ? "Check Conditions First" : "Start Capture"}
+                  {isCapturing ? "Capturing..." : showPreview && readiness && !readiness.allReady && !showBypass ? "Check Conditions First" : showPreview && readiness && !readiness.allReady && showBypass ? "Continue Anyway" : "Start Capture"}
                 </Button>
               ) : (
                 <Button
