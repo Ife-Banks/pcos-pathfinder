@@ -147,6 +147,7 @@ const expandAbbreviation = (key: string): string => {
     'COPD': 'Chronic Obstructive Pulmonary Disease',
     'OSA': 'Obstructive Sleep Apnea',
     'NAFLD': 'Non-Alcoholic Fatty Liver Disease',
+    'Metabolic': 'Metabolic Syndrome',
     'METS': 'Metabolic Syndrome',
     'MetSyn': 'Metabolic Syndrome',
     'Stroke': 'Stroke',
@@ -899,7 +900,7 @@ const DashboardScreen = () => {
         animate={{ opacity: 1, y: 0 }}
         className="sticky top-0 z-10 bg-white/80 backdrop-blur-lg border-b border-gray-200 px-6 py-4"
       >
-        <div className="flex items-center justify-between max-w-6xl mx-auto">
+        <div className="flex items-center justify-between max-w-4xl mx-auto">
           <div className="flex items-center gap-3">
             <img src={logo} alt="AI-MSHM" className="h-10 w-10" />
             <div>
@@ -979,7 +980,7 @@ const DashboardScreen = () => {
         </div>
       </motion.header>
       <TrialBanner />
-      <div className="flex-1 px-6 py-6 max-w-6xl mx-auto w-full space-y-6">
+      <div className="flex-1 px-6 py-6 max-w-4xl mx-auto w-full space-y-6">
         {refreshing && (
           <div className="flex items-center justify-center py-2">
             <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
@@ -1095,7 +1096,7 @@ const DashboardScreen = () => {
                   const diseaseGroups: { title: string; keys: string[] }[] = [
                     { title: 'Mental Health', keys: [...wellnessKeys, 'ChronicStress', 'PMDD'] },
                     { title: 'Metabolic Health', keys: ['T2D', 'Metabolic'] },
-                    { title: 'Cardiovascular & Neurological', keys: ['CVD', 'Stroke', 'HeartFailure'] },
+                    { title: 'Cardiovascular & Neurological Health', keys: ['CVD', 'Stroke', 'HeartFailure'] },
                     { title: 'Reproductive Health', keys: ['Infertility', 'Endometrial', 'Dysmenorrhea'] },
                   ];
                   const scores = prediction.unified_disease_scores!;
@@ -1129,9 +1130,6 @@ const DashboardScreen = () => {
                                           <span className="text-xs font-bold text-gray-900 truncate">
                                             {expandAbbreviation(key)}
                                           </span>
-                                          <span className="text-[9px] font-semibold text-gray-500 bg-white/70 px-1.5 py-0.5 rounded-full shrink-0 ml-auto">
-                                            1 Health Index
-                                          </span>
                                         </div>
                                         <div className="flex items-center gap-1.5 mt-1">
                                           <span className="text-sm font-extrabold text-gray-900">
@@ -1142,6 +1140,11 @@ const DashboardScreen = () => {
                                             style={{ backgroundColor: getWellnessColor(sev) }}
                                           >
                                             {sev}
+                                          </span>
+                                        </div>
+                                        <div className="mt-1">
+                                          <span className="text-[9px] font-semibold text-gray-500 bg-white/70 px-1.5 py-0.5 rounded-full">
+                                            1 Health Index
                                           </span>
                                         </div>
                                       </div>
@@ -1172,9 +1175,6 @@ const DashboardScreen = () => {
                                           >
                                             {data.severity}
                                           </span>
-                                          <span className="text-[9px] font-semibold text-gray-500 bg-white/70 px-1.5 py-0.5 rounded-full shrink-0">
-                                            {data.contributing_models || 1} Health Indices
-                                          </span>
                                         </div>
                                         <div className="flex items-center gap-1.5 mt-1">
                                           <div className="flex-1 bg-white/70 rounded-full h-1.5 overflow-hidden shadow-inner">
@@ -1188,6 +1188,11 @@ const DashboardScreen = () => {
                                           </div>
                                           <span className="text-xs font-extrabold text-gray-800 w-10 text-right">
                                             {(data.unified_score * 100).toFixed(0)}%
+                                          </span>
+                                        </div>
+                                        <div className="mt-1">
+                                          <span className="text-[9px] font-semibold text-gray-500 bg-white/70 px-1.5 py-0.5 rounded-full">
+                                            {data.contributing_models || 1} Health Indices
                                           </span>
                                         </div>
                                       </div>
@@ -1329,7 +1334,7 @@ const DashboardScreen = () => {
                             <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-sky-100">
                               <Camera className="w-5 h-5 text-sky-600" />
                             </div>
-                            <p className="text-base font-bold text-gray-900">rPPG V8 Camera</p>
+                            <p className="text-base font-bold text-gray-900">rPPG / HRV Passive Sensing</p>
                             {prediction.rppg_v8_n_sessions != null && (
                               <span className="ml-auto text-xs font-medium text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full">
                                 {prediction.rppg_v8_n_sessions} session{prediction.rppg_v8_n_sessions !== 1 ? 's' : ''}
@@ -1638,7 +1643,7 @@ const DashboardScreen = () => {
       </div>
 
       <nav className="sticky bottom-0 bg-white/90 backdrop-blur-lg border-t border-gray-200 px-6 py-3">
-        <div className="flex justify-around max-w-6xl mx-auto">
+        <div className="flex justify-around max-w-4xl mx-auto">
           {navItems.map((item) => (
             <button
               key={item.label}
