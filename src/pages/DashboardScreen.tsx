@@ -262,32 +262,33 @@ const getWellnessBg = (severity: string): string => {
   }
 };
 
-const getDiseaseIcon = (disease: string): React.ReactNode => {
+const getDiseaseIcon = (disease: string, color?: string): React.ReactNode => {
   const iconClass = "w-5 h-5 shrink-0";
+  const c = color || '#6b7280';
   switch (disease) {
-    case 'CVD': return <Heart className={iconClass} style={{ color: '#dc2626' }} />;
-    case 'T2D': return <Droplets className={iconClass} style={{ color: '#2563eb' }} />;
-    case 'Metabolic': return <Activity className={iconClass} style={{ color: '#7c3aed' }} />;
-    case 'HeartFailure': return <HeartPulse className={iconClass} style={{ color: '#e11d48' }} />;
-    case 'ChronicStress': return <Brain className={iconClass} style={{ color: '#9333ea' }} />;
-    case 'Infertility': return <Target className={iconClass} style={{ color: '#0891b2' }} />;
-    case 'PMDD': return <Moon className={iconClass} style={{ color: '#7c3aed' }} />;
-    case 'Dysmenorrhea': return <Thermometer className={iconClass} style={{ color: '#ea580c' }} />;
-    case 'Endometrial': return <Stethoscope className={iconClass} style={{ color: '#be185d' }} />;
-    case 'Sleep_Quality': return <Moon className={iconClass} style={{ color: '#0891b2' }} />;
-    case 'Focus_Memory': return <Brain className={iconClass} style={{ color: '#7c3aed' }} />;
-    case 'Mental_Wellness': return <Heart className={iconClass} style={{ color: '#059669' }} />;
-    case 'Mood_Score': return <Sun className={iconClass} style={{ color: '#d97706' }} />;
-    case 'Anxiety': return <Smile className={iconClass} style={{ color: '#ca8a04' }} />;
-    case 'Depression': return <Frown className={iconClass} style={{ color: '#6d28d9' }} />;
-    case 'Stroke': return <Zap className={iconClass} style={{ color: '#dc2626' }} />;
-    case 'MetSyn': return <Shield className={iconClass} style={{ color: '#7c3aed' }} />;
-    case 'Infertility_Mood': return <Target className={iconClass} style={{ color: '#0891b2' }} />;
-    case 'CVD_Mood': return <Heart className={iconClass} style={{ color: '#dc2626' }} />;
-    case 'T2D_Mood': return <Droplets className={iconClass} style={{ color: '#2563eb' }} />;
-    case 'MetSyn_Mood': return <Shield className={iconClass} style={{ color: '#7c3aed' }} />;
-    case 'Stroke_Mood': return <Zap className={iconClass} style={{ color: '#dc2626' }} />;
-    default: return <Activity className={iconClass} style={{ color: '#6b7280' }} />;
+    case 'CVD': return <Heart className={iconClass} style={{ color: c }} />;
+    case 'T2D': return <Droplets className={iconClass} style={{ color: c }} />;
+    case 'Metabolic': return <Activity className={iconClass} style={{ color: c }} />;
+    case 'HeartFailure': return <HeartPulse className={iconClass} style={{ color: c }} />;
+    case 'ChronicStress': return <Brain className={iconClass} style={{ color: c }} />;
+    case 'Infertility': return <Target className={iconClass} style={{ color: c }} />;
+    case 'PMDD': return <Moon className={iconClass} style={{ color: c }} />;
+    case 'Dysmenorrhea': return <Thermometer className={iconClass} style={{ color: c }} />;
+    case 'Endometrial': return <Stethoscope className={iconClass} style={{ color: c }} />;
+    case 'Sleep_Quality': return <Moon className={iconClass} style={{ color: c }} />;
+    case 'Focus_Memory': return <Brain className={iconClass} style={{ color: c }} />;
+    case 'Mental_Wellness': return <Heart className={iconClass} style={{ color: c }} />;
+    case 'Mood_Score': return <Sun className={iconClass} style={{ color: c }} />;
+    case 'Anxiety': return <Smile className={iconClass} style={{ color: c }} />;
+    case 'Depression': return <Frown className={iconClass} style={{ color: c }} />;
+    case 'Stroke': return <Zap className={iconClass} style={{ color: c }} />;
+    case 'MetSyn': return <Shield className={iconClass} style={{ color: c }} />;
+    case 'Infertility_Mood': return <Target className={iconClass} style={{ color: c }} />;
+    case 'CVD_Mood': return <Heart className={iconClass} style={{ color: c }} />;
+    case 'T2D_Mood': return <Droplets className={iconClass} style={{ color: c }} />;
+    case 'MetSyn_Mood': return <Shield className={iconClass} style={{ color: c }} />;
+    case 'Stroke_Mood': return <Zap className={iconClass} style={{ color: c }} />;
+    default: return <Activity className={iconClass} style={{ color: c }} />;
   }
 };
 
@@ -1122,13 +1123,13 @@ const DashboardScreen = () => {
                                         borderLeftColor: getWellnessColor(sev),
                                       }}
                                     >
-                                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/80 shadow-sm shrink-0">
-                                        {getDiseaseIcon(key)}
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="text-xs font-bold text-gray-900 truncate">
-                                            {expandAbbreviation(key)}
+                                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/80 shadow-sm shrink-0">
+                                    {getDiseaseIcon(key, getWellnessColor(sev))}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-xs font-bold text-gray-900 truncate">
+                                        {expandAbbreviation(key)}
                                           </span>
                                           <span
                                             className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white shadow-sm shrink-0"
@@ -1170,43 +1171,43 @@ const DashboardScreen = () => {
                                         borderLeftColor: getDiseaseBorderColor(data.severity),
                                       }}
                                     >
-                                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/80 shadow-sm shrink-0">
-                                        {getDiseaseIcon(key)}
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="text-xs font-bold text-gray-900 truncate">
-                                            {expandAbbreviation(key)}
-                                          </span>
-                                          <span
-                                            className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white shadow-sm shrink-0"
-                                            style={{ backgroundColor: getUnifiedSeverityColor(data.severity) }}
-                                          >
-                                            {data.severity}
-                                          </span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 mt-1">
-                                          <div className="flex-1 bg-white/70 rounded-full h-1.5 overflow-hidden shadow-inner">
-                                            <div
-                                              className="h-full rounded-full transition-all duration-500"
-                                              style={{
-                                                width: `${Math.min(100, data.unified_score * 100)}%`,
-                                                backgroundColor: getUnifiedSeverityColor(data.severity),
-                                              }}
-                                            />
-                                          </div>
-                                          <span className="text-xs font-extrabold text-gray-800 w-10 text-right">
-                                            {(data.unified_score * 100).toFixed(0)}%
-                                          </span>
-                                        </div>
-                                        <div className="mt-1">
-                                          <span className="text-[9px] font-semibold text-gray-500 bg-white/70 px-1.5 py-0.5 rounded-full">
-                                            {data.contributing_models || 1} Health Indices
-                                          </span>
-                                        </div>
-                                      </div>
+                                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/80 shadow-sm shrink-0">
+                                    {getDiseaseIcon(key, getUnifiedSeverityColor(data.severity))}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-xs font-bold text-gray-900 truncate">
+                                        {expandAbbreviation(key)}
+                                      </span>
+                                      <span
+                                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white shadow-sm shrink-0"
+                                        style={{ backgroundColor: getUnifiedSeverityColor(data.severity) }}
+                                      >
+                                        {data.severity}
+                                      </span>
                                     </div>
-                                  );
+                                    <div className="flex items-center gap-1.5 mt-1">
+                                      <div className="flex-1 bg-white/70 rounded-full h-1.5 overflow-hidden shadow-inner">
+                                        <div
+                                          className="h-full rounded-full transition-all duration-500"
+                                          style={{
+                                            width: `${Math.min(100, data.unified_score * 100)}%`,
+                                            backgroundColor: getUnifiedSeverityColor(data.severity),
+                                          }}
+                                        />
+                                      </div>
+                                      <span className="text-xs font-extrabold text-gray-800 w-10 text-right">
+                                        {(data.unified_score * 100).toFixed(0)}%
+                                      </span>
+                                    </div>
+                                    <div className="mt-1">
+                                      <span className="text-[9px] font-semibold text-gray-500 bg-white/70 px-1.5 py-0.5 rounded-full">
+                                        {data.contributing_models || 1} Health Indices
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
                                 }
                                 return null;
                               })}
@@ -1295,9 +1296,11 @@ const DashboardScreen = () => {
                                   <span className="text-sm font-bold text-gray-800">Cardiovascular Disease</span>
                                 </div>
                                 <div className="font-extrabold text-lg text-blue-700">
-                                  {prediction.rppg_risks.metabolic?.CVD != null
-                                    ? `${(prediction.rppg_risks.metabolic.CVD * 100).toFixed(0)}%`
-                                    : `${prediction.rppg_status?.metabolic_cardio?.current_span_days ?? 0}/${prediction.rppg_status?.metabolic_cardio?.required_span_days ?? 30} days`}
+                                  {prediction.rppg_status?.metabolic_cardio?.status === 'pending'
+                                    ? `${prediction.rppg_status?.metabolic_cardio?.current_span_days ?? 0}/${prediction.rppg_status?.metabolic_cardio?.required_span_days ?? 30} days`
+                                    : prediction.rppg_risks.metabolic?.CVD != null
+                                      ? `${(prediction.rppg_risks.metabolic.CVD * 100).toFixed(0)}%`
+                                      : '—'}
                                 </div>
                               </div>
                               <div className="p-4 bg-blue-50 rounded-xl text-center border border-blue-100">
@@ -1306,9 +1309,11 @@ const DashboardScreen = () => {
                                   <span className="text-sm font-bold text-gray-800">Type 2 Diabetes</span>
                                 </div>
                                 <div className="font-extrabold text-lg text-blue-700">
-                                  {prediction.rppg_risks.metabolic?.T2D != null
-                                    ? `${(prediction.rppg_risks.metabolic.T2D * 100).toFixed(0)}%`
-                                    : `${prediction.rppg_status?.metabolic_cardio?.current_span_days ?? 0}/${prediction.rppg_status?.metabolic_cardio?.required_span_days ?? 30} days`}
+                                  {prediction.rppg_status?.metabolic_cardio?.status === 'pending'
+                                    ? `${prediction.rppg_status?.metabolic_cardio?.current_span_days ?? 0}/${prediction.rppg_status?.metabolic_cardio?.required_span_days ?? 30} days`
+                                    : prediction.rppg_risks.metabolic?.T2D != null
+                                      ? `${(prediction.rppg_risks.metabolic.T2D * 100).toFixed(0)}%`
+                                      : '—'}
                                 </div>
                               </div>
                               <div className="p-4 bg-indigo-50 rounded-xl text-center border border-indigo-100">
