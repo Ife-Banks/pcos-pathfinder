@@ -176,7 +176,7 @@ const AboutScreen = () => {
       </section>
 
       {/* Team */}
-      <section className="py-16 bg-gray-50">
+      {/* <section className="py-16 bg-gray-50">
         <div className="max-w-[1100px] mx-auto px-6">
           <h2 className="text-3xl font-bold font-display text-gray-900 text-center mb-4">Meet Our Team</h2>
           <p className="text-gray-600 text-center max-w-2xl mx-auto mb-12">
@@ -206,7 +206,7 @@ const AboutScreen = () => {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Contact */}
       <section className="py-16 bg-teal-900 text-white">
@@ -228,7 +228,7 @@ const AboutScreen = () => {
               </div>
               <div>
                 <h3 className="font-semibold mb-1">Call Us</h3>
-                <p className="text-teal-200">+234 812 345 6789</p>
+                <p className="text-teal-200">+234 812 952 4692</p>
               </div>
             </div>
             <div className="flex items-start gap-4">
