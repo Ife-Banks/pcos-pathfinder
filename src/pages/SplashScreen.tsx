@@ -78,7 +78,7 @@ const SplashScreen = () => {
         </div>
 
         <div>
-          <h1 className="text-3xl font-bold font-display">AI-MSHM</h1>
+          <h1 className="text-3xl font-bold font-display">AIMHER Health</h1>
           <p className="text-sm text-muted-foreground">
             Metabolic &amp; Syndromic Health Monitor
           </p>
