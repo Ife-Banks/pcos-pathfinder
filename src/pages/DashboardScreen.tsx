@@ -741,7 +741,7 @@ const DashboardScreen = () => {
   };
 
   const isMale = profile?.gender === 'male';
-  const isFemale = profile ? profile.gender === 'female' : true;
+  const isFemale = profile?.gender === 'female';
 
   const getCycleStatus = (summary: MenstrualSummary): string => {
     const flags = summary.criterion_flags;

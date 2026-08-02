@@ -22,17 +22,21 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { predictionService, PredictionRecord, SHAPDriver, DiseasePrediction, ComprehensivePrediction } from "@/services/predictionService";
+import { predictionService, PredictionRecord, SHAPDriver, ComprehensivePrediction } from "@/services/predictionService";
+import {
+  expandAbbreviation,
+  getUnifiedSeverityColor,
+  getUnifiedSeverityBg,
+  getDiseaseBorderColor,
+  getWellnessColor,
+  getWellnessBg,
+  getDiseaseIcon,
+  WELLNESS_KEYS,
+  DISEASE_GROUPS,
+} from "@/utils/diseaseDisplay";
 import { toast } from "@/hooks/use-toast";
 
 const TEAL = '#00897B';
-
-const getColorForScore = (score: number) => {
-  if (score < 0.25) return '#27AE60';
-  if (score < 0.50) return '#F39C12';
-  if (score < 0.75) return '#E67E22';
-  return '#E74C3C';
-};
 
 interface TierConfig {
   max: number;
@@ -59,7 +63,6 @@ const PCOSRiskScore = () => {
   const [comprehensive, setComprehensive] = useState<ComprehensivePrediction | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showCalculation, setShowCalculation] = useState(false);
-  const [showDiseaseScores, setShowDiseaseScores] = useState(false);
 
   const safeTierConfig = prediction
     ? (TRIAGE_TIERS.find(t => t.label.toUpperCase() === (prediction.risk_tier ?? '').toUpperCase())
@@ -80,6 +83,7 @@ const PCOSRiskScore = () => {
         computed_at: data.computed_at,
         data_layers_used: data.data_layers_used,
         all_predictions: data.all_predictions,
+        shap_drivers: data.shap_drivers,
       });
 
       localStorage.setItem('latest_prediction_id', data.id);
@@ -191,57 +195,6 @@ const PCOSRiskScore = () => {
   }
 
   const TierIcon = safeTierConfig!.icon;
-
-  const modelLabels: Record<string, { name: string; color: string; bg: string; icon: string }> = {
-    symptom_intensity: { name: "Symptom Intensity", color: "#00897B", bg: "bg-teal-50", icon: "📝" },
-    menstrual: { name: "Menstrual Health", color: "#7C3AED", bg: "bg-purple-50", icon: "🩺" },
-    rppg: { name: "rPPG Camera", color: "#2563EB", bg: "bg-blue-50", icon: "📷" },
-    rppg_v8: { name: "rPPG V8", color: "#0EA5E9", bg: "bg-sky-50", icon: "📸" },
-    mood: { name: "Mood Analysis", color: "#F59E0B", bg: "bg-amber-50", icon: "🧠" },
-  };
-
-  const formatDiseaseName = (name: string) => name.replace(/_Mood/g, "").replace(/_/g, " ");
-
-  const getSeverityColor = (severity: string) => {
-    switch (severity.toLowerCase()) {
-      case "minimal": return "#27AE60";
-      case "mild": return "#F1C40F";
-      case "moderate": return "#F39C12";
-      case "severe": return "#E74C3C";
-      case "extreme": return "#C0392B";
-      default: return "#6B7280";
-    }
-  };
-
-  const renderModelPredictions = (modelKey: string, predictions: Record<string, DiseasePrediction> | undefined) => {
-    if (!predictions || Object.keys(predictions).length === 0) return null;
-    const config = modelLabels[modelKey];
-    if (!config) return null;
-
-    return (
-      <div key={modelKey} className={`${config.bg} rounded-xl p-4`}>
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-lg">{config.icon}</span>
-          <h3 className="font-display font-semibold text-sm" style={{ color: config.color }}>
-            {config.name}
-          </h3>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          {Object.entries(predictions).slice(0, 6).map(([disease, pred]) => (
-            <div key={disease} className="bg-white/80 rounded-lg p-2">
-              <p className="text-xs text-gray-900 font-medium truncate">{formatDiseaseName(disease)}</p>
-              <div className="flex items-center justify-between mt-1">
-                <span className="text-sm font-bold" style={{ color: getSeverityColor(pred.severity) }}>
-                  {(pred.risk_score * 100).toFixed(0)}%
-                </span>
-                <span className="text-[10px] font-medium text-gray-900">{pred.severity}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -399,46 +352,127 @@ const PCOSRiskScore = () => {
           </motion.div>
         )}
 
-        {/* Per-Disease Scores */}
-        {comprehensive?.per_disease_scores && Object.keys(comprehensive.per_disease_scores).length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-            <button 
-              onClick={() => setShowDiseaseScores(!showDiseaseScores)}
-              className="w-full flex items-center justify-between mb-3"
-            >
-              <h2 className="font-display font-semibold text-xs text-gray-900 uppercase tracking-wider">
-                All Disease Scores
-              </h2>
-              {showDiseaseScores ? <ChevronUp className="w-4 h-4 text-gray-900" /> : <ChevronDown className="w-4 h-4 text-gray-900" />}
-            </button>
-            
-            {showDiseaseScores && (
-              <Card className="border border-gray-300 mb-4">
-                <CardContent className="p-4">
-                  <div className="space-y-3">
-                    {Object.entries(comprehensive.per_disease_scores).map(([disease, diseaseScore]) => {
-                      const color = getColorForScore(diseaseScore);
+        {/* Downstream Diseases Risk Prediction — Unified */}
+        {comprehensive && (comprehensive.unified_disease_scores || comprehensive.all_predictions?.rppg_v8) && (() => {
+          const scores = comprehensive.unified_disease_scores || {};
+          const v8wellness = comprehensive.all_predictions?.rppg_v8 || {};
+          return (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+              <Card className="border border-gray-300">
+                <CardContent className="pt-4">
+                  <h3 className="font-display font-extrabold text-gray-900 mb-4 text-xl flex items-center gap-2">
+                    <AlertCircle className="w-6 h-6 text-teal-600" />
+                    Downstream Diseases Risk Prediction
+                  </h3>
+                  <div className="mb-5 space-y-6">
+                    {DISEASE_GROUPS.map(group => {
+                      const items = group.keys.filter(k => scores[k] || v8wellness[k]).map(k => ({ key: k, data: scores[k], w: v8wellness[k] }));
+                      if (items.length === 0) return null;
                       return (
-                        <div key={disease} className="flex items-center gap-3">
-                          <span className="text-sm font-medium text-gray-700 w-32">{disease}</span>
-                          <div className="flex-1 bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="h-2 rounded-full transition-all"
-                              style={{ width: `${diseaseScore * 100}%`, backgroundColor: color }}
-                            />
+                        <div key={group.title}>
+                          <h4 className="text-sm font-extrabold text-gray-800 uppercase tracking-wider mb-3">{group.title}</h4>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {items.map(({ key, data, w }) => {
+                              if (w) {
+                                const score = w.raw_score ?? (w.risk_score != null ? w.risk_score * 100 : null);
+                                const sev = w.severity || 'Moderate';
+                                return (
+                                  <div
+                                    key={key}
+                                    className="flex items-center gap-2 p-3 rounded-xl border-l-4 shadow-sm"
+                                    style={{
+                                      backgroundColor: getWellnessBg(sev),
+                                      borderLeftColor: getWellnessColor(sev),
+                                    }}
+                                  >
+                                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/80 shadow-sm shrink-0">
+                                      {getDiseaseIcon(key, getWellnessColor(sev))}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-xs font-bold text-gray-900 truncate">{expandAbbreviation(key)}</span>
+                                        <span
+                                          className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white shadow-sm shrink-0"
+                                          style={{ backgroundColor: getWellnessColor(sev) }}
+                                        >
+                                          {sev}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-1.5 mt-1">
+                                        <div className="flex-1 bg-white/70 rounded-full h-1.5 overflow-hidden shadow-inner">
+                                          <div
+                                            className="h-full rounded-full transition-all duration-500"
+                                            style={{ width: `${Math.min(100, score ?? 0)}%`, backgroundColor: getWellnessColor(sev) }}
+                                          />
+                                        </div>
+                                        <span className="text-xs font-extrabold text-gray-800 w-10 text-right">
+                                          {score != null ? `${score.toFixed(0)}%` : '—'}
+                                        </span>
+                                      </div>
+                                      <div className="mt-1">
+                                        <span className="text-[9px] font-semibold text-gray-500 bg-white/70 px-1.5 py-0.5 rounded-full">
+                                          1 Health Index
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              if (data) {
+                                return (
+                                  <div
+                                    key={key}
+                                    className="flex items-center gap-2 p-3 rounded-xl border-l-4 shadow-sm"
+                                    style={{
+                                      backgroundColor: getUnifiedSeverityBg(data.severity),
+                                      borderLeftColor: getDiseaseBorderColor(data.severity),
+                                    }}
+                                  >
+                                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/80 shadow-sm shrink-0">
+                                      {getDiseaseIcon(key, getUnifiedSeverityColor(data.severity))}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-xs font-bold text-gray-900 truncate">{expandAbbreviation(key)}</span>
+                                        <span
+                                          className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white shadow-sm shrink-0"
+                                          style={{ backgroundColor: getUnifiedSeverityColor(data.severity) }}
+                                        >
+                                          {data.severity}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-1.5 mt-1">
+                                        <div className="flex-1 bg-white/70 rounded-full h-1.5 overflow-hidden shadow-inner">
+                                          <div
+                                            className="h-full rounded-full transition-all duration-500"
+                                            style={{ width: `${Math.min(100, data.unified_score * 100)}%`, backgroundColor: getUnifiedSeverityColor(data.severity) }}
+                                          />
+                                        </div>
+                                        <span className="text-xs font-extrabold text-gray-800 w-10 text-right">
+                                          {(data.unified_score * 100).toFixed(0)}%
+                                        </span>
+                                      </div>
+                                      <div className="mt-1">
+                                        <span className="text-[9px] font-semibold text-gray-500 bg-white/70 px-1.5 py-0.5 rounded-full">
+                                          {data.contributing_models || 1} Health Indices
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })}
                           </div>
-                          <span className="text-sm font-semibold w-12 text-right" style={{ color }}>
-                            {(diseaseScore * 100).toFixed(0)}%
-                          </span>
                         </div>
                       );
                     })}
                   </div>
                 </CardContent>
               </Card>
-            )}
-          </motion.div>
-        )}
+            </motion.div>
+          );
+        })()}
 
         {/* Clinical Rules Triggered */}
         {comprehensive?.clinical_rules_applied && comprehensive.clinical_rules_applied.length > 0 && (
@@ -506,37 +540,6 @@ const PCOSRiskScore = () => {
                   )}
                 </CardContent>
               </Card>
-            )}
-          </motion.div>
-        )}
-
-        {/* All 4 Models Section */}
-        {prediction.all_predictions && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-            <h2 className="font-display font-semibold text-xs text-gray-900 uppercase tracking-wider mb-3">
-              Prediction Models
-            </h2>
-            <div className="space-y-3">
-              {renderModelPredictions("symptom_intensity", prediction.all_predictions.symptom_intensity)}
-              {renderModelPredictions("menstrual", prediction.all_predictions.menstrual)}
-              {renderModelPredictions("rppg", prediction.all_predictions.rppg)}
-              {renderModelPredictions("mood", prediction.all_predictions.mood)}
-            </div>
-            {prediction.data_layers_used && prediction.data_layers_used.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {prediction.data_layers_used.map((layer) => (
-                  <span
-                    key={layer}
-                    className="text-[10px] px-2 py-1 rounded-full font-medium"
-                    style={{
-                      backgroundColor: modelLabels[layer]?.bg || "#F3F4F6",
-                      color: modelLabels[layer]?.color || "#6B7280"
-                    }}
-                  >
-                    {modelLabels[layer]?.icon} {modelLabels[layer]?.name || layer}
-                  </span>
-                ))}
-              </div>
             )}
           </motion.div>
         )}
