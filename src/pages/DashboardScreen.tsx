@@ -1111,7 +1111,7 @@ const DashboardScreen = () => {
                             <h4 className="text-sm font-extrabold text-gray-800 uppercase tracking-wider mb-3">{group.title}</h4>
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                               {items.map(({ key, data, w }) => {
-                                if (w) {
+                                if (w && wellnessKeys.includes(key)) {
                                   const score = w.raw_score ?? (w.risk_score != null ? w.risk_score * 100 : null);
                                   const sev = w.severity || 'Moderate';
                                   return (
