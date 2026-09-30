@@ -342,7 +342,7 @@ const WelcomeScreen = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                <span className="px-4 py-1.5 bg-primary/20 text-primary text-sm font-medium rounded-full backdrop-blur-sm">
+                <span className="px-4 py-1.5 bg-green-500/20 text-green-300 text-sm font-medium rounded-full backdrop-blur-sm">
                   PMHRS
                 </span>
                 <span className="px-4 py-1.5 bg-blue-500/20 text-blue-300 text-sm font-medium rounded-full backdrop-blur-sm">

@@ -29,7 +29,6 @@ const STTHLayout = ({ children }: STTHLayoutProps) => {
     { label: 'Dashboard', icon: LayoutDashboard, path: '/stth/dashboard', key: 'dashboard' },
     { label: 'Patients', icon: Users, path: '/stth/patients', key: 'patients' },
     { label: 'Referrals', icon: Building2, path: '/stth/referrals', key: 'referrals' },
-    { label: 'Referrals', icon: Building2, path: '/stth/referrals', key: 'referrals' },
     { label: 'Consultation', icon: FileText, path: '/stth/consultation', key: 'consultation' },
     { label: 'Treatments', icon: Pill, path: '/stth/treatments', key: 'treatments' },
     { label: 'Diagnostics', icon: Activity, path: '/stth/diagnostics', key: 'diagnostics' },

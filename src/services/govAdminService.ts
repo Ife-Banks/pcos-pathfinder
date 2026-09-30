@@ -175,4 +175,13 @@ export const govAdminAPI = {
     const res = await apiClient.get('/centers/admin/hierarchy/staff/', { params });
     return res.data;
   },
+
+  // ── Facility dropdown (for create admin form) ──────────────────────────────
+
+  getFacilitiesForDropdown: async (tier: 'sth' | 'stth'): Promise<{ data: { results: GovFacility[]; count: number } }> => {
+    const res = await apiClient.get('/centers/admin/hierarchy/facilities/list/', {
+      params: { tier, page_size: 100 },
+    });
+    return res.data;
+  },
 };

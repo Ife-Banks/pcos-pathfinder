@@ -194,12 +194,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return '/system-admin/dashboard';
     }
     
-    // Gov admin roles (lga_admin, state_admin, sth_admin, stth_admin) → gov-admin portal
-    if (['lga_admin', 'state_admin', 'sth_admin', 'stth_admin'].includes(user.role)) {
+    // Gov admin roles (lga_admin, state_admin) → gov-admin portal
+    if (['lga_admin', 'state_admin'].includes(user.role)) {
       return '/gov-admin/dashboard';
     }
 
-    if (!['clinician', 'patient', 'fhc_staff', 'fhc_admin', 'hcc_staff', 'hcc_admin', 'lga_admin', 'state_admin', 'sth_admin', 'stth_admin'].includes(user.role)) return '/role-mismatch';
+    // STH roles → STH portal
+    if (['sth_admin', 'sth_staff'].includes(user.role)) {
+      return '/sth/dashboard';
+    }
+
+    // STTH roles → STTH portal
+    if (['stth_admin', 'stth_staff'].includes(user.role)) {
+      return '/stth/dashboard';
+    }
+
+    if (!['clinician', 'patient', 'fhc_staff', 'fhc_admin', 'hcc_staff', 'hcc_admin', 'lga_admin', 'state_admin', 'sth_admin', 'sth_staff', 'stth_admin', 'stth_staff'].includes(user.role)) return '/role-mismatch';
     
     // FMC roles
     if (user.role === 'fhc_staff' || user.role === 'fhc_admin') {

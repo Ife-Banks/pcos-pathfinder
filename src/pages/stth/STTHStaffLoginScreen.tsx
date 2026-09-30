@@ -191,10 +191,10 @@ const STTHStaffLoginScreen = () => {
                 Forgot Password?
               </button>
               <div className="text-sm text-gray-600">
-                FMC staff instead?{' '}
+                PHC staff instead?{' '}
                 <button
                   type="button"
-                  onClick={() => navigate('/fmc/login')}
+                  onClick={() => navigate('/phc/login')}
                   className="text-[#0891B2] hover:underline font-medium"
                 >
                   Sign in here

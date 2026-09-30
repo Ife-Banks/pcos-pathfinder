@@ -58,6 +58,11 @@ apiClient.interceptors.response.use(
 
     const originalRequest = error.config;
 
+    // Skip 401 interceptor for login endpoints — let the caller handle auth errors
+    if (originalRequest.url?.includes('/auth/login/')) {
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -117,7 +122,11 @@ apiClient.interceptors.response.use(
         );
 
         const currentPath = window.location.pathname;
-        if (currentPath.startsWith('/clinician')) {
+        if (currentPath.startsWith('/system-admin') || currentPath.startsWith('/admin')) {
+          window.location.href = '/system-admin/login';
+        } else if (currentPath.startsWith('/gov-admin')) {
+          window.location.href = '/gov-admin/login';
+        } else if (currentPath.startsWith('/clinician')) {
           window.location.href = '/clinician/login';
         } else if (currentPath.startsWith('/fmc')) {
           window.location.href = '/fmc/login';
