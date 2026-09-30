@@ -27,15 +27,31 @@ const SHAPExplanationDetail = () => {
         setPredictionId(storedId);
         try {
           const featuresRes = await predictionService.getFeatures(storedId);
-          setFeatures(featuresRes.data.features ?? []);
-          return;
-        } catch (featuresErr: any) {
-          // If features endpoint returns 404, features aren't available for this prediction type
-          if (featuresErr?.status === 404) {
-            setFeatures([]);
+          const feats = featuresRes.data.features ?? [];
+          if (feats.length > 0) {
+            setFeatures(feats);
             return;
           }
-          throw featuresErr;
+        } catch (featuresErr: any) {
+          // If features endpoint returns 404, features aren't available for this prediction type
+          if (featuresErr?.status !== 404) throw featuresErr;
+        }
+      }
+
+      // Fallback: features from the latest comprehensive prediction
+      try {
+        const comp = (await predictionService.getComprehensive()).data;
+        if (comp?.id) {
+          localStorage.setItem('latest_prediction_id', comp.id);
+          setPredictionId(comp.id);
+          const featuresRes = await predictionService.getFeatures(comp.id);
+          setFeatures(featuresRes.data.features ?? []);
+          return;
+        }
+      } catch (compErr: any) {
+        if (compErr?.status === 401) throw compErr;
+        if (compErr?.status !== 404) {
+          console.error('No comprehensive feature data available:', compErr);
         }
       }
 
@@ -45,16 +61,8 @@ const SHAPExplanationDetail = () => {
       localStorage.setItem('latest_prediction_id', id);
       setPredictionId(id);
       
-      try {
-        const featuresRes = await predictionService.getFeatures(id);
-        setFeatures(featuresRes.data.features ?? []);
-      } catch (featuresErr: any) {
-        if (featuresErr?.status === 404) {
-          setFeatures([]);
-        } else {
-          throw featuresErr;
-        }
-      }
+      const featuresRes = await predictionService.getFeatures(id);
+      setFeatures(featuresRes.data.features ?? []);
     } catch (err: any) {
       if (err?.status === 401) {
         localStorage.removeItem('access_token');
@@ -150,7 +158,7 @@ const SHAPExplanationDetail = () => {
           <div className="text-6xl mb-4">📋</div>
           <h2 className="text-lg font-bold text-gray-900 mb-2">Feature Details Coming Soon</h2>
           <p className="text-sm text-gray-500 max-w-xs">
-            {error || 'SHAP feature breakdowns are being integrated with the new comprehensive prediction system.'}
+            {error || 'No feature data is available yet. Run a new assessment to generate your score breakdown.'}
           </p>
           <Button
             onClick={() => navigate('/risk-score')}

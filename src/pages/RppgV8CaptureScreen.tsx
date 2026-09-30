@@ -32,6 +32,14 @@ const RppgV8CaptureScreen = () => {
   const [nextCaptureAt, setNextCaptureAt] = useState<number | null>(null);
 
   const [readiness, setReadiness] = useState<ReadinessState | null>(null);
+  const [showBypass, setShowBypass] = useState(false);
+
+  useEffect(() => {
+    if (!showPreview) return;
+    setShowBypass(false);
+    const timer = setTimeout(() => setShowBypass(true), 5000);
+    return () => clearTimeout(timer);
+  }, [showPreview]);
 
   useEffect(() => {
     localStorage.removeItem('nextRppgV8CaptureAt');
@@ -94,6 +102,18 @@ const RppgV8CaptureScreen = () => {
       });
     } catch (err: any) {
       console.warn('Backend save failed (results shown locally):', err);
+      // Show validation errors from Node.js
+      if (err?.errors?.length) {
+        setErrors({
+          general: 'Validation errors: ' + err.errors
+            .slice(0, 3)
+            .map((e: any) => `${e.field}: ${e.message}`)
+            .join('; ')
+            + (err.errors.length > 3 ? ` (+${err.errors.length - 3} more)` : ''),
+        });
+      } else if (err?.message) {
+        setErrors({ general: err.message });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -159,7 +179,7 @@ const RppgV8CaptureScreen = () => {
                 </div>
                 <div className="bg-gray-50 rounded-xl p-3 text-center">
                   <p className="text-xs text-gray-500">RMSSD</p>
-                  <p className="text-xl font-bold text-gray-900">{p.rmssd.toFixed(1)}</p>
+                  <p className="text-xl font-bold text-gray-900">{p.rmssd > 0 ? p.rmssd.toFixed(1) : '--'}</p>
                   <p className="text-[10px] text-gray-400">ms</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-3 text-center">
@@ -179,12 +199,12 @@ const RppgV8CaptureScreen = () => {
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-gray-50 rounded-xl p-3 text-center">
                   <p className="text-xs text-gray-500">HF Power</p>
-                  <p className="text-lg font-bold text-gray-900">{p.hf?.toFixed(1) ?? '--'}</p>
+                  <p className="text-lg font-bold text-gray-900">{p.hf > 0 ? p.hf.toFixed(1) : '--'}</p>
                   <p className="text-[10px] text-gray-400">ms²</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-3 text-center">
                   <p className="text-xs text-gray-500">LF/HF</p>
-                  <p className="text-lg font-bold text-gray-900">{p.lf_hf_ratio?.toFixed(2) ?? '--'}</p>
+                  <p className="text-lg font-bold text-gray-900">{p.lf_hf_ratio > 0 ? p.lf_hf_ratio.toFixed(2) : '--'}</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-3 text-center">
                   <p className="text-xs text-gray-500">Resp Rate</p>
@@ -375,10 +395,10 @@ const RppgV8CaptureScreen = () => {
                   size="xl"
                   className="w-full"
                   onClick={handleStartCapture}
-                  disabled={isCapturing || (showPreview && readiness !== null && !readiness.allReady)}
+                  disabled={isCapturing || (showPreview && readiness !== null && !readiness.allReady && !showBypass)}
                   style={isCapturing ? {} : { backgroundColor: TEAL_PRIMARY }}
                 >
-                  {isCapturing ? "Capturing..." : showPreview && readiness && !readiness.allReady ? "Check Conditions First" : "Start Capture"}
+                  {isCapturing ? "Capturing..." : showPreview && readiness && !readiness.allReady && !showBypass ? "Check Conditions First" : showPreview && readiness && !readiness.allReady && showBypass ? "Continue Anyway" : "Start Capture"}
                 </Button>
               ) : (
                 <Button

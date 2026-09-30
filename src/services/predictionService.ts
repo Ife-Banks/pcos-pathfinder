@@ -26,7 +26,15 @@ export interface ModelPredictions {
   symptom_intensity?: Record<string, DiseasePrediction>;
   menstrual?: Record<string, DiseasePrediction>;
   rppg?: Record<string, DiseasePrediction>;
+  rppg_v8?: Record<string, any>;
   mood?: Record<string, DiseasePrediction>;
+}
+
+export interface UnifiedDiseaseScore {
+  unified_score: number;
+  severity: string;
+  contributing_models: number;
+  model_contributions?: Record<string, { score: number; weight: number }>;
 }
 
 export interface PredictionRecord {
@@ -48,10 +56,14 @@ export interface ComprehensivePrediction {
   risk_tier: string;
   pcos_specific_score?: number;
   per_disease_scores?: Record<string, number>;
+  unified_disease_scores?: Record<string, UnifiedDiseaseScore>;
+  feature_contributions?: SHAPFeature[];
+  shap_drivers?: SHAPDriver[];
   all_predictions: {
     symptom: Record<string, DiseasePrediction>;
     menstrual: Record<string, DiseasePrediction>;
     rppg: Record<string, DiseasePrediction>;
+    rppg_v8?: Record<string, any>;
     mood: Record<string, DiseasePrediction>;
   };
   data_layers_used: string[];

@@ -180,7 +180,7 @@ const WelcomeScreen = () => {
 
   const scrollMarquee = (direction: "left" | "right") => {
     if (marqueeRef.current) {
-      const scrollAmount = 240;
+      const scrollAmount = 244;
       marqueeRef.current.scrollBy({
         left: direction === "left" ? -scrollAmount : scrollAmount,
         behavior: "smooth",
@@ -258,10 +258,11 @@ const WelcomeScreen = () => {
 
           {/* Mobile Menu Toggle */}
           <button
-            className="md:hidden p-2 hover:bg-muted rounded-lg transition-colors"
+            aria-label="Toggle menu"
+            className="md:hidden flex items-center justify-center w-11 h-11 rounded-full border border-white/40 bg-white/15 text-white shadow-md backdrop-blur-sm hover:bg-white/25 active:scale-95 transition-all"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
-            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </nav>
 
@@ -283,14 +284,14 @@ const WelcomeScreen = () => {
                   <button
                     key={item.id}
                     onClick={() => { scrollToSection(item.id); setIsMobileMenuOpen(false); }}
-                    className="block w-full text-left py-2 text-sm font-medium text-gray-700 hover:text-white"
+                    className="block w-full text-left py-2 text-sm font-medium text-gray-700 hover:text-primary"
                   >
                     {item.label}
                   </button>
                 ))}
                 <button
                   onClick={() => { navigate("/about"); setIsMobileMenuOpen(false); }}
-                  className="block w-full text-left py-2 text-sm font-medium text-gray-700 hover:text-white"
+                  className="block w-full text-left py-2 text-sm font-medium text-gray-700 hover:text-primary"
                 >
                   About
                 </button>
@@ -422,22 +423,23 @@ const WelcomeScreen = () => {
             Conditions We Monitor
           </p>
           <div className="max-w-[1100px] mx-auto px-6">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4">
               <button
                 onClick={() => scrollMarquee("left")}
-                className="flex-shrink-0 p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                aria-label="Scroll conditions left"
+                className="shrink-0 w-10 h-10 md:w-11 md:h-11 flex items-center justify-center rounded-full bg-white border border-gray-200 shadow-sm text-gray-700 hover:bg-gray-100 hover:border-primary/40 hover:text-primary active:scale-95 transition-all"
               >
-                <ChevronLeft className="w-5 h-5 text-gray-600" />
+                <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
               </button>
               <div
                 ref={marqueeRef}
-                className="relative overflow-x-auto scrollbar-hide"
+                className="relative flex-1 min-w-0 overflow-x-auto scrollbar-hide snap-x snap-mandatory md:snap-none scroll-smooth"
               >
                 <div className="flex gap-6 animate-marquee">
                   {[...conditions, ...conditions].map((condition, idx) => (
                     <div
                       key={`${condition.name}-${idx}`}
-                      className="flex-shrink-0 w-[220px] bg-white rounded-xl p-5 border-2 border-gray-200 hover:border-primary/60 hover:shadow-lg transition-all cursor-pointer"
+                      className="flex-shrink-0 w-[220px] snap-start bg-white rounded-xl p-5 border-2 border-gray-200 hover:border-primary/60 hover:shadow-lg transition-all cursor-pointer"
                     >
                       <div className="mb-3">{condition.icon}</div>
                       <h3 className="font-extrabold text-black text-lg mb-1">{condition.name}</h3>
@@ -448,9 +450,10 @@ const WelcomeScreen = () => {
               </div>
               <button
                 onClick={() => scrollMarquee("right")}
-                className="flex-shrink-0 p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                aria-label="Scroll conditions right"
+                className="shrink-0 w-10 h-10 md:w-11 md:h-11 flex items-center justify-center rounded-full bg-white border border-gray-200 shadow-sm text-gray-700 hover:bg-gray-100 hover:border-primary/40 hover:text-primary active:scale-95 transition-all"
               >
-                <ChevronRight className="w-5 h-5 text-gray-600" />
+                <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
               </button>
             </div>
           </div>
@@ -497,8 +500,8 @@ const WelcomeScreen = () => {
                         </div>
                       )}
                     </div>
-                    <h3 className="font-bold text-lg text-white mb-1">{feature.title}</h3>
-                    <p className="text-lg text-gray-700 leading-relaxed">{feature.desc}</p>
+                    <h3 className="font-bold text-lg text-black mb-1">{feature.title}</h3>
+                    <p className="text-base md:text-lg text-gray-700 leading-relaxed">{feature.desc}</p>
                   </motion.div>
                 ))}
               </div>
@@ -775,7 +778,7 @@ const WelcomeScreen = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <Phone className="w-4 h-4" />
-                    <span>+234 812 942 4692</span>
+                    <span>+234 812 9524 692</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <MapPin className="w-4 h-4 mt-0.5" />

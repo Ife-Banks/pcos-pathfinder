@@ -144,6 +144,11 @@
   .animate-marquee:hover {
     animation-play-state: paused;
   }
+  @media (max-width: 767px) {
+    .animate-marquee {
+      animation: none;
+    }
+  }
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;

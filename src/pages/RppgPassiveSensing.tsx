@@ -335,7 +335,7 @@ const RppgPassiveSensing = () => {
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl border border-gray-200 p-5">
                 <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                   <BarChart3 className="w-4 h-4" style={{ color: TEAL_PRIMARY }} />
-                  Regression Scores
+                  Downstream Health Outcomes
                 </h2>
                 <div className="space-y-3">
                   {Object.entries(predictions.regression ?? {}).map(([target, result]) => {

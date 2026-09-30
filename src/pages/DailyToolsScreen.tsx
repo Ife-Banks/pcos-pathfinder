@@ -72,7 +72,7 @@ const DailyToolsScreen = () => {
       id: "phq4",
       title: "Mental Wellness",
       subtitle: "How have you been feeling emotionally?",
-      description: "Answer 4 quick questions about your mood and anxiety over the past week.",
+      description: "Answer 4 quick questions about your mood and anxiety over the past few hours.",
       icon: Brain,
       route: "/weekly-tools/mental-wellness",
       gradient: "bg-emerald-500",

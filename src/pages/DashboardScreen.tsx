@@ -4,7 +4,8 @@ import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Sun, Moon, Activity, TrendingUp, Calendar, AlertCircle, MessageCircle,
-  ChevronRight, Bell, User, Heart, BarChart3, ClipboardCheck, Loader2, Check, Camera, LogOut, Wrench, Timer
+  ChevronRight, ChevronDown, ChevronUp, Bell, User, Heart, BarChart3, ClipboardCheck, Loader2, Check, Camera, LogOut, Wrench, Timer,
+  Brain, Droplets, HeartPulse, Thermometer, Target, Zap, Smile, Frown, Shield, Stethoscope, Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/context/NotificationContext";
@@ -58,13 +59,23 @@ const getGreeting = () => {
   return "Good morning";
 };
 
-  const getDaysSince = (dateStr: string) => {
+  const getRelativeTime = (dateStr: string): string | null => {
   if (!dateStr || dateStr === "") return null;
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) return null;
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
-  return Math.floor(diffMs / 86400000);
+  if (diffMs < 0) return 'just now';
+  const seconds = Math.floor(diffMs / 1000);
+  if (seconds < 60) return `${seconds} sec${seconds !== 1 ? 's' : ''} ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min${minutes !== 1 ? 's' : ''} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hr${hours !== 1 ? 's' : ''} ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} day${days !== 1 ? 's' : ''} ago`;
+  const months = Math.floor(days / 30);
+  return `${months} month${months !== 1 ? 's' : ''} ago`;
 };
 
 const getCompletenessColor = (pct: number) => {
@@ -136,10 +147,15 @@ const expandAbbreviation = (key: string): string => {
     'COPD': 'Chronic Obstructive Pulmonary Disease',
     'OSA': 'Obstructive Sleep Apnea',
     'NAFLD': 'Non-Alcoholic Fatty Liver Disease',
+    'Metabolic': 'Metabolic Syndrome',
     'METS': 'Metabolic Syndrome',
     'MetSyn': 'Metabolic Syndrome',
     'Stroke': 'Stroke',
     'HF': 'Heart Failure',
+    'HeartFailure': 'Heart Failure',
+    'ChronicStress': 'Chronic Stress',
+    'Endometrial': 'Endometrial Cancer',
+    'Infertility_Mood': 'Infertility',
     'PAD': 'Peripheral Arterial Disease',
     'AF': 'Atrial Fibrillation',
     'MI': 'Myocardial Infarction',
@@ -154,7 +170,6 @@ const expandAbbreviation = (key: string): string => {
     'Stroke_Mood': 'Stroke',
     'Anxiety': 'Anxiety',
     'Depression': 'Depression',
-    'ChronicStress': 'Chronic Stress',
     'Insomnia': 'Insomnia',
     'Bipolar': 'Bipolar Disorder',
     'Schizophrenia': 'Schizophrenia',
@@ -180,6 +195,16 @@ const expandAbbreviation = (key: string): string => {
     'VD': 'Volume of Distribution',
     'CL': 'Clearance',
     'F': 'Bioavailability',
+    'Cardiovascular_Disease': 'Cardiovascular Disease',
+    'Type_2_Diabetes': 'Type 2 Diabetes',
+    'Metabolic_Syndrome': 'Metabolic Syndrome',
+    'Heart_Failure': 'Heart Failure',
+    'Chronic_Stress': 'Chronic Stress',
+    'Infertility': 'Infertility',
+    'Sleep_Quality': 'Sleep Quality',
+    'Focus_Memory': 'Focus & Memory',
+    'Mental_Wellness': 'Mental Wellness',
+    'Mood_Score': 'Mood Check',
   };
   return mapping[key] || key.replace(/_/g, ' ');
 };
@@ -191,6 +216,112 @@ const getHrvLabel = (rmssd: number): string => {
   if (rmssd >= 20) return 'Low';
   if (rmssd >= 10) return 'Very Low';
   return 'Extremely Low';
+};
+
+const getUnifiedSeverityColor = (severity: string): string => {
+  switch (severity) {
+    case 'Extreme': return '#dc2626';
+    case 'Severe': return '#ea580c';
+    case 'Moderate': return '#d97706';
+    case 'Mild': return '#2563eb';
+    case 'Minimal': return '#16a34a';
+    default: return '#6b7280';
+  }
+};
+
+const getUnifiedSeverityBg = (severity: string): string => {
+  switch (severity) {
+    case 'Extreme': return '#fef2f2';
+    case 'Severe': return '#fff7ed';
+    case 'Moderate': return '#fffbeb';
+    case 'Mild': return '#eff6ff';
+    case 'Minimal': return '#f0fdf4';
+    default: return '#f9fafb';
+  }
+};
+
+const getWellnessColor = (severity: string): string => {
+  switch (severity) {
+    case 'Excellent': return '#16a34a';
+    case 'Good': return '#0d9488';
+    case 'Moderate': return '#d97706';
+    case 'Below Average': return '#ea580c';
+    case 'Poor': return '#dc2626';
+    default: return '#6b7280';
+  }
+};
+
+const getWellnessBg = (severity: string): string => {
+  switch (severity) {
+    case 'Excellent': return '#f0fdf4';
+    case 'Good': return '#f0fdfa';
+    case 'Moderate': return '#fffbeb';
+    case 'Below Average': return '#fff7ed';
+    case 'Poor': return '#fef2f2';
+    default: return '#f9fafb';
+  }
+};
+
+const getDiseaseIcon = (disease: string, color?: string): React.ReactNode => {
+  const iconClass = "w-5 h-5 shrink-0";
+  const c = color || '#6b7280';
+  switch (disease) {
+    case 'CVD': return <Heart className={iconClass} style={{ color: c }} />;
+    case 'T2D': return <Droplets className={iconClass} style={{ color: c }} />;
+    case 'Metabolic': return <Activity className={iconClass} style={{ color: c }} />;
+    case 'HeartFailure': return <HeartPulse className={iconClass} style={{ color: c }} />;
+    case 'ChronicStress': return <Brain className={iconClass} style={{ color: c }} />;
+    case 'Infertility': return <Target className={iconClass} style={{ color: c }} />;
+    case 'PMDD': return <Moon className={iconClass} style={{ color: c }} />;
+    case 'Dysmenorrhea': return <Thermometer className={iconClass} style={{ color: c }} />;
+    case 'Endometrial': return <Stethoscope className={iconClass} style={{ color: c }} />;
+    case 'Sleep_Quality': return <Moon className={iconClass} style={{ color: c }} />;
+    case 'Focus_Memory': return <Brain className={iconClass} style={{ color: c }} />;
+    case 'Mental_Wellness': return <Heart className={iconClass} style={{ color: c }} />;
+    case 'Mood_Score': return <Sun className={iconClass} style={{ color: c }} />;
+    case 'Anxiety': return <Smile className={iconClass} style={{ color: c }} />;
+    case 'Depression': return <Frown className={iconClass} style={{ color: c }} />;
+    case 'Stroke': return <Zap className={iconClass} style={{ color: c }} />;
+    case 'MetSyn': return <Shield className={iconClass} style={{ color: c }} />;
+    case 'Infertility_Mood': return <Target className={iconClass} style={{ color: c }} />;
+    case 'CVD_Mood': return <Heart className={iconClass} style={{ color: c }} />;
+    case 'T2D_Mood': return <Droplets className={iconClass} style={{ color: c }} />;
+    case 'MetSyn_Mood': return <Shield className={iconClass} style={{ color: c }} />;
+    case 'Stroke_Mood': return <Zap className={iconClass} style={{ color: c }} />;
+    default: return <Activity className={iconClass} style={{ color: c }} />;
+  }
+};
+
+const getDiseaseBorderColor = (severity: string): string => {
+  switch (severity) {
+    case 'Extreme': return '#dc2626';
+    case 'Severe': return '#ea580c';
+    case 'Moderate': return '#d97706';
+    case 'Mild': return '#2563eb';
+    case 'Minimal': return '#16a34a';
+    default: return '#d1d5db';
+  }
+};
+
+const fatigueLabel = (v: number): string => {
+  if (v <= 3) return 'Low';
+  if (v <= 6) return 'Moderate';
+  return 'High';
+};
+
+const moodLabel = (v: number): string => {
+  if (v <= 2) return 'Normal';
+  if (v <= 5) return 'Mild';
+  if (v <= 8) return 'Moderate';
+  return 'Severe';
+};
+
+const riskSeverityLabel = (v: number): string => {
+  if (v < 0.20) return 'Minimal';
+  if (v < 0.40) return 'Mild';
+  if (v < 0.60) return 'Moderate';
+  if (v < 0.80) return 'Severe';
+  return 'Extreme';
 };
 
 const RiskGauge = ({ score }: { score?: number }) => {
@@ -308,6 +439,16 @@ interface TodaySummary {
   hrv_rmssd: number | null;
   fatigue_vas: number | null;
   mood_score: number | null;
+  cardiovascular_score?: number | null;
+  cardiovascular_severity?: string;
+  infertility_score?: number | null;
+  infertility_severity?: string;
+  t2d_score?: number | null;
+  t2d_severity?: string;
+  chronic_stress_score?: number | null;
+  chronic_stress_severity?: string;
+  depression_score?: number | null;
+  depression_severity?: string;
 }
 
 interface MenstrualSummary {
@@ -346,6 +487,7 @@ const DashboardScreen = () => {
   const [menstrualSummary, setMenstrualSummary] = useState<MenstrualSummary | null>(null);
   const [todaySummary, setTodaySummary] = useState<TodaySummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showModelDetail, setShowModelDetail] = useState(false);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const pollingAttempts = useRef(0);
 
@@ -599,7 +741,7 @@ const DashboardScreen = () => {
   };
 
   const isMale = profile?.gender === 'male';
-  const isFemale = profile ? profile.gender === 'female' : true;
+  const isFemale = profile?.gender === 'female';
 
   const getCycleStatus = (summary: MenstrualSummary): string => {
     const flags = summary.criterion_flags;
@@ -732,14 +874,14 @@ const DashboardScreen = () => {
       bgTint: dailyToolsComplete ? 'bg-green-50 border-green-200' : undefined,
     },
     { icon: ClipboardCheck, title: "Weekly Tools", subtitle: getWeeklyToolsSubtitle(), route: "/weekly-tools", gradient: "gradient-primary", urgent: !mfgComplete || !phq4Complete },
-    { icon: BarChart3, title: "Risk Trends", subtitle: "View your history", route: "/risk-trend", gradient: "gradient-clinical", urgent: false },
+    { icon: Activity, title: "Measure rPPG HRV", subtitle: "rPPG Passive Sensing (Capture Raw rPPG Signals - More than 18 physiological metrics)", route: "/rppg-passive", gradient: "bg-emerald-500", urgent: false },
     { icon: Camera, title: "Measure HRV", subtitle: "Capture heart rate variability", route: "/rppg-capture", gradient: "bg-blue-500", urgent: false },
-    { icon: Activity, title: "Passive Sensing", subtitle: "18+ physiological metrics", route: "/rppg-passive", gradient: "bg-emerald-500", urgent: false },
+     { icon: BarChart3, title: "Risk Trends", subtitle: "View your history", route: "/risk-trend", gradient: "gradient-clinical", urgent: false }
+    
   );
 
   const riskTier = prediction ? getRiskTier(prediction.risk_score) : null;
-  const predictionAge = prediction ? getDaysSince(prediction.computed_at) : null;
-  const isUpdatedToday = predictionAge === 0;
+  const predictionAge = prediction ? getRelativeTime(prediction.computed_at) : null;
   const hasValidDate = predictionAge !== null;
 
   const activeRoute = location.pathname;
@@ -759,7 +901,7 @@ const DashboardScreen = () => {
         animate={{ opacity: 1, y: 0 }}
         className="sticky top-0 z-10 bg-white/80 backdrop-blur-lg border-b border-gray-200 px-6 py-4"
       >
-        <div className="flex items-center justify-between max-w-2xl mx-auto">
+        <div className="flex items-center justify-between max-w-4xl mx-auto">
           <div className="flex items-center gap-3">
             <img src={logo} alt="AI-MSHM" className="h-10 w-10" />
             <div>
@@ -839,7 +981,7 @@ const DashboardScreen = () => {
         </div>
       </motion.header>
       <TrialBanner />
-      <div className="flex-1 px-6 py-6 max-w-2xl mx-auto w-full space-y-6">
+      <div className="flex-1 px-6 py-6 max-w-4xl mx-auto w-full space-y-6">
         {refreshing && (
           <div className="flex items-center justify-center py-2">
             <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
@@ -908,7 +1050,7 @@ const DashboardScreen = () => {
                 <h2 className="font-display font-bold text-gray-900 text-lg">{riskScoreTitle}</h2>
                 {prediction && hasValidDate && (
                   <span className="text-xs text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full font-medium">
-                    {isUpdatedToday ? 'Updated today' : `Updated ${predictionAge} day${predictionAge !== 1 ? 's' : ''} ago`}
+                    Updated {predictionAge}
                   </span>
                 )}
               </div>
@@ -933,119 +1075,359 @@ const DashboardScreen = () => {
               )}
             </motion.div>
 
-            {/* New ML Predictions Section - All 4 Models */}
-            {prediction && (prediction.symptom_intensity_risks || prediction.menstrual_risks || prediction.rppg_risks) && (
+            {/* Downstream Disease Risk Prediction — Unified */}
+            {prediction && (prediction.unified_disease_scores || prediction.symptom_intensity_risks || prediction.menstrual_risks || prediction.rppg_risks) && (
+              <>
+              {(() => { console.log('[Dashboard] prediction keys:', Object.keys(prediction)); console.log('[Dashboard] unified_disease_scores:', prediction.unified_disease_scores); console.log('[Dashboard] risk_score:', prediction.risk_score, 'risk_tier:', prediction.risk_tier); return null; })()}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
                 className="bg-white rounded-2xl border border-gray-200 p-4"
               >
-                <h3 className="font-display font-bold text-gray-900 mb-3 text-base">Downstream Disease Risk Prediction</h3>
+                <h3 className="font-display font-extrabold text-gray-900 mb-4 text-xl flex items-center gap-2">
+                  <AlertCircle className="w-6 h-6 text-teal-600" />
+                  Downstream Diseases Risk Prediction
+                </h3>
 
-                <div className="space-y-4">
-                  {/* 1. Symptom Intensity */}
-                  {prediction.symptom_intensity_risks && (
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm">📝</span>
-                        <p className="text-sm font-semibold text-gray-800">Symptom Intensity</p>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2 text-sm">
-                        {Object.entries(prediction.symptom_intensity_risks).map(([key, value]) => (
-                          <div key={key} className="text-center p-3 bg-teal-50 rounded-lg">
-                            <div className="font-semibold text-gray-800">{expandAbbreviation(key)}</div>
-                            <div className="text-teal-700 font-bold mt-1">{(value * 100).toFixed(0)}%</div>
+                {/* Unified per-disease scores — grouped grid */}
+                {prediction.unified_disease_scores && Object.keys(prediction.unified_disease_scores).length > 0 && (() => {
+                  const wellnessKeys = ['Sleep_Quality', 'Focus_Memory', 'Mental_Wellness', 'Mood_Score'];
+                  const v8wellness = prediction.rppg_v8_risks || {};
+                  const diseaseGroups: { title: string; keys: string[] }[] = [
+                    { title: 'Mental Health', keys: [...wellnessKeys, 'Anxiety', 'Depression', 'ChronicStress', 'PMDD'] },
+                    { title: 'Metabolic Health', keys: ['T2D', 'Metabolic'] },
+                    { title: 'Cardiovascular & Neurological Health', keys: ['CVD', 'Stroke', 'HeartFailure'] },
+                    { title: 'Reproductive Health', keys: ['Infertility', 'Endometrial', 'Dysmenorrhea'] },
+                  ];
+                  const scores = prediction.unified_disease_scores!;
+                  return (
+                    <div className="mb-5 space-y-6">
+                      {diseaseGroups.map(group => {
+                        const items = group.keys.filter(k => scores[k] || v8wellness[k]).map(k => ({ key: k, data: scores[k], w: v8wellness[k] }));
+                        if (items.length === 0) return null;
+                        return (
+                          <div key={group.title}>
+                            <h4 className="text-sm font-extrabold text-gray-800 uppercase tracking-wider mb-3">{group.title}</h4>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                              {items.map(({ key, data, w }) => {
+                                if (w && wellnessKeys.includes(key)) {
+                                  const score = w.raw_score ?? (w.risk_score != null ? w.risk_score * 100 : null);
+                                  const sev = w.severity || 'Moderate';
+                                  return (
+                                    <div
+                                      key={key}
+                                      className="flex items-center gap-2 p-3 rounded-xl border-l-4 shadow-sm"
+                                      style={{
+                                        backgroundColor: getWellnessBg(sev),
+                                        borderLeftColor: getWellnessColor(sev),
+                                      }}
+                                    >
+                                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/80 shadow-sm shrink-0">
+                                    {getDiseaseIcon(key, getWellnessColor(sev))}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-xs font-bold text-gray-900 truncate">
+                                        {expandAbbreviation(key)}
+                                          </span>
+                                          <span
+                                            className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white shadow-sm shrink-0"
+                                            style={{ backgroundColor: getWellnessColor(sev) }}
+                                          >
+                                            {sev}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 mt-1">
+                                          <div className="flex-1 bg-white/70 rounded-full h-1.5 overflow-hidden shadow-inner">
+                                            <div
+                                              className="h-full rounded-full transition-all duration-500"
+                                              style={{
+                                                width: `${Math.min(100, score ?? 0)}%`,
+                                                backgroundColor: getWellnessColor(sev),
+                                              }}
+                                            />
+                                          </div>
+                                          <span className="text-xs font-extrabold text-gray-800 w-10 text-right">
+                                            {score != null ? `${score.toFixed(0)}%` : '—'}
+                                          </span>
+                                        </div>
+                                        <div className="mt-1">
+                                          <span className="text-[9px] font-semibold text-gray-500 bg-white/70 px-1.5 py-0.5 rounded-full">
+                                            1 Health Index
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                if (data) {
+                                  return (
+                                    <div
+                                      key={key}
+                                      className="flex items-center gap-2 p-3 rounded-xl border-l-4 shadow-sm"
+                                      style={{
+                                        backgroundColor: getUnifiedSeverityBg(data.severity),
+                                        borderLeftColor: getDiseaseBorderColor(data.severity),
+                                      }}
+                                    >
+                                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/80 shadow-sm shrink-0">
+                                    {getDiseaseIcon(key, getUnifiedSeverityColor(data.severity))}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-xs font-bold text-gray-900 truncate">
+                                        {expandAbbreviation(key)}
+                                      </span>
+                                      <span
+                                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white shadow-sm shrink-0"
+                                        style={{ backgroundColor: getUnifiedSeverityColor(data.severity) }}
+                                      >
+                                        {data.severity}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 mt-1">
+                                      <div className="flex-1 bg-white/70 rounded-full h-1.5 overflow-hidden shadow-inner">
+                                        <div
+                                          className="h-full rounded-full transition-all duration-500"
+                                          style={{
+                                            width: `${Math.min(100, data.unified_score * 100)}%`,
+                                            backgroundColor: getUnifiedSeverityColor(data.severity),
+                                          }}
+                                        />
+                                      </div>
+                                      <span className="text-xs font-extrabold text-gray-800 w-10 text-right">
+                                        {(data.unified_score * 100).toFixed(0)}%
+                                      </span>
+                                    </div>
+                                    <div className="mt-1">
+                                      <span className="text-[9px] font-semibold text-gray-500 bg-white/70 px-1.5 py-0.5 rounded-full">
+                                        {data.contributing_models || 1} Health Indices
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                                }
+                                return null;
+                              })}
+                            </div>
                           </div>
-                        ))}
-                      </div>
+                        );
+                      })}
                     </div>
-                  )}
+                  );
+                })()}
 
-                  {/* 2. Menstrual Health */}
-                  {prediction.menstrual_risks && (
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm">🩺</span>
-                        <p className="text-sm font-semibold text-blue-800">Menstrual Health</p>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2 text-sm">
-                        {Object.entries(prediction.menstrual_risks).map(([key, value]) => (
-                          <div key={key} className="text-center p-3 bg-purple-50 rounded-lg">
-                            <div className="font-semibold text-gray-800">{expandAbbreviation(key)}</div>
-                            <div className="text-purple-700 font-bold mt-1">{(value * 100).toFixed(0)}%</div>
+                {/* Per-model breakdown (collapsible) */}
+                {(prediction.symptom_intensity_risks || prediction.menstrual_risks || prediction.rppg_risks) && (
+                  <div>
+                    <button
+                      onClick={() => setShowModelDetail(!showModelDetail)}
+                      className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl font-bold text-lg text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
+                      style={{
+                        background: showModelDetail
+                          ? 'linear-gradient(135deg, #00897B 0%, #00695C 100%)'
+                          : 'linear-gradient(135deg, #00897B 0%, #26A69A 100%)',
+                      }}
+                    >
+                      {showModelDetail ? <ChevronUp className="w-6 h-6" /> : <ChevronDown className="w-6 h-6" />}
+                      <span className="tracking-wide">
+                        {showModelDetail ? 'Hide' : 'Click to check'} Downstream Diseases Breakdown
+                      </span>
+                      <Info className="w-5 h-5 opacity-70" />
+                    </button>
+
+                    {showModelDetail && (
+                      <div className="space-y-5 mt-4">
+                        {/* 1. Symptom Intensity */}
+                        {prediction.symptom_intensity_risks && (
+                          <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-teal-100">
+                                <ClipboardCheck className="w-5 h-5 text-teal-600" />
+                              </div>
+                              <p className="text-base font-bold text-gray-900">Symptom Intensity</p>
+                            </div>
+                            <div className="grid grid-cols-3 gap-3">
+                              {Object.entries(prediction.symptom_intensity_risks).map(([key, value]) => (
+                                <div key={key} className="text-center p-3 bg-teal-50 rounded-xl border border-teal-100">
+                                  <div className="font-semibold text-gray-700 text-sm">{expandAbbreviation(key)}</div>
+                                  <div className="text-teal-700 font-extrabold text-lg mt-1">{(value * 100).toFixed(0)}%</div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                        )}
 
-                  {/* 3. rPPG Camera */}
-                  {prediction.rppg_risks && (
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm">📷</span>
-                        <p className="text-sm font-semibold text-amber-500">rPPG/HRV</p>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-  <div className="p-3 bg-blue-50 rounded-lg text-center">
-    <div className="text-sm text-black-800 font-bold">Cardiovascular Disease:</div>
-    <div className="font-bold text-blue-800">
-      {prediction.rppg_risks.metabolic?.CVD != null
-        ? `${(prediction.rppg_risks.metabolic.CVD * 100).toFixed(0)}%`
-        : `${prediction.rppg_status?.metabolic_cardio?.current_span_days ?? 0}/${prediction.rppg_status?.metabolic_cardio?.required_span_days ?? 30} days · No result yet`}
-    </div>
-  </div>
-
-  <div className="p-3 bg-blue-50 rounded-lg text-center">
-    <div className="text-sm text-black-800 font-bold">Type 2 Diabetes:</div>
-    <div className="font-bold text-blue-800">
-      {prediction.rppg_risks.metabolic?.T2D != null
-        ? `${(prediction.rppg_risks.metabolic.T2D * 100).toFixed(0)}%`
-        : `${prediction.rppg_status?.metabolic_cardio?.current_span_days ?? 0}/${prediction.rppg_status?.metabolic_cardio?.required_span_days ?? 30} days · No result yet`}
-    </div>
-  </div>
-
-  <div className="p-3 bg-indigo-50 rounded-lg text-center">
-    <div className="text-sm text-black-800 font-bold">Stress:</div>
-    <div className="font-bold text-indigo-800">
-      {prediction.rppg_status?.stress_reproductive?.status === 'pending'
-        ? `${prediction.rppg_status.stress_reproductive.current_span_days ?? 0}/${prediction.rppg_status.stress_reproductive.required_span_days ?? 7}d`
-        : `${((prediction.rppg_risks.reproductive?.Stress || 0) * 100).toFixed(0)}%`}
-    </div>
-  </div>
-
-  <div className="p-3 bg-indigo-50 rounded-lg text-center">
-    <div className="text-sm text-black-800 font-bold">Infertility:</div>
-    <div className="font-bold text-indigo-800">
-      {prediction.rppg_status?.stress_reproductive?.status === 'pending'
-        ? `${prediction.rppg_status.stress_reproductive.current_span_days ?? 0}/${prediction.rppg_status.stress_reproductive.required_span_days ?? 7}d`
-        : `${((prediction.rppg_risks.reproductive?.Infertility || 0) * 100).toFixed(0)}%`}
-    </div>
-  </div>
-  </div>
-                    </div>
-                  )}
-
-                  {/* 4. Mood Analysis */}
-                  {prediction.rppg_risks?.mood && (
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm">🧠</span>
-                        <p className="text-sm font-semibold text-[#9615b3]">Mood Analysis</p>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        {Object.entries(prediction.rppg_risks.mood).slice(0, 3).map(([key, value]) => (
-                          <div key={key} className="text-center p-3 bg-amber-50 rounded-lg">
-                            <div className="font-semibold text-gray-800 text-sm">{expandAbbreviation(key)}</div>
-                            <div className="text-amber-700 font-bold mt-1 text-base">{(value * 100).toFixed(0)}%</div>
+                        {/* 2. Menstrual Health */}
+                        {prediction.menstrual_risks && (
+                          <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-purple-100">
+                                <Stethoscope className="w-5 h-5 text-purple-600" />
+                              </div>
+                              <p className="text-base font-bold text-gray-900">Menstrual Health</p>
+                            </div>
+                            <div className="grid grid-cols-3 gap-3">
+                              {Object.entries(prediction.menstrual_risks).map(([key, value]) => (
+                                <div key={key} className="text-center p-3 bg-purple-50 rounded-xl border border-purple-100">
+                                  <div className="font-semibold text-gray-700 text-sm">{expandAbbreviation(key)}</div>
+                                  <div className="text-purple-700 font-extrabold text-lg mt-1">{(value * 100).toFixed(0)}%</div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        ))}
+                        )}
+
+                        {/* 3. rPPG Camera */}
+                        {prediction.rppg_risks && (
+                          <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100">
+                                <Camera className="w-5 h-5 text-blue-600" />
+                              </div>
+                              <p className="text-base font-bold text-gray-900">rPPG / Heart Rate Variability</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="p-4 bg-blue-50 rounded-xl text-center border border-blue-100">
+                                <div className="flex items-center justify-center gap-1.5 mb-1">
+                                  <Heart className="w-4 h-4 text-red-500" />
+                                  <span className="text-sm font-bold text-gray-800">Cardiovascular Disease</span>
+                                </div>
+                                <div className="font-extrabold text-lg text-blue-700">
+                                  {prediction.rppg_status?.metabolic_cardio?.status === 'pending'
+                                    ? `${prediction.rppg_status?.metabolic_cardio?.current_span_days ?? 0}/${prediction.rppg_status?.metabolic_cardio?.required_span_days ?? 30} days`
+                                    : prediction.rppg_risks.metabolic?.CVD != null
+                                      ? `${(prediction.rppg_risks.metabolic.CVD * 100).toFixed(0)}%`
+                                      : '—'}
+                                </div>
+                              </div>
+                              <div className="p-4 bg-blue-50 rounded-xl text-center border border-blue-100">
+                                <div className="flex items-center justify-center gap-1.5 mb-1">
+                                  <Droplets className="w-4 h-4 text-blue-500" />
+                                  <span className="text-sm font-bold text-gray-800">Type 2 Diabetes</span>
+                                </div>
+                                <div className="font-extrabold text-lg text-blue-700">
+                                  {prediction.rppg_status?.metabolic_cardio?.status === 'pending'
+                                    ? `${prediction.rppg_status?.metabolic_cardio?.current_span_days ?? 0}/${prediction.rppg_status?.metabolic_cardio?.required_span_days ?? 30} days`
+                                    : prediction.rppg_risks.metabolic?.T2D != null
+                                      ? `${(prediction.rppg_risks.metabolic.T2D * 100).toFixed(0)}%`
+                                      : '—'}
+                                </div>
+                              </div>
+                              <div className="p-4 bg-indigo-50 rounded-xl text-center border border-indigo-100">
+                                <div className="flex items-center justify-center gap-1.5 mb-1">
+                                  <Brain className="w-4 h-4 text-purple-500" />
+                                  <span className="text-sm font-bold text-gray-800">Stress</span>
+                                </div>
+                                <div className="font-extrabold text-lg text-indigo-700">
+                                  {prediction.rppg_status?.stress_reproductive?.status === 'pending'
+                                    ? `${prediction.rppg_status.stress_reproductive.current_span_days ?? 0}/${prediction.rppg_status.stress_reproductive.required_span_days ?? 7}d`
+                                    : `${((prediction.rppg_risks.reproductive?.Stress || 0) * 100).toFixed(0)}%`}
+                                </div>
+                              </div>
+                              <div className="p-4 bg-indigo-50 rounded-xl text-center border border-indigo-100">
+                                <div className="flex items-center justify-center gap-1.5 mb-1">
+                                  <Target className="w-4 h-4 text-cyan-500" />
+                                  <span className="text-sm font-bold text-gray-800">Infertility</span>
+                                </div>
+                                <div className="font-extrabold text-lg text-indigo-700">
+                                  {prediction.rppg_status?.stress_reproductive?.status === 'pending'
+                                    ? `${prediction.rppg_status.stress_reproductive.current_span_days ?? 0}/${prediction.rppg_status.stress_reproductive.required_span_days ?? 7}d`
+                                    : `${((prediction.rppg_risks.reproductive?.Infertility || 0) * 100).toFixed(0)}%`}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 4. rPPG V8 Camera */}
+                        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-sky-100">
+                              <Camera className="w-5 h-5 text-sky-600" />
+                            </div>
+                            <p className="text-base font-bold text-gray-900">rPPG / HRV Passive Sensing</p>
+                            {prediction.rppg_v8_n_sessions != null && (
+                              <span className="ml-auto text-xs font-medium text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full">
+                                {prediction.rppg_v8_n_sessions} session{prediction.rppg_v8_n_sessions !== 1 ? 's' : ''}
+                              </span>
+                            )}
+                          </div>
+                          {prediction.rppg_v8_risks && Object.keys(prediction.rppg_v8_risks).filter(k => k !== '_meta').length > 0 ? (
+                            <div className="grid grid-cols-2 gap-3">
+                              {Object.entries(prediction.rppg_v8_risks)
+                                .filter(([key]) => key !== '_meta')
+                                .map(([key, entry]) => {
+                                  const rawScore = entry.raw_score ?? 0;
+                                  const severity = entry.severity || '';
+                                  const isWellness = ['Sleep_Quality', 'Focus_Memory', 'Mental_Wellness', 'Mood_Score'].includes(key);
+                                  const borderColor = isWellness
+                                    ? rawScore >= 80 ? 'border-emerald-200' :
+                                      rawScore >= 60 ? 'border-blue-200' :
+                                      rawScore >= 40 ? 'border-amber-200' : 'border-red-200'
+                                    : rawScore >= 60 ? 'border-red-200' :
+                                      rawScore >= 40 ? 'border-orange-200' :
+                                      rawScore >= 20 ? 'border-amber-200' : 'border-emerald-200';
+                                  const bgColor = isWellness
+                                    ? rawScore >= 80 ? 'bg-emerald-50' :
+                                      rawScore >= 60 ? 'bg-blue-50' :
+                                      rawScore >= 40 ? 'bg-amber-50' : 'bg-red-50'
+                                    : rawScore >= 60 ? 'bg-red-50' :
+                                      rawScore >= 40 ? 'bg-orange-50' :
+                                      rawScore >= 20 ? 'bg-amber-50' : 'bg-emerald-50';
+                                  const textColor = isWellness
+                                    ? rawScore >= 80 ? 'text-emerald-700' :
+                                      rawScore >= 60 ? 'text-blue-700' :
+                                      rawScore >= 40 ? 'text-amber-700' : 'text-red-700'
+                                    : rawScore >= 60 ? 'text-red-700' :
+                                      rawScore >= 40 ? 'text-orange-700' :
+                                      rawScore >= 20 ? 'text-amber-700' : 'text-emerald-700';
+                                  return (
+                                    <div key={key} className={`p-3 rounded-xl text-center border ${bgColor} ${borderColor}`}>
+                                      <div className="text-sm font-bold text-gray-800">{expandAbbreviation(key)}</div>
+                                      <div className={`font-extrabold text-lg mt-1 ${textColor}`}>
+                                        {rawScore.toFixed(2)}%
+                                      </div>
+                                      {severity && <div className="text-xs font-medium text-gray-500 mt-0.5">{severity}</div>}
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          ) : (
+                            <div className="text-center py-4 px-4 bg-sky-50 rounded-xl border border-sky-100">
+                              <p className="text-sm font-semibold text-sky-700">No rPPG V8 data yet</p>
+                              <p className="text-xs text-sky-600 mt-1">Capture an rPPG V8 session from the Tools page to see your advanced camera-based predictions</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 5. Mood Analysis */}
+                        {prediction.rppg_risks?.mood && (
+                          <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-100">
+                                <Brain className="w-5 h-5 text-violet-600" />
+                              </div>
+                              <p className="text-base font-bold text-gray-900">Mood Analysis</p>
+                            </div>
+                            <div className="grid grid-cols-3 gap-3">
+                              {Object.entries(prediction.rppg_risks.mood).slice(0, 3).map(([key, value]) => (
+                                <div key={key} className="text-center p-3 bg-violet-50 rounded-xl border border-violet-100">
+                                  <div className="font-semibold text-gray-700 text-sm">{expandAbbreviation(key)}</div>
+                                  <div className="text-violet-700 font-extrabold text-lg mt-1">{(value * 100).toFixed(0)}%</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
               </motion.div>
+              </>
             )}
 
             <motion.div
@@ -1142,32 +1524,94 @@ const DashboardScreen = () => {
           className="bg-white rounded-2xl border border-gray-200 p-5"
         >
           <h3 className="font-display font-bold text-gray-900 mb-4 text-lg">Today's Summary</h3>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div className="p-4 rounded-lg bg-gray-50">
-              <Heart className="h-5 w-5 mx-auto mb-2 text-teal-500" />
-              <p className="text-2xl font-bold font-display text-gray-900">
+          <div className="grid grid-cols-4 gap-3 text-center">
+            <div className="p-3 rounded-lg bg-gray-50">
+              <Heart className="h-4 w-4 mx-auto mb-1.5 text-teal-500" />
+              <p className="text-xl font-bold font-display text-gray-900">
                 {todaySummary?.hrv_rmssd ? `${todaySummary.hrv_rmssd.toFixed(0)}` : '—'}
               </p>
-              {todaySummary?.hrv_rmssd && (
-                <p className="text-xs text-gray-500 mt-0.5 font-medium">
+              {todaySummary?.hrv_rmssd ? (
+                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">
                   {getHrvLabel(todaySummary.hrv_rmssd)}
                 </p>
-              )}
-              <p className="text-sm text-gray-600 mt-1 font-medium">HRV</p>
+              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
+              <p className="text-xs text-gray-600 mt-1 font-medium">HRV</p>
             </div>
-            <div className="p-4 rounded-lg bg-gray-50">
-              <TrendingUp className="h-5 w-5 mx-auto mb-2 text-amber-500" />
-              <p className="text-2xl font-bold font-display text-gray-900">
+            <div className="p-3 rounded-lg bg-gray-50">
+              <TrendingUp className="h-4 w-4 mx-auto mb-1.5 text-amber-500" />
+              <p className="text-xl font-bold font-display text-gray-900">
                 {todaySummary?.fatigue_vas ? `${todaySummary.fatigue_vas.toFixed(1)}` : morningComplete ? '✓' : '—'}
               </p>
-              <p className="text-sm text-gray-600 mt-1 font-medium">Fatigue</p>
+              {todaySummary?.fatigue_vas ? (
+                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">
+                  {fatigueLabel(todaySummary.fatigue_vas)}
+                </p>
+              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
+              <p className="text-xs text-gray-600 mt-1 font-medium">Fatigue</p>
             </div>
-            <div className="p-4 rounded-lg bg-gray-50">
-              <Sun className="h-5 w-5 mx-auto mb-2 text-purple-500" />
-              <p className="text-2xl font-bold font-display text-gray-900">
+            <div className="p-3 rounded-lg bg-gray-50">
+              <Sun className="h-4 w-4 mx-auto mb-1.5 text-purple-500" />
+              <p className="text-xl font-bold font-display text-gray-900">
                 {todaySummary?.mood_score ? `${todaySummary.mood_score.toFixed(0)}` : '—'}
               </p>
-              <p className="text-sm text-gray-600 mt-1 font-medium">Mood</p>
+              {todaySummary?.mood_score ? (
+                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">
+                  {moodLabel(todaySummary.mood_score)}
+                </p>
+              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
+              <p className="text-xs text-gray-600 mt-1 font-medium">Mood</p>
+            </div>
+            <div className="p-3 rounded-lg" style={{ backgroundColor: prediction?.unified_disease_scores?.CVD ? getUnifiedSeverityBg(prediction.unified_disease_scores.CVD.severity) : '#f9fafb' }}>
+              <HeartPulse className="h-4 w-4 mx-auto mb-1.5" style={{ color: prediction?.unified_disease_scores?.CVD ? getUnifiedSeverityColor(prediction.unified_disease_scores.CVD.severity) : '#9ca3af' }} />
+              <p className="text-xl font-bold font-display text-gray-900">
+                {prediction?.unified_disease_scores?.CVD ? `${(prediction.unified_disease_scores.CVD.unified_score * 100).toFixed(0)}` : '—'}
+              </p>
+              {prediction?.unified_disease_scores?.CVD ? (
+                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">{prediction.unified_disease_scores.CVD.severity}</p>
+              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
+              <p className="text-xs text-gray-600 mt-1 font-medium">Cardiovascular</p>
+            </div>
+            <div className="p-3 rounded-lg" style={{ backgroundColor: prediction?.unified_disease_scores?.Infertility ? getUnifiedSeverityBg(prediction.unified_disease_scores.Infertility.severity) : '#f9fafb' }}>
+              <Target className="h-4 w-4 mx-auto mb-1.5" style={{ color: prediction?.unified_disease_scores?.Infertility ? getUnifiedSeverityColor(prediction.unified_disease_scores.Infertility.severity) : '#9ca3af' }} />
+              <p className="text-xl font-bold font-display text-gray-900">
+                {prediction?.unified_disease_scores?.Infertility ? `${(prediction.unified_disease_scores.Infertility.unified_score * 100).toFixed(0)}` : '—'}
+              </p>
+              {prediction?.unified_disease_scores?.Infertility ? (
+                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">{prediction.unified_disease_scores.Infertility.severity}</p>
+              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
+              <p className="text-xs text-gray-600 mt-1 font-medium">Infertility</p>
+            </div>
+            <div className="p-3 rounded-lg" style={{ backgroundColor: prediction?.unified_disease_scores?.T2D ? getUnifiedSeverityBg(prediction.unified_disease_scores.T2D.severity) : '#f9fafb' }}>
+              <Droplets className="h-4 w-4 mx-auto mb-1.5" style={{ color: prediction?.unified_disease_scores?.T2D ? getUnifiedSeverityColor(prediction.unified_disease_scores.T2D.severity) : '#9ca3af' }} />
+              <p className="text-xl font-bold font-display text-gray-900">
+                {prediction?.unified_disease_scores?.T2D ? `${(prediction.unified_disease_scores.T2D.unified_score * 100).toFixed(0)}` : '—'}
+              </p>
+              {prediction?.unified_disease_scores?.T2D ? (
+                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">{prediction.unified_disease_scores.T2D.severity}</p>
+              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
+              <p className="text-xs text-gray-600 mt-1 font-medium">Type 2 Diabetes</p>
+            </div>
+            <div className="p-3 rounded-lg" style={{ backgroundColor: prediction?.unified_disease_scores?.ChronicStress ? getUnifiedSeverityBg(prediction.unified_disease_scores.ChronicStress.severity) : '#f9fafb' }}>
+              <Brain className="h-4 w-4 mx-auto mb-1.5" style={{ color: prediction?.unified_disease_scores?.ChronicStress ? getUnifiedSeverityColor(prediction.unified_disease_scores.ChronicStress.severity) : '#9ca3af' }} />
+              <p className="text-xl font-bold font-display text-gray-900">
+                {prediction?.unified_disease_scores?.ChronicStress ? `${(prediction.unified_disease_scores.ChronicStress.unified_score * 100).toFixed(0)}` : '—'}
+              </p>
+              {prediction?.unified_disease_scores?.ChronicStress ? (
+                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">{prediction.unified_disease_scores.ChronicStress.severity}</p>
+              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
+              <p className="text-xs text-gray-600 mt-1 font-medium">Chronic Stress</p>
+            </div>
+            <div className="p-3 rounded-lg bg-gray-50">
+              <Frown className="h-4 w-4 mx-auto mb-1.5 text-gray-400" />
+              <p className="text-xl font-bold font-display text-gray-900">
+                {prediction?.rppg_risks?.mood?.Depression ? `${(prediction.rppg_risks.mood.Depression * 100).toFixed(0)}` : '—'}
+              </p>
+              {prediction?.rppg_risks?.mood?.Depression ? (
+                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">
+                  {riskSeverityLabel(prediction.rppg_risks.mood.Depression)}
+                </p>
+              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
+              <p className="text-xs text-gray-600 mt-1 font-medium">Depression</p>
             </div>
           </div>
 
@@ -1213,7 +1657,7 @@ const DashboardScreen = () => {
       </div>
 
       <nav className="sticky bottom-0 bg-white/90 backdrop-blur-lg border-t border-gray-200 px-6 py-3">
-        <div className="flex justify-around max-w-2xl mx-auto">
+        <div className="flex justify-around max-w-4xl mx-auto">
           {navItems.map((item) => (
             <button
               key={item.label}
