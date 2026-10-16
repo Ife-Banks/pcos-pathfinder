@@ -256,7 +256,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (!token || !user) return;
     // Only connect WebSocket for patient users — PHC/FMC portals use their own notification systems
-    if (user.role !== 'patient') return;
+    if (user.role !== 'patient' && user.role !== 'direct_patient') return;
 
     // Only connect WebSocket if enabled (disable on platforms without WS support)
     if (WS_ENABLED) {

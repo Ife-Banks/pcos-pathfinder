@@ -79,7 +79,7 @@ const SignUpScreen = () => {
         role: 'patient'
       });
 
-      const result = await authAPI.register({
+      const result = await authAPI.directRegister({
         full_name: form.name,          // field is full_name not name
         email: form.email,
         password: form.password,

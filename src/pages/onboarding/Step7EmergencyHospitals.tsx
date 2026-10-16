@@ -1,0 +1,655 @@
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent } from '@/components/ui/card';
+import { Table, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
+import { lgaAPI } from '@/services/lgaService';
+import { directPatientService } from '@/services/directPatientService';
+import { CheckCircle, CheckCircle2, MapPin, ArrowRight, ArrowLeft } from 'lucide-react';
+
+interface PHCCentre {
+  id: string;
+  name: string;
+  code?: string;
+  address?: string;
+  state: string;
+  lga: string;
+  facility_type?: string;
+  phone?: string;
+}
+
+interface StateOption {
+  state_id: string;
+  state_name: string;
+  lgas: { id: string; name: string; is_lcda: boolean }[];
+}
+
+interface Hospital {
+  id: string;
+  name: string;
+  state?: string;
+  lga?: string;
+  level?: string;
+  ownership?: string;
+  has_emergency?: boolean;
+  is_24h?: boolean;
+  address?: string;
+}
+
+interface HospitalListItem {
+  id: string;
+  name: string;
+  state?: string;
+  lga?: string;
+  state_name?: string;
+  lga_name?: string;
+  level?: string;
+  ownership?: string;
+  has_emergency?: boolean;
+  is_24h?: boolean;
+}
+
+interface EmergencyHospitalsResponse {
+  hospital_ids: string[];
+  picks: EmergencyPick[];
+}
+
+interface EmergencyPick {
+  id: string;
+  hospital_id: string;
+  priority: number;
+  hospital: Hospital;
+}
+
+const Step7EmergencyHospitals = () => {
+  const navigate = useNavigate();
+  const { accessToken, user, refreshUser } = useAuth();
+  const { addToast } = useToast();
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  // State/LGA data
+  const [states, setStates] = useState<StateOption[]>([]);
+  const [loadingStates, setLoadingStates] = useState(true);
+  const [formData, setFormData] = useState({ state: '', lga: '' });
+
+  // Hospital list and selection
+  const [allHospitals, setAllHospitals] = useState<HospitalListItem[]>([]);
+  const [filteredHospitals, setFilteredHospitals] = useState<HospitalListItem[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [loadingHospitals, setLoadingHospitals] = useState(false);
+  const [ownershipFilter, setOwnershipFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal] = useState(0);
+
+  // Selected hospitals (capped at 3)
+  const [selectedHospitalIds, setSelectedHospitalIds] = useState<string[]>([]);
+  const [selectedHospitals, setSelectedHospitals] = useState<HospitalListItem[]>([]);
+
+  // Alphabetically sorted states and LGAs
+  const sortedStates = useMemo(
+    () =>
+      [...states]
+        .filter(s => s.state_name !== 'Abuja')
+        .sort((a, b) => a.state_name.localeCompare(b.state_name)),
+    [states]
+  );
+
+  const sortedLgas = useMemo(() => {
+    const lgas = states.find(s => s.state_name === formData.state)?.lgas ?? [];
+    return [...lgas].sort((a, b) => a.name.localeCompare(b.name));
+  }, [states, formData.state]);
+
+  // Load states first
+  useEffect(() => {
+    const fetchStates = async () => {
+      try {
+        const res = await lgaAPI.listLgas();
+        setStates(res?.data?.states || []);
+      } catch (err) {
+        console.error('Failed to load states:', err);
+      } finally {
+        setLoadingStates(false);
+      }
+    };
+    fetchStates();
+  }, []);
+
+  // Load hospitals when state/LGA changes or search query changes
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadHospitals = async () => {
+      setLoadingHospitals(true);
+      try {
+        const params: any = {};
+        if (formData.state) params.state_name = formData.state;
+        if (formData.lga) params.lga_name = formData.lga;
+        if (ownershipFilter) params.ownership = ownershipFilter;
+        if (searchQuery.trim()) params.search = searchQuery;
+        {
+          const res = await directPatientService.listHospitals(params);
+          if (!cancelled) {
+            const payload: any = (res as any)?.data ?? res;
+            console.log('listHospitals params:', params, 'payload:', payload);
+            const list: HospitalListItem[] = Array.isArray(payload?.results)
+              ? payload.results
+              : Array.isArray(payload)
+              ? payload
+              : [];
+            setAllHospitals(list);
+            setTotal(payload?.count ?? list.length);
+            applyFilters(list);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load hospitals:', err);
+        if (!cancelled) {
+          addToast({
+            message: 'Failed to load hospitals. Please try again.',
+            type: 'error',
+          });
+        }
+      } finally {
+        if (!cancelled) setLoadingHospitals(false);
+      }
+    };
+
+    loadHospitals();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [formData.state, formData.lga, searchQuery, ownershipFilter]);
+
+  const applyFilters = (source: HospitalListItem[]) => {
+    let results = [...source];
+
+    // Filter by has_emergency
+    if (formData.state) {
+      // Additional filtering logic can be added here
+    }
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.trim().toLowerCase();
+      results = results.filter(
+        (h) => h.name.toLowerCase().includes(query) || (h.lga_name && h.lga_name.toLowerCase().includes(query))
+      );
+    }
+
+    setFilteredHospitals(results);
+    setPage(1);
+  };
+
+  // Load user's existing emergency hospital picks
+  useEffect(() => {
+    const loadExistingPicks = async () => {
+      if (!accessToken) return;
+      try {
+        const res = await directPatientService.getEmergencyHospitals();
+        if (res.picks && res.picks.length > 0) {
+          const hospitalIds = res.picks.map(p => p.hospital_id);
+          setSelectedHospitalIds(hospitalIds);
+          // Build selected hospitals list
+          const hospitals = res.picks.map(p => p.hospital);
+          setSelectedHospitals(hospitals);
+        }
+      } catch (err) {
+        console.error('Failed to load existing picks:', err);
+      }
+    };
+
+    loadExistingPicks();
+  }, [accessToken]);
+
+  // Debounced search
+  const debounce = (fn: Function, wait: number) => {
+    let timeout: NodeJS.Timeout;
+    return (...args: any[]) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => fn(...args), wait);
+    };
+  };
+
+  const debouncedSearch = useMemo(() => debounce((query: string) => setSearchQuery(query), 400), []);
+
+  const handleInputChange = (field: 'state' | 'lga' | 'search', value: string) => {
+    if (field === 'state') {
+      setFormData({ state: value, lga: '' });
+      setSearchQuery('');
+      setSearchInput('');
+      setFilteredHospitals([]);
+    } else if (field === 'lga') {
+      setFormData(prev => ({ ...prev, lga: value }));
+      setSearchQuery('');
+      setSearchInput('');
+      setFilteredHospitals([]);
+    } else {
+      debouncedSearch(value);
+    }
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchInput(value);
+    setDropdownOpen(true);
+    debouncedSearch(value);
+  };
+
+  const canAddMore = selectedHospitalIds.length < 3;
+  const canRemove = selectedHospitalIds.length > 0;
+
+  const handleSelectHospital = (hospital: HospitalListItem) => {
+    if (selectedHospitalIds.includes(hospital.id)) {
+      return; // Already selected
+    }
+    if (!canAddMore) {
+      addToast({
+        message: 'You can select a maximum of 3 emergency hospitals.',
+        type: 'error',
+      });
+      return;
+    }
+    const newIds = [...selectedHospitalIds, hospital.id];
+    setSelectedHospitalIds(newIds);
+    // Add to selected list (maintain priority order)
+    const updatedSelected = [...selectedHospitals, hospital].sort((a, b) => {
+      const idxA = selectedHospitalIds.indexOf(a.id);
+      const idxB = selectedHospitalIds.indexOf(b.id);
+      return (idxA >= 0 ? idxA : 99) - (idxB >= 0 ? idxB : 99);
+    });
+    setSelectedHospitals(updatedSelected);
+  };
+
+  const handleRemoveHospital = (hospitalId: string) => {
+    const newIds = selectedHospitalIds.filter(id => id !== hospitalId);
+    setSelectedHospitalIds(newIds);
+    const newSelected = selectedHospitals.filter(h => h.id !== hospitalId);
+    setSelectedHospitals(newSelected);
+  };
+
+  const handleConfirm = async () => {
+    if (selectedHospitalIds.length < 1) {
+      setError('Please select at least one emergency hospital.');
+      return;
+    }
+    if (selectedHospitalIds.length > 3) {
+      setError('You can select a maximum of 3 emergency hospitals.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      // Update emergency hospital picks
+      await directPatientService.updateEmergencyHospitals(selectedHospitalIds);
+
+      // Complete onboarding
+      await directPatientService.completeOnboarding();
+      await refreshUser();
+
+      addToast({
+        message: 'Emergency hospitals selected and onboarding completed successfully.',
+        type: 'success',
+      });
+
+      navigate('/dashboard');
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to complete onboarding.';
+      setError(message);
+      addToast({
+        message,
+        type: 'error',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSkip = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Finish onboarding without choosing emergency hospitals
+      await directPatientService.completeOnboarding();
+      await refreshUser();
+
+      addToast({
+        message: 'You can add emergency hospitals later from your settings.',
+        type: 'success',
+      });
+
+      navigate('/dashboard');
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to skip this step.';
+      setError(message);
+      addToast({ message, type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Notice about emergency
+  const emergencyNotice = (
+    <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl mb-6">
+      <p className="text-sm text-amber-800">
+        In a life-threatening emergency, call 112 or go to the nearest hospital.
+      </p>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen gradient-surface flex items-center justify-center px-4 py-8">
+      <div className="w-full max-w-lg">
+        <div className="flex items-center gap-2 mb-6">
+          <div className="flex-1 h-1 bg-gray-200 rounded-full overflow-hidden">
+            <div className="h-full bg-[#2E8B57] rounded-full" style={{ width: '100%' }} />
+          </div>
+          <span className="text-sm font-medium text-[#2E8B57]">Step 7 of 7</span>
+        </div>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-[#2E8B57]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle2 className="w-8 h-8 text-[#2E8B57]" />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Emergency Hospitals</h1>
+              <p className="text-gray-600 text-sm">
+                Select up to 3 hospitals for emergency care routing
+              </p>
+            </div>
+
+            {emergencyNotice}
+
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertDescription className="flex flex-col gap-3">
+                  {error}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {success && (
+              <Alert className="mb-4 bg-green-50 border-green-200">
+                <AlertDescription className="text-green-800">{success}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="space-y-4">
+              {/* State selection */}
+              <div>
+                <Label className="text-sm font-medium text-gray-700 mb-1.5 block">State *</Label>
+                <select
+                  value={formData.state}
+                  onChange={(e) => handleInputChange('state', e.target.value)}
+                  disabled={loadingStates}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[#2E8B57] focus:ring-0 bg-white text-base"
+                >
+                  <option value="">{loadingStates ? 'Loading states...' : 'Select your state'}</option>
+                  {sortedStates.map(s => (
+                    <option key={s.state_id} value={s.state_name}>{s.state_name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* LGA selection (dependent on state) */}
+              {formData.state ? (
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-1.5 block">LGA *</Label>
+                  <select
+                    value={formData.lga || ''}
+                    onChange={(e) => handleInputChange('lga', e.target.value)}
+                    disabled={loadingStates}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[#2E8B57] focus:ring-0 bg-white text-base"
+                  >
+                    <option value="">All LGAs in {formData.state}</option>
+                    {sortedLgas.map(lga => (
+                      <option key={lga.id} value={lga.name}>{lga.name}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <Input
+                  placeholder="Select a state first"
+                  disabled
+                  className="bg-gray-50"
+                />
+              )}
+
+              {/* Hospital dropdown (searchable) */}
+              <div className="relative">
+                <Label className="text-sm font-medium text-gray-700 mb-1.5 block">Select hospital *</Label>
+                <Input
+                  type="text"
+                  placeholder={formData.state ? 'Click to choose, or type to search...' : 'Select a state first'}
+                  value={searchInput}
+                  onChange={handleSearchChange}
+                  onFocus={() => setDropdownOpen(true)}
+                  onBlur={() => setDropdownOpen(false)}
+                  disabled={!formData.state}
+                  autoComplete="off"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[#2E8B57] focus:ring-0 bg-white text-base"
+                />
+
+                {dropdownOpen && formData.state && (
+                  <div
+                    onMouseDown={(e) => e.preventDefault()}
+                    className="absolute z-20 mt-1 w-full max-h-64 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-lg"
+                  >
+                    {loadingHospitals ? (
+                      <p className="p-3 text-sm text-gray-500">Loading hospitals...</p>
+                    ) : filteredHospitals.length === 0 ? (
+                      <p className="p-3 text-sm text-gray-500">No hospitals found</p>
+                    ) : (
+                      filteredHospitals.map((h) => {
+                        const isSelected = selectedHospitalIds.includes(h.id);
+                        return (
+                          <button
+                            type="button"
+                            key={h.id}
+                            disabled={isSelected}
+                            onClick={() => {
+                              handleSelectHospital(h);
+                              setSearchInput('');
+                              setSearchQuery('');
+                              setDropdownOpen(false);
+                            }}
+                            className="w-full text-left px-4 py-2.5 hover:bg-gray-50 disabled:opacity-50 border-b border-gray-100 last:border-b-0"
+                          >
+                            <p className="text-sm font-medium text-gray-900">{h.name}</p>
+                            <p className="text-xs text-gray-500">
+                              {h.lga_name}, {h.state_name}
+                              {h.ownership ? ` · ${h.ownership}` : ''}
+                              {isSelected ? ' · Selected' : ''}
+                            </p>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Public / Private filter */}
+              <div>
+                <Label className="text-sm font-medium text-gray-700 mb-1.5 block">Facility type</Label>
+                <select
+                  value={ownershipFilter}
+                  onChange={(e) => setOwnershipFilter(e.target.value)}
+                  disabled={!formData.state}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[#2E8B57] focus:ring-0 bg-white text-base"
+                >
+                  <option value="">All (public and private)</option>
+                  <option value="public">Public</option>
+                  <option value="private">Private</option>
+                </select>
+              </div>
+
+              {/* Paginated hospital list */}
+              <div className="mb-4">
+                <Label className="text-xs text-gray-500 uppercase tracking-wider mb-1">Hospitals ({filteredHospitals.length} of {total})</Label>
+              </div>
+
+              {filteredHospitals.length === 0 && !searchQuery.trim() && formData.state && !loadingHospitals ? (
+                <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                  <p className="text-sm text-amber-800 text-center">
+                    No facilities found for this area yet. We are still adding data for some
+                    states. Try another LGA, or use "Skip for now" and add your emergency
+                    hospitals later.
+                  </p>
+                </div>
+              ) : null}
+
+              {filteredHospitals.length > 0 && (
+                <div className="h-96 overflow-y-auto space-y-2">
+                  {filteredHospitals.map((hospital) => (
+                    <div
+                      key={hospital.id}
+                      className={`p-4 border rounded-xl transition-all ${
+                        selectedHospitalIds.includes(hospital.id)
+                          ? 'border-[#2E8B57] bg-[#2E8B57]/5'
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                          selectedHospitalIds.includes(hospital.id) ? 'border-white bg-white' : 'border-gray-300'
+        }`}>
+                          {selectedHospitalIds.includes(hospital.id) && (
+                            <CheckCircle className="w-3 h-3 text-white" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-gray-900 truncate">{hospital.name}</p>
+                          <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+                            <MapPin className="w-3 h-3" />
+                            {hospital.lga_name}, {hospital.state_name}
+                          </p>
+                          {hospital.level && (
+                            <span className="inline-block mt-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                              {hospital.level}
+                            </span>
+                          )}
+                          {hospital.ownership && (
+                            <span className="inline-block mt-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                              {hospital.ownership}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleSelectHospital(hospital)}
+                          disabled={selectedHospitalIds.includes(hospital.id)}
+                          className="ml-3 text-blue-600 hover:text-blue-800 text-sm select-hospital-btn"
+                        >
+                          {selectedHospitalIds.includes(hospital.id) ? 'Selected' : 'Select'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* "Load more" if needed */}
+              {filteredHospitals.length < total && (
+                <button
+                  onClick={() => setPage(prev => prev + 1)}
+                  className="mt-4 w-full py-3 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50"
+                >
+                  Load more hospitals ({filteredHospitals.length} of {total})
+                </button>
+              )}
+
+              {/* Selected hospitals tray */}
+              {selectedHospitals.length > 0 && (
+                <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">Selected hospitals</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedHospitals.map((hospital, idx) => (
+                      <div
+                        key={hospital.id}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-white rounded text-sm"
+                      >
+                        <span className="w-3 h-3 rounded-full border-2 border-white bg-white flex items-center justify-center shrink-0">
+                          <CheckCircle className="w-1 h-1 text-[#2E8B57]" />
+                        </span>
+                        <span className="truncate">{hospital.name}</span>
+                        <button
+                          onClick={() => handleRemoveHospital(hospital.id)}
+                          className="text-gray-400 hover:text-gray-600 text-xs"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {selectedHospitalIds.length}/3 selected
+                  </p>
+                </div>
+              )}
+
+              {/* Continue button */}
+              <div className="mt-8">
+                <Button
+                  onClick={handleConfirm}
+                  disabled={loading || selectedHospitalIds.length === 0 || selectedHospitalIds.length > 3}
+                  className="w-full bg-[#2E8B57] hover:bg-[#247049] h-12 text-base font-medium"
+                >
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Selecting...
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4" />
+                      Continue to Dashboard
+                      <ArrowRight className="w-4 h-4" />
+                    </span>
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {/* Back and Skip buttons */}
+            <div className="mt-6 flex items-center justify-between">
+              <Button
+                variant="ghost"
+                onClick={() => navigate('/onboarding/step/6')}
+                disabled={loading}
+                className="text-gray-600"
+              >
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                Back
+              </Button>
+
+              <Button
+                variant="ghost"
+                onClick={handleSkip}
+                disabled={loading}
+                className="text-gray-600 hover:text-gray-900"
+              >
+                Skip for now
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default Step7EmergencyHospitals;

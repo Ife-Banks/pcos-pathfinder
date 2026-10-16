@@ -43,6 +43,9 @@ const TrialBanner = () => {
 
 const TEAL_PRIMARY = '#00897B';
 
+const getDaysSince = (iso: string) =>
+  Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+
 const getRiskTier = (score: number) => {
   if (score < 0.25) return { label: "Low", color: "#27AE60", bg: "bg-green-100", textColor: "text-green-700" };
   if (score < 0.5) return { label: "Moderate", color: "#F39C12", bg: "bg-amber-100", textColor: "text-amber-700" };
@@ -470,7 +473,7 @@ const DashboardScreen = () => {
       navigate('/login');
       return;
     }
-    if (user.role === 'patient' && !user.onboarding_completed) {
+    if ((user.role === 'patient' || user.role === 'direct_patient') && !user.onboarding_completed) {
       navigate('/onboarding');
     }
   }, [user, navigate]);

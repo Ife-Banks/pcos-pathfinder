@@ -4,8 +4,10 @@ import { BrowserRouter, Route, Routes, Outlet, Navigate } from "react-router-dom
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useAuth } from "@/context/AuthContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { OnboardingProvider } from "@/context/OnboardingContext";
+// import { Outlet, Navigate } from "react-router-dom";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { ToastProvider, ToastContainer } from "@/context/ToastContext";
 import SplashScreen from "./pages/SplashScreen";
@@ -129,12 +131,18 @@ import CareersScreen from "./pages/CareersScreen";
 import ContactScreen from "./pages/ContactScreen";
 // Onboarding step screens
 import Step1PersonalInfo from "./pages/onboarding/Step1PersonalInfo";
+// Direct patient routes
+import DirectRegisterScreen from "./pages/direct/DirectRegisterScreen";
+import DirectOnboardingScreen from "./pages/direct/DirectOnboardingScreen";
+import DirectOnboardingStep7 from "./pages/direct/DirectOnboardingStep7";
 import Step2PhysicalMeasurements from "./pages/onboarding/Step2PhysicalMeasurements";
 import Step3SkinChanges from "./pages/onboarding/Step3SkinChanges";
 import Step4MenstrualHistory from "./pages/onboarding/Step4MenstrualHistory";
 import Step5WearableSetup from "./pages/onboarding/Step5WearableSetup";
 import Step6rPPG from "./pages/onboarding/Step6rPPG";
 import Step7HealthCentre from "./pages/onboarding/Step7HealthCentre";
+import Step7EmergencyHospitals from "./pages/onboarding/Step7EmergencyHospitals";
+import Step7Route from "./pages/onboarding/Step7Route";
 // Male onboarding steps
 import Step2aPhysicalMeasurements from "./pages/onboarding/Step2aPhysicalMeasurements";
 import Step3aSkinChanges from "./pages/onboarding/Step3aSkinChanges";
@@ -231,6 +239,8 @@ const App = () => {
                     <Route path="/" element={<SplashScreen />} />
                     <Route path="/welcome" element={<WelcomeScreen />} />
                     <Route path="/signup" element={<SignUpScreen />} />
+    <Route path="/direct-register" element={<DirectRegisterScreen />} />
+    <Route path="/onboarding/direct/:step?" element={<DirectOnboardingScreen />} />
                     <Route path="/login" element={<LoginScreen />} />
                     <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
                     <Route path="/reset-password" element={<ResetPasswordScreen />} />
@@ -409,7 +419,9 @@ const App = () => {
                       <Route path="/onboarding/step/4" element={<Step4MenstrualHistory />} />
                       <Route path="/onboarding/step/5" element={<Step5WearableSetup />} />
                       <Route path="/onboarding/step/6" element={<Step6rPPG />} />
-                      <Route path="/onboarding/step/7" element={<Step7HealthCentre />} />
+                      {/* replaced: Step7Route is not defined yet
+<Route path="/onboarding/step/7" element={<Step7Route />} /> */}
+<Route path="/onboarding/step/7" element={<Step7Route standard={<Step7HealthCentre />} />} /> 
                       <Route path="/onboarding-complete" element={<OnboardingComplete />} />
                     </Route>
                     <Route path="/subscription/upgrade" element={<SubscriptionUpgradeScreen />} />

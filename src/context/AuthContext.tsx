@@ -110,7 +110,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const payload = response.data.data ?? response.data;
         setUser(payload);
         setAccessToken(token);
-        if (payload.role === 'patient') {
+        if (payload.role === 'patient' || payload.role === 'direct_patient') {
           try { setSubscription(await subscriptionAPI.getStatus()); } catch {}
         }
       } catch (error) {
@@ -126,7 +126,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const restoredUser = meResponse.data.data ?? meResponse.data;
           setUser(restoredUser);
           setAccessToken(newAccess);
-          if (restoredUser.role === 'patient') {
+          if (restoredUser.role === 'patient' || restoredUser.role === 'direct_patient') {
             try { setSubscription(await subscriptionAPI.getStatus()); } catch {}
           }
         } catch {
@@ -178,7 +178,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       date_joined: user.date_joined,
       accessToken: data.data.access
     });
-    if (user.role === 'patient') {
+    if (user.role === 'patient' || user.role === 'direct_patient') {
       try { setSubscription(await subscriptionAPI.getStatus()); } catch {}
     }
     resetActivityTimer();

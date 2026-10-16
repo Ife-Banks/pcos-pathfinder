@@ -4,6 +4,7 @@ export interface SubscriptionData {
   id: string;
   plan: 'trial' | 'basic' | 'premium';
   status: 'active' | 'expired' | 'cancelled';
+  trial_activated: boolean;
   trial_start: string;
   trial_end: string;
   paid_start: string | null;
@@ -17,6 +18,10 @@ export interface SubscriptionData {
 export const subscriptionAPI = {
   getStatus: async (): Promise<SubscriptionData> => {
     const res = await apiClient.get('/subscriptions/status/');
+    return res.data.data;
+  },
+  startTrial: async (): Promise<SubscriptionData> => {
+    const res = await apiClient.post('/subscriptions/start-trial/');
     return res.data.data;
   },
   initiatePayment: async (plan: 'basic' | 'premium', callbackUrl: string) => {

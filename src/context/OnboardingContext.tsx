@@ -32,7 +32,7 @@ export const OnboardingProvider = ({ children }: { children: React.ReactNode }) 
   }, [accessToken]);
 
   useEffect(() => {
-    if (!accessToken || !user || user.role !== 'patient') {
+    if (!accessToken || !user || user.role !== 'patient' && user.role !== 'direct_patient') {
       return;
     }
 

@@ -3,6 +3,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { subscriptionAPI } from '@/services/subscriptionService';
+import TrialModal from './TrialModal';
 
 interface Props {
   require: 'active' | 'premium';
@@ -10,10 +12,26 @@ interface Props {
 }
 
 export const SubscriptionGate = ({ require, children }: Props) => {
-  const { subscription } = useAuth();
+    const { subscription, refreshSubscription } = useAuth();
   const navigate = useNavigate();
 
-  if (!subscription) return null;
+    if (!subscription) return null;
+
+  // Direct patient who hasn't started their trial yet
+  if (subscription.is_trial && subscription.trial_activated === false) {
+    return (
+      <>
+        {children}
+        <TrialModal
+          open
+          onStartTrial={async () => {
+            await subscriptionAPI.startTrial();
+            await refreshSubscription();
+          }}
+        />
+      </>
+    );
+  }
 
   const blocked =
     require === 'active' ? !subscription.is_active :
