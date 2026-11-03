@@ -10,13 +10,13 @@ import { cn } from "@/lib/utils";
 
 const TEAL_PRIMARY = '#00897B';
 
-const getSeverityColor = (score: number, max: number): { color: string; label: string } => {
-  const percentage = (score / max) * 100;
-  if (percentage <= 20) return { color: '#27AE60', label: 'None' };
-  if (percentage <= 40) return { color: '#F39C12', label: 'Mild' };
-  if (percentage <= 60) return { color: '#E67E22', label: 'Moderate' };
-  if (percentage <= 80) return { color: '#E74C3C', label: 'Severe' };
-  return { color: '#922B21', label: 'Extreme' };
+// Banding must match MorningCheckin.HyperalgesiaLabel on the backend:
+// 0 = None, 0.1–3.9 = Mild, 4–6.9 = Moderate, 7–10 = Severe.
+const getHyperalgesiaBand = (score: number): { color: string; label: string } => {
+  if (score <= 0) return { color: '#27AE60', label: 'None' };
+  if (score <= 3.9) return { color: '#F39C12', label: 'Mild' };
+  if (score <= 6.9) return { color: '#E67E22', label: 'Moderate' };
+  return { color: '#E74C3C', label: 'Severe' };
 };
 
 const useDebounce = <T,>(value: T, delay: number): T => {
@@ -43,7 +43,7 @@ const MorningCheckIn = () => {
   const [psqBody, setPsqBody] = useState(0);
 
   const hyperalgesiaIndex = (psqSkin + psqMuscle + psqBody) / 3;
-  const hyperalgesiaSeverity = getSeverityColor(hyperalgesiaIndex, 10);
+  const hyperalgesiaSeverity = getHyperalgesiaBand(hyperalgesiaIndex);
 
   const autosavePayload = useDebounce({ fatigue_vas: fatigue, pelvic_pressure_vas: pelvicPressure, psq_skin_sensitivity: psqSkin, psq_muscle_pressure_pain: psqMuscle, psq_body_tenderness: psqBody }, 2000);
 
