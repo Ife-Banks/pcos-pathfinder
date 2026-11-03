@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import PhoneInput from '@/components/ui/PhoneInput';
+import { parsePhoneNumberFromString } from 'libphonenumber-js';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, ArrowLeft, ArrowRight, User, Ruler, Activity, ClipboardList, ShieldCheck, Copy, Check } from 'lucide-react';
@@ -128,12 +129,12 @@ export default function PHCWalkInRegistrationScreen() {
     return { value: bmi.toFixed(1), category: cat };
   }, [form.height_cm, form.weight_kg]);
 
-  const isStep1Valid = Boolean(
+    const isStep1Valid = Boolean(
     form.first_name?.trim() &&
     form.last_name?.trim() &&
     form.email?.trim() &&
     form.phone?.trim() &&
-    /^\+234\d{10}$/.test(form.phone) &&
+    parsePhoneNumberFromString(form.phone)?.isValid() &&
     form.nationality &&
     form.ethnicity &&
     form.blood_group &&
@@ -198,12 +199,6 @@ export default function PHCWalkInRegistrationScreen() {
           temp_password: body.temp_password || '',
           queue_record_id: body.phc_record_id || body.record_id || '',
         });
-
-        try {
-          await phcAPI.sendCredentials(body.patient_id, form.phone);
-        } catch (err) {
-          console.error('Failed to send credentials:', err);
-        }
       }
     } catch (e: unknown) {
       const err = e as { message?: string; response?: { data?: unknown; status?: number } };

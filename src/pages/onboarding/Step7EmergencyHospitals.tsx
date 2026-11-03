@@ -494,6 +494,7 @@ const Step7EmergencyHospitals = () => {
                   <option value="">All (public and private)</option>
                   <option value="public">Public</option>
                   <option value="private">Private</option>
+                  <option value="unknown">Not specified</option>
                 </select>
               </div>
 

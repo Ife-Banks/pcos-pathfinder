@@ -89,17 +89,19 @@ const Step1PersonalInfo = () => {
     if (!form.phone_number.trim()) {
       newErrors.phone_number = 'Phone number is required';
     } else {
-      const phoneRegex = /^\+234\d{10}$/;
-      if (!phoneRegex.test(form.phone_number)) {
-        newErrors.phone_number = 'Nigerian phone must be +234 followed by exactly 10 digits';
+      const phoneRegex = /^\+\d{8,15}$/;
+      if (!phoneRegex.test(form.phone_number.replace(/\s/g, ''))) {
+        newErrors.phone_number = 'Enter a valid phone number with country code';
       }
     }
 
+    console.log('validation errors:', JSON.stringify(newErrors));
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleNext = async () => {
+    console.log('handleNext fired', JSON.stringify(form));
     if (!validateForm()) return;
     
     console.log('TOKEN CHECK:', { 
