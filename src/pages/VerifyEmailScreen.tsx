@@ -53,9 +53,8 @@ const VerifyEmailScreen = () => {
       const result = await authAPI.verifyEmail(token);
 
       // Backend returns: { status: "success", data: { ...user_fields, tokens: {...} } }
-      // result.data is the response body: { status, data, message }
-      // result.data.data is the actual user data with tokens
-      const responseData = result.data.data;
+      // authAPI returns res.data directly, so result is { status, data, message }
+      const responseData = result.data;
       const { tokens, ...user } = responseData;
 
       // Set isVerified to true BEFORE navigating
