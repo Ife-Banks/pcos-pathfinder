@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Mail, CheckCircle, AlertCircle } from "lucide-react";
 import { authAPI } from "@/services/authService";
 import { useAuth } from "@/context/AuthContext";
@@ -19,6 +21,7 @@ const VerifyEmailScreen = () => {
   const [verifyError, setVerifyError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [resendSuccess, setResendSuccess] = useState(false);
+  const [manualEmail, setManualEmail] = useState("");
   
   const cooldownRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -123,25 +126,27 @@ const VerifyEmailScreen = () => {
   };
 
   const handleResendEmail = async () => {
-    if (resendCooldown > 0 || !email) {
-      if (!email) {
-        setError('Email address not found. Please go back and register again.');
-        return;
-      }
-      
+    if (resendCooldown > 0) {
       setError('Please wait before resending verification email.');
       return;
     }
-    
+
+    // If email is in state, use it. Otherwise, use manually entered email
+    const emailToResend = email || manualEmail;
+    if (!emailToResend || !/\S+@\S+\.\S+/.test(emailToResend)) {
+      setError('Please enter a valid email address to resend the verification link.');
+      return;
+    }
+
     setIsResending(true);
     setError(null);
-    
+
     try {
-      console.log('📤 Resending verification to:', email);
-      await authAPI.resendVerification(email);
-      
+      console.log('📤 Resending verification to:', emailToResend);
+      await authAPI.resendVerification(emailToResend);
+
       setResendSuccess(true);
-      
+
       // Start 60-second cooldown
       setResendCooldown(60);
       cooldownRef.current = setInterval(() => {
@@ -156,7 +161,7 @@ const VerifyEmailScreen = () => {
           return prev - 1;
         });
       }, 1000);
-      
+
     } catch (err: any) {
       console.error('❌ Resend error:', JSON.stringify(err));
       setError('Failed to resend verification email. Please try again.');
@@ -257,8 +262,23 @@ const VerifyEmailScreen = () => {
               </div>
             )}
 
+            {/* Show email input if email is not in state (cross-browser scenario) */}
+            {!email && (
+              <div className="space-y-2 mb-6">
+                <Label htmlFor="manual-email">Email Address</Label>
+                <Input
+                  id="manual-email"
+                  type="email"
+                  placeholder="Enter your email address"
+                  value={manualEmail}
+                  onChange={(e) => setManualEmail(e.target.value)}
+                  disabled={isResending}
+                />
+              </div>
+            )}
+
             <div className="space-y-3">
-              <Button 
+              <Button
                 variant="clinical" 
                 size="xl" 
                 className="w-full" 
