@@ -20,11 +20,7 @@ apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
   
   if (token) {
-    console.log('[apiClient] Attaching token:', token.substring(0, 15) + '...');
     config.headers.Authorization = `Bearer ${token}`;
-  } else {
-    console.log('[apiClient] ❌ NO TOKEN FOUND in localStorage!');
-    console.log('[apiClient] All localStorage keys:', Object.keys(localStorage).join(', '));
   }
   return config;
 });
@@ -46,13 +42,11 @@ apiClient.interceptors.response.use(
   async (error) => {
     // Ignore cancelled/aborted requests
     if (isCancelError(error)) {
-      console.log('[apiClient] Request was cancelled, ignoring');
       return Promise.reject(error);
     }
 
     // Handle network errors - don't redirect to login
     if (!error.response) {
-      console.log('[apiClient] Network error - no response, not redirecting');
       return Promise.reject(error);
     }
 

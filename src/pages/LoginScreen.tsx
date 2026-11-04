@@ -16,7 +16,6 @@ const LoginScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [showResendVerification, setShowResendVerification] = useState(false);
   const [form, setForm] = useState({ identifier: "", password: "" });
 
   useEffect(() => {
@@ -77,10 +76,10 @@ const LoginScreen = () => {
       const statusCode = err?.response?.status;
       
       const newErrors: Record<string, string> = {};
-      
-      // Check for email_not_verified code in errors object
-      if (errorData?.errors?.code === 'email_not_verified') {
-        newErrors.general = 'Please verify your email first.';
+
+      // Check for email verification error message
+      if (errorData?.message?.toLowerCase().includes("verify your email")) {
+        newErrors.general = 'Please verify your email first. Check your inbox for the verification link.';
       } else if (errorData?.errors?.identifier) {
         newErrors.identifier = Array.isArray(errorData.errors.identifier) 
           ? errorData.errors.identifier[0] 

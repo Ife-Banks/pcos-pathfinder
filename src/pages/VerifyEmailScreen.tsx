@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Mail, CheckCircle, AlertCircle } from "lucide-react";
 import { authAPI } from "@/services/authService";
 import { useAuth } from "@/context/AuthContext";
-import { saveTokens } from "@/utils/tokenStorage";
 
 const VerifyEmailScreen = () => {
   const navigate = useNavigate();
@@ -50,27 +49,21 @@ const VerifyEmailScreen = () => {
     try {
       setIsVerifying(true);
       setVerifyError(null);
-      
-      console.log('🔍 Verifying email with token:', token);
-      
+
       const result = await authAPI.verifyEmail(token);
-      console.log('✅ Verify success:', result);
-      
+
       // Backend returns: { status: "success", data: { ...user_fields, tokens: {...} } }
       // result.data is the response body: { status, data, message }
       // result.data.data is the actual user data with tokens
       const responseData = result.data.data;
       const { tokens, ...user } = responseData;
 
-      // Store tokens using the token storage utility
-      await saveTokens(tokens.access, tokens.refresh);
-      
       // Set isVerified to true BEFORE navigating
       setIsVerified(true);
-      
-      // Set user data in AuthContext
+
+      // Set user data in AuthContext (this handles token storage)
       loginWithTokens(user, tokens.access, tokens.refresh);
-      
+
       // Route based on onboarding status
       if (!user.onboarding_completed) {
         const step = user.onboarding_step || 0;
@@ -84,22 +77,21 @@ const VerifyEmailScreen = () => {
         };
         navigate(stepRoutes[step] || '/onboarding/step/1');
       } else {
-        console.log('🏠 Navigating to dashboard - onboarding completed');
         navigate('/dashboard');
       }
-      
+
     } catch (err: any) {
       // Axios error structure: err.response.data contains the API response
       const errorData = err?.response?.data;
       const statusCode = err?.response?.status;
-      
+
       let errorMessage = 'Verification failed. The link may have expired.';
-      
+
       // First priority: message from backend
       if (errorData?.message) {
         errorMessage = errorData.message;
       }
-      
+
       // For validation errors, extract useful info from errors field
       if (errorData?.errors) {
         const errors = errorData.errors;
@@ -107,18 +99,12 @@ const VerifyEmailScreen = () => {
         if (errors.token && Array.isArray(errors.token)) {
           errorMessage = errors.token[0];
         }
-        // Handle { non_field_errors: [...] } format  
+        // Handle { non_field_errors: [...] } format
         else if (errors.non_field_errors && Array.isArray(errors.non_field_errors)) {
           errorMessage = errors.non_field_errors[0];
         }
       }
-      
-      console.error('❌ Verify failed:', {
-        status: statusCode,
-        data: errorData,
-        message: errorMessage
-      });
-      
+
       setVerifyError(errorMessage);
     } finally {
       setIsVerifying(false);
@@ -142,7 +128,6 @@ const VerifyEmailScreen = () => {
     setError(null);
 
     try {
-      console.log('📤 Resending verification to:', emailToResend);
       await authAPI.resendVerification(emailToResend);
 
       setResendSuccess(true);
@@ -246,8 +231,11 @@ const VerifyEmailScreen = () => {
               Check Your Inbox
             </h1>
             <p className="text-muted-foreground leading-relaxed mb-8">
-              We've sent a verification link to <strong>{email}</strong>. 
-              Click it to activate your account.
+              {email ? (
+                <>We've sent a verification link to <strong>{email}</strong>. Click it to activate your account.</>
+              ) : (
+                <>We've sent a verification link to your email address. Click it to activate your account.</>
+              )}
             </p>
 
             {error && (

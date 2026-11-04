@@ -73,12 +73,6 @@ const SignUpScreen = () => {
       setIsLoading(true);
       setErrors({}); // Clear previous errors
 
-      console.log('📤 Attempting registration with:', {
-        full_name: form.name,
-        email: form.email,
-        role: 'patient'
-      });
-
       const result = await authAPI.directRegister({
         full_name: form.name,          // field is full_name not name
         email: form.email,
@@ -87,13 +81,10 @@ const SignUpScreen = () => {
         role: 'patient',
       });
 
-      console.log("✅ Registration success:", result);
-
       // Navigate to verify email page
       navigate("/verify-email", { state: { email: form.email } });
 
     } catch (err: any) {
-      console.error("❌ Registration error:", err);
 
       // Extract backend errors from axios error response
       const errorData = err?.response?.data;
