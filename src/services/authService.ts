@@ -7,7 +7,7 @@ export const authAPI = {
     return res.data;
   },
 
-  directRegister: async ({ full_name, email, password, confirm_password = password, role = 'direct_patient' }) => {
+  directRegister: async ({ full_name, email, password, confirm_password = password, role = 'patient' }) => {
     const res = await apiClient.post('/direct/register/', { full_name, email, password, confirm_password, role });
     return res.data;
   },

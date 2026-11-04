@@ -78,7 +78,6 @@ const SignUpScreen = () => {
         email: form.email,
         password: form.password,
         confirm_password: form.confirmPassword,   // field is confirm_password
-        role: 'patient',
       });
 
       // Navigate to verify email page
