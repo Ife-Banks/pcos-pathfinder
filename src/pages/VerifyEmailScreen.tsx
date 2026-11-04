@@ -128,7 +128,7 @@ const VerifyEmailScreen = () => {
     setError(null);
 
     try {
-      await authAPI.resendVerification(emailToResend);
+      await authAPI.resendVerification(emailToResend.toLowerCase());
 
       setResendSuccess(true);
 

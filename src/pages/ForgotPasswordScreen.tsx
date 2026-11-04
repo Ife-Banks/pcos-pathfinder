@@ -29,39 +29,24 @@ const ForgotPasswordScreen = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    console.log('🔍 Form submission:', { email, emailTrimmed: email.trim(), emailLength: email.length });
-    
+
     if (!validateForm()) {
-      console.log('❌ Form validation failed');
       return;
     }
-    
+
     setIsLoading(true);
     setErrors({});
-    
+
     try {
-      const data = await authAPI.forgotPassword(email);
-      
-      // Success - auth service only returns data on 200
-      console.log('✅ Forgot password request successful:', data);
+      const data = await authAPI.forgotPassword(email.toLowerCase());
+
       setSent(true);
-      
+
     } catch (error: any) {
-      console.error('❌ Forgot password error:', error);
-      console.log('❌ Error details:', { 
-        status: error?.status, 
-        message: error?.message, 
-        errors: error?.errors 
-      });
-      
-      // Handle different error scenarios from auth service
       if (error?.status === 400) {
         if (error?.errors?.email) {
           setErrors({ email: error.errors.email[0] });
         } else if (error?.errors) {
-          // Log all validation errors for debugging
-          console.log('❌ All validation errors:', error.errors);
           setErrors({ email: 'Please enter a valid email address.' });
         } else {
           setErrors({ email: 'Invalid request. Please try again.' });
@@ -69,7 +54,6 @@ const ForgotPasswordScreen = () => {
       } else if (error?.status === 429) {
         setErrors({ email: 'Too many attempts. Please try again later.' });
       } else if (error?.name === 'TypeError' || error?.message?.includes('fetch')) {
-        // Actual network error
         setErrors({ email: 'Network error. Please try again.' });
       } else {
         setErrors({ email: 'An error occurred. Please try again.' });

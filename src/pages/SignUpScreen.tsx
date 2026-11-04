@@ -75,13 +75,13 @@ const SignUpScreen = () => {
 
       const result = await authAPI.directRegister({
         full_name: form.name,          // field is full_name not name
-        email: form.email,
+        email: form.email.toLowerCase(),  // Convert to lowercase
         password: form.password,
         confirm_password: form.confirmPassword,   // field is confirm_password
       });
 
       // Navigate to verify email page
-      navigate("/verify-email", { state: { email: form.email } });
+      navigate("/verify-email", { state: { email: form.email.toLowerCase() } });
 
     } catch (err: any) {
 

@@ -19,18 +19,11 @@ const ResetPasswordScreen = () => {
 
   useEffect(() => {
     const tokenFromUrl = searchParams.get("token");
-    console.log('🔍 Token extraction:', { 
-      tokenFromUrl, 
-      searchParams: Object.fromEntries(searchParams.entries()),
-      fullUrl: window.location.search
-    });
-    
+
     if (!tokenFromUrl) {
-      console.log('❌ No token found in URL, redirecting to forgot-password');
       navigate("/forgot-password");
       return;
     }
-    console.log('✅ Token extracted successfully, length:', tokenFromUrl.length);
     setToken(tokenFromUrl);
   }, [searchParams, navigate]);
 
@@ -55,52 +48,24 @@ const ResetPasswordScreen = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    console.log('🔍 Reset password form data:', { 
-      token, 
-      password: password ? '***' : null, 
-      confirmPassword: confirmPassword ? '***' : null,
-      tokenType: typeof token,
-      tokenLength: token?.length
-    });
-    
+
     if (!validateForm()) {
-      console.log('❌ Form validation failed');
       return;
     }
-    
+
     setIsLoading(true);
     setErrors({});
-    
+
     try {
-      console.log('🔍 Reset password payload:', { 
-        token, 
-        password, 
-        confirm_password: confirmPassword 
+      const data = await authAPI.resetPassword({
+        token,
+        password,
+        confirm_password: confirmPassword
       });
-      
-      const data = await authAPI.resetPassword({ 
-        token, 
-        password, 
-        confirm_password: confirmPassword 
-      });
-      
-      console.log('✅ Password reset successful:', data);
+
       setSuccess(true);
-      
+
     } catch (error: any) {
-      console.error('❌ Password reset error:', error);
-      console.log('❌ Error details:', { 
-        status: error?.status, 
-        message: error?.message, 
-        errors: error?.errors 
-      });
-      
-      // Log all validation errors for debugging
-      if (error?.errors) {
-        console.log('❌ All validation errors:', error.errors);
-      }
-      
       if (error?.status === 400) {
         if (error?.errors?.token) {
           setErrors({ general: 'This reset link is invalid or has expired. Please request a new one.' });

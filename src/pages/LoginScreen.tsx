@@ -51,7 +51,7 @@ const LoginScreen = () => {
     setErrors({});
     
     try {
-      const result = await login({ email: form.identifier, password: form.password });
+      const result = await login({ email: form.identifier.toLowerCase(), password: form.password });
 
       // Check if password change is required
       if (result.data.user.must_change_password) {
