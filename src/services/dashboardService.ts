@@ -180,7 +180,16 @@ export const dashboardService = {
   // NEW: Get comprehensive ML predictions
   getMLPredictions: async (): Promise<PredictionResponse> => {
     try {
-      const res = await apiClient.get('/predictions/pcos/');
+      // Get user profile to check gender
+      const profileRes = await apiClient.get('/auth/me/');
+      const profile = profileRes.data?.data;
+      const userGender = profile?.gender?.toLowerCase();
+
+      // Use comprehensive endpoint for males, PCOS endpoint for females
+      const endpoint = userGender === 'male' ? '/predictions/comprehensive/' : '/predictions/pcos/';
+      console.log('[getMLPredictions] User gender:', userGender, 'Using endpoint:', endpoint);
+
+      const res = await apiClient.get(endpoint);
       const body = res.data;
       
       console.log('[getMLPredictions] API response status:', res.status, 'body keys:', Object.keys(body || {}));
@@ -212,17 +221,19 @@ export const dashboardService = {
       console.log('[getMLPredictions] pcosData keys:', Object.keys(pcosData));
 
       // Extract predictions from all 5 models
-      const symptomPreds = pcosData.all_predictions?.symptom_intensity || {};
-      const menstrualPreds = pcosData.all_predictions?.menstrual || {};
-      const rppgPreds = pcosData.all_predictions?.rppg || {};
-      const rppgV8Preds = pcosData.all_predictions?.rppg_v8 || {};
-      const moodPreds = pcosData.all_predictions?.mood || {};
+      // For comprehensive endpoint, structure is slightly different
+      const allPreds = pcosData.all_predictions || {};
+      const symptomPreds = allPreds.symptom || allPreds.symptom_intensity || {};
+      const menstrualPreds = allPreds.menstrual || {};
+      const rppgPreds = allPreds.rppg || {};
+      const rppgV8Preds = allPreds.rppg_v8 || {};
+      const moodPreds = allPreds.mood || {};
 
       console.log('[getMLPredictions] unified_disease_scores:', JSON.stringify(pcosData.unified_disease_scores, null, 2));
       console.log('[getMLPredictions] weights_used:', JSON.stringify(pcosData.weights_used, null, 2));
       console.log('[getMLPredictions] clinical_rules_triggered:', pcosData.clinical_rules_triggered);
       console.log('[getMLPredictions] risk_score:', pcosData.risk_score, 'risk_tier:', pcosData.risk_tier);
-      console.log('[getMLPredictions] all_predictions keys:', Object.keys(pcosData.all_predictions || {}));
+      console.log('[getMLPredictions] all_predictions keys:', Object.keys(allPreds || {}));
       console.log('[getMLPredictions] data_completeness_pct:', pcosData.data_completeness_pct);
       console.log('[getMLPredictions] data_layers_used:', pcosData.data_layers_used);
 
@@ -313,10 +324,14 @@ export const dashboardService = {
         last_updated: new Date().toISOString()
       };
 
+      const message = userGender === 'male'
+        ? 'Comprehensive risk score retrieved successfully'
+        : 'PCOS risk score retrieved successfully';
+
       return {
         success: true,
         status: 200,
-        message: 'ML predictions retrieved successfully',
+        message,
         data: combinedData
       };
     } catch (error: any) {
