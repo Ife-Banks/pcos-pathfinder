@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from '@/hooks/use-toast';
-import { checkinService, CheckinTodayResponse } from '@/services/checkinService';
+import { checkinService, CheckinTodayResponse, MorningCheckinPayload, EveningCheckinPayload, HRVSubmitPayload } from '@/services/checkinService';
 
 export type CheckinPeriod = 'morning' | 'evening';
 
@@ -12,28 +12,9 @@ interface UseCheckinSessionReturn {
   isAlreadyComplete: boolean;
   retrySession: () => void;
   startSession: () => Promise<void>;
-  submitMorningData: (data: {
-    fatigue_vas: number;
-    pelvic_pressure_vas: number;
-    psq_skin_sensitivity: number;
-    psq_muscle_pressure_pain: number;
-    psq_body_tenderness: number;
-  }) => Promise<void>;
-  submitEveningData: (data: {
-    breast_left_vas: number;
-    breast_right_vas: number;
-    mastalgia_side: string | null;
-    mastalgia_quality: string | null;
-    acne_forehead: number;
-    acne_right_cheek: number;
-    acne_left_cheek: number;
-    acne_nose: number;
-    acne_chin: number;
-    acne_chest_back: number;
-    bloating_delta_cm: number | null;
-    unusual_bleeding: boolean;
-  }) => Promise<void>;
-  submitHRV: (hrv: { hrv_sdnn_ms?: number; hrv_rmssd_ms?: number } | null) => Promise<void>;
+  submitMorningData: (data: MorningCheckinPayload) => Promise<void>;
+  submitEveningData: (data: EveningCheckinPayload) => Promise<void>;
+  submitHRV: (hrv: Omit<HRVSubmitPayload, 'session_id' | 'skipped'> | null) => Promise<void>;
   completeSession: () => Promise<{ predictions_triggered: boolean }>;
   autosave: (payload: Record<string, unknown>) => Promise<void>;
 }
@@ -141,44 +122,24 @@ export function useCheckinSession(period: CheckinPeriod): UseCheckinSessionRetur
     };
   }, [startSession, retryKeyRef.current]);
 
-  const submitMorningData = async (data: {
-    fatigue_vas: number;
-    pelvic_pressure_vas: number;
-    psq_skin_sensitivity: number;
-    psq_muscle_pressure_pain: number;
-    psq_body_tenderness: number;
-  }) => {
+  const submitMorningData = async (data: MorningCheckinPayload) => {
     if (!sessionId) throw new Error('No session ID');
     await checkinService.submitMorningCheckin(sessionId, data);
   };
 
-  const submitEveningData = async (data: {
-    breast_left_vas: number;
-    breast_right_vas: number;
-    mastalgia_side: string | null;
-    mastalgia_quality: string | null;
-    acne_forehead: number;
-    acne_right_cheek: number;
-    acne_left_cheek: number;
-    acne_nose: number;
-    acne_chin: number;
-    acne_chest_back: number;
-    bloating_delta_cm: number | null;
-    unusual_bleeding: boolean;
-  }) => {
+  const submitEveningData = async (data: EveningCheckinPayload) => {
     if (!sessionId) throw new Error('No session ID');
     await checkinService.submitEveningCheckin(sessionId, data);
   };
 
-  const submitHRV = async (hrv: { hrv_sdnn_ms?: number; hrv_rmssd_ms?: number } | null) => {
+  const submitHRV = async (hrv: Omit<HRVSubmitPayload, 'session_id' | 'skipped'> | null) => {
     if (!sessionId) throw new Error('No session ID');
     try {
       if (hrv) {
         await checkinService.submitHRV({
           session_id: sessionId,
-          hrv_sdnn_ms: hrv.hrv_sdnn_ms,
-          hrv_rmssd_ms: hrv.hrv_rmssd_ms,
           skipped: false,
+          ...hrv,
         });
       } else {
         await checkinService.submitHRV({

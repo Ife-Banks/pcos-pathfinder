@@ -324,6 +324,20 @@ export const dashboardService = {
         last_updated: new Date().toISOString()
       };
 
+      // Male users: strip female-only diseases from the per-model breakdowns
+      // (backend already filters unified_disease_scores; this covers the
+      // symptom/menstrual/rppg detail cards which are built client-side).
+      if (userGender === 'male') {
+        const femaleKeys = ['Infertility', 'PMDD', 'Endometrial_Cancer', 'Endometrial', 'Dysmenorrhea'];
+        for (const key of femaleKeys) {
+          delete combinedData.symptom_intensity_risks?.[key as keyof typeof combinedData.symptom_intensity_risks];
+          delete combinedData.menstrual_risks?.[key as keyof typeof combinedData.menstrual_risks];
+        }
+        if (combinedData.rppg_risks?.reproductive) {
+          combinedData.rppg_risks.reproductive.Infertility = null;
+        }
+      }
+
       const message = userGender === 'male'
         ? 'Comprehensive risk score retrieved successfully'
         : 'PCOS risk score retrieved successfully';

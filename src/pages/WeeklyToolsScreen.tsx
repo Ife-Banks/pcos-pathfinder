@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Scissors, ChevronRight, Check, Clock, Activity } from "lucide-react";
 import apiClient from "@/services/apiClient";
+import { useUserGender } from "@/hooks/useUserGender";
 
 interface TodayStatus {
   mfg_completed?: boolean;
@@ -26,6 +27,7 @@ const WeeklyToolsScreen = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [todayStatus, setTodayStatus] = useState<TodayStatus>({});
+  const { isMale } = useUserGender();
 
   const loadWeeklyStatus = useCallback(async () => {
     const today = new Date().toISOString().split('T')[0];
@@ -52,9 +54,11 @@ const WeeklyToolsScreen = () => {
   const getTools = (): WeeklyTool[] => [
     {
       id: "mfg",
-      title: "Hirsutism ",
-      subtitle: "Modified Ferriman-Gallwey (mFG)",
-      description: "Quantify hair growth patterns across 8 body zones to assess hyperandrogenism.",
+      title: isMale ? "Androgenic Hair Pattern" : "Hirsutism ",
+      subtitle: isMale ? "mFG-style · weekly trend" : "Modified Ferriman-Gallwey (mFG)",
+      description: isMale
+        ? "Track androgen-related hair growth across 9 body zones and optional add-ons — trend vs your own baseline."
+        : "Quantify hair growth patterns across 8 body zones to assess hyperandrogenism.",
       icon: Scissors,
       route: "/weekly-tools/hirsutism",
       gradient: "gradient-clinical",

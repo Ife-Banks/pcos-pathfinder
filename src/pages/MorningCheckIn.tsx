@@ -3,8 +3,10 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Sun, Info, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { useCheckinSession } from "@/hooks/useCheckinSession";
+import { useUserGender } from "@/hooks/useUserGender";
 import VASSlider from "@/components/VASSlider";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +32,7 @@ const useDebounce = <T,>(value: T, delay: number): T => {
 
 const MorningCheckIn = () => {
   const navigate = useNavigate();
+  const { isMale } = useUserGender();
   const { loading, error, todayStatus, sessionId, isAlreadyComplete, retrySession, submitMorningData, submitHRV, completeSession, autosave } = useCheckinSession('morning');
   const [step, setStep] = useState<'form' | 'done' | 'error'>('form');
   const [submitting, setSubmitting] = useState(false);
@@ -42,10 +45,46 @@ const MorningCheckIn = () => {
   const [psqMuscle, setPsqMuscle] = useState(0);
   const [psqBody, setPsqBody] = useState(0);
 
+  // Male block — core symptom sliders
+  const [genitalDiscomfort, setGenitalDiscomfort] = useState(0);
+  const [urinarySymptoms, setUrinarySymptoms] = useState(0);
+  const [lowerBackHip, setLowerBackHip] = useState(0);
+  const [nocturia, setNocturia] = useState('');
+
+  // Male vitality trio — optional, null until the user rates them (10 = best)
+  const [vitalityLibido, setVitalityLibido] = useState<number | null>(null);
+  const [vitalityMentalDrive, setVitalityMentalDrive] = useState<number | null>(null);
+  const [vitalityErection, setVitalityErection] = useState<number | null>(null);
+
   const hyperalgesiaIndex = (psqSkin + psqMuscle + psqBody) / 3;
   const hyperalgesiaSeverity = getHyperalgesiaBand(hyperalgesiaIndex);
 
-  const autosavePayload = useDebounce({ fatigue_vas: fatigue, pelvic_pressure_vas: pelvicPressure, psq_skin_sensitivity: psqSkin, psq_muscle_pressure_pain: psqMuscle, psq_body_tenderness: psqBody }, 2000);
+  const vitalityValues = [vitalityLibido, vitalityMentalDrive, vitalityErection].filter(
+    (v): v is number => v !== null
+  );
+  const vitalityDeficit =
+    vitalityValues.length > 0
+      ? Math.max(0, 10 - vitalityValues.reduce((a, b) => a + b, 0) / vitalityValues.length)
+      : null;
+
+  const malePayload = isMale
+    ? {
+        genital_discomfort_vas: genitalDiscomfort,
+        urinary_symptoms_vas: urinarySymptoms,
+        lower_back_hip_pain_vas: lowerBackHip,
+        ...(nocturia !== '' ? { nocturia_count: Math.min(10, Math.max(0, parseInt(nocturia, 10) || 0)) } : {}),
+        // Optional vitality items are omitted until rated so they never
+        // overwrite a previously saved value with null.
+        ...(vitalityLibido !== null ? { vitality_libido: vitalityLibido } : {}),
+        ...(vitalityMentalDrive !== null ? { vitality_mental_drive: vitalityMentalDrive } : {}),
+        ...(vitalityErection !== null ? { vitality_morning_erection: vitalityErection } : {}),
+      }
+    : {};
+
+  const autosavePayload = useDebounce(
+    { fatigue_vas: fatigue, pelvic_pressure_vas: pelvicPressure, psq_skin_sensitivity: psqSkin, psq_muscle_pressure_pain: psqMuscle, psq_body_tenderness: psqBody, ...malePayload },
+    2000
+  );
 
   const prevPayloadRef = useRef<string>('');
 
@@ -82,6 +121,7 @@ const MorningCheckIn = () => {
         psq_skin_sensitivity: psqSkin,
         psq_muscle_pressure_pain: psqMuscle,
         psq_body_tenderness: psqBody,
+        ...malePayload,
       });
     } catch (err: any) {
       setSubmitError(err.message || 'Failed to save. Please try again.');
@@ -147,8 +187,10 @@ const MorningCheckIn = () => {
 
       <div className="mt-8">
         <VASSlider
-          label="Pelvic Pressure"
-          description="Any lower abdominal pressure or discomfort?"
+          label={isMale ? "Pelvic / Perineal Pressure" : "Pelvic Pressure"}
+          description={isMale
+            ? "Any pressure, heaviness or discomfort between the scrotum and anus, or in the lower abdomen?"
+            : "Any lower abdominal pressure or discomfort?"}
           value={pelvicPressure}
           onChange={setPelvicPressure}
           min={0}
@@ -157,6 +199,63 @@ const MorningCheckIn = () => {
           highLabel="Intense"
         />
       </div>
+
+      {isMale && (
+        <>
+          <div className="mt-8">
+            <VASSlider
+              label="Genital / Testicular Discomfort"
+              description="Any pain or aching in the testicles, penis or groin?"
+              value={genitalDiscomfort}
+              onChange={setGenitalDiscomfort}
+              min={0}
+              max={10}
+              lowLabel="No pain"
+              highLabel="Severe"
+            />
+          </div>
+
+          <div className="mt-8">
+            <VASSlider
+              label="Urinary Symptoms"
+              description="Any burning, urgency or weak flow this morning?"
+              value={urinarySymptoms}
+              onChange={setUrinarySymptoms}
+              min={0}
+              max={10}
+              lowLabel="None"
+              highLabel="Severe"
+            />
+          </div>
+
+          <div className="mt-8">
+            <VASSlider
+              label="Lower Back / Hip Pain"
+              description="How stiff or painful is your lower back or hips on waking?"
+              value={lowerBackHip}
+              onChange={setLowerBackHip}
+              min={0}
+              max={10}
+              lowLabel="No pain"
+              highLabel="Severe"
+            />
+          </div>
+
+          <div className="mt-8 rounded-xl border border-gray-200 bg-white p-4">
+            <label className="text-sm font-medium text-gray-700 block mb-1">Night-time voids (nocturia)</label>
+            <p className="text-xs text-gray-500 mb-3">How many times did you wake to urinate last night?</p>
+            <Input
+              type="number"
+              min={0}
+              max={10}
+              placeholder="e.g. 1"
+              value={nocturia}
+              onChange={(e) => setNocturia(e.target.value)}
+              className="w-24"
+            />
+          </div>
+        </>
+      )}
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-teal-50 p-4">
         <div className="flex items-center gap-2 mb-3">
@@ -218,6 +317,63 @@ const MorningCheckIn = () => {
           </div>
         </div>
       </div>
+
+      {isMale && (
+        <div className="mt-8 rounded-xl border border-gray-200 bg-white p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Info className="w-4 h-4 text-teal-600" />
+            <p className="font-semibold text-teal-800 text-sm">Vitality (optional)</p>
+          </div>
+          <p className="text-xs text-gray-500 mb-4">
+            Morning hormonal & vitality check — higher is better. Skip any you don't want to rate.
+          </p>
+
+          <div className="space-y-4">
+            <VASSlider
+              label="Morning Erection Quality"
+              description="Firmness and presence on waking"
+              value={vitalityErection ?? 0}
+              onChange={setVitalityErection}
+              min={0}
+              max={10}
+              lowLabel="None"
+              highLabel="Strong"
+            />
+            <VASSlider
+              label="Libido / Drive"
+              description="Interest in intimacy today"
+              value={vitalityLibido ?? 0}
+              onChange={setVitalityLibido}
+              min={0}
+              max={10}
+              lowLabel="None"
+              highLabel="High"
+            />
+            <VASSlider
+              label="Mental Drive / Mood"
+              description="Motivation and mood on waking"
+              value={vitalityMentalDrive ?? 0}
+              onChange={setVitalityMentalDrive}
+              min={0}
+              max={10}
+              lowLabel="Low"
+              highLabel="High"
+            />
+          </div>
+
+          {vitalityDeficit !== null && (
+            <div className="mt-4 p-3 bg-teal-50 rounded-lg border border-teal-100">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700">Vitality Deficit Index</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold text-teal-700">{vitalityDeficit.toFixed(1)}</span>
+                  <span className="text-xs text-gray-500">/10</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {submitError && (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">

@@ -1330,6 +1330,7 @@ const DashboardScreen = () => {
                                     : `${((prediction.rppg_risks.reproductive?.Stress || 0) * 100).toFixed(0)}%`}
                                 </div>
                               </div>
+                              {!isMale && (
                               <div className="p-4 bg-indigo-50 rounded-xl text-center border border-indigo-100">
                                 <div className="flex items-center justify-center gap-1.5 mb-1">
                                   <Target className="w-4 h-4 text-cyan-500" />
@@ -1341,6 +1342,7 @@ const DashboardScreen = () => {
                                     : `${((prediction.rppg_risks.reproductive?.Infertility || 0) * 100).toFixed(0)}%`}
                                 </div>
                               </div>
+                              )}
                             </div>
                           </div>
                         )}
@@ -1574,6 +1576,7 @@ const DashboardScreen = () => {
               ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
               <p className="text-xs text-gray-600 mt-1 font-medium">Cardiovascular</p>
             </div>
+            {!isMale && (
             <div className="p-3 rounded-lg" style={{ backgroundColor: prediction?.unified_disease_scores?.Infertility ? getUnifiedSeverityBg(prediction.unified_disease_scores.Infertility.severity) : '#f9fafb' }}>
               <Target className="h-4 w-4 mx-auto mb-1.5" style={{ color: prediction?.unified_disease_scores?.Infertility ? getUnifiedSeverityColor(prediction.unified_disease_scores.Infertility.severity) : '#9ca3af' }} />
               <p className="text-xl font-bold font-display text-gray-900">
@@ -1584,6 +1587,7 @@ const DashboardScreen = () => {
               ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
               <p className="text-xs text-gray-600 mt-1 font-medium">Infertility</p>
             </div>
+            )}
             <div className="p-3 rounded-lg" style={{ backgroundColor: prediction?.unified_disease_scores?.T2D ? getUnifiedSeverityBg(prediction.unified_disease_scores.T2D.severity) : '#f9fafb' }}>
               <Droplets className="h-4 w-4 mx-auto mb-1.5" style={{ color: prediction?.unified_disease_scores?.T2D ? getUnifiedSeverityColor(prediction.unified_disease_scores.T2D.severity) : '#9ca3af' }} />
               <p className="text-xl font-bold font-display text-gray-900">
