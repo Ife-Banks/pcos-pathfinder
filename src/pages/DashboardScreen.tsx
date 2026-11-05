@@ -765,7 +765,7 @@ const DashboardScreen = () => {
     ? `Cycle Length ${Math.round(menstrualSummary.mean_cycle_len)} days · CLV ${menstrualSummary.CLV ?? '—'} · ${getCycleStatus(menstrualSummary)}`
     : "Log your cycle";
 
-  const riskScoreTitle = isMale ? "Cardiovascular Risk Score" : "Polyendocrine Metabolic Ovarian Syndrome (PMOS) Score";
+  const riskScoreTitle = isMale ? "Metabolic-Associated Male Hypogonadism" : "Polyendocrine Metabolic Ovarian Syndrome (PMOS) Score";
 
   const morningComplete = todayData?.morning_status === 'complete';
   const eveningComplete = todayData?.evening_status === 'complete';

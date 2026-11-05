@@ -185,8 +185,8 @@ export const dashboardService = {
       const profile = profileRes.data?.data;
       const userGender = profile?.gender?.toLowerCase();
 
-      // Use comprehensive endpoint for males, PCOS endpoint for females
-      const endpoint = userGender === 'male' ? '/predictions/comprehensive/' : '/predictions/pcos/';
+      // Use comprehensive endpoint for both genders (backend handles gender filtering)
+      const endpoint = '/predictions/comprehensive/';
       console.log('[getMLPredictions] User gender:', userGender, 'Using endpoint:', endpoint);
 
       const res = await apiClient.get(endpoint);
