@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Moon, Info, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, Moon, Info, Check, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { useCheckinSession } from "@/hooks/useCheckinSession";
+import { useUserGender } from "@/hooks/useUserGender";
 import VASSlider from "@/components/VASSlider";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +23,15 @@ const getSeverityColor = (score: number, max: number): { color: string; label: s
 
 const getErrorMessage = (error: unknown, fallback: string) => {
   return error instanceof Error ? error.message : fallback;
+};
+
+// GAGS bands per spec: 0 = none, 1–18 mild, 19–30 moderate, 31–38 severe, >38 very severe
+const getAcneBand = (score: number): { color: string; label: string } => {
+  if (score <= 0) return { color: '#27AE60', label: 'None' };
+  if (score <= 18) return { color: '#F39C12', label: 'Mild' };
+  if (score <= 30) return { color: '#E67E22', label: 'Moderate' };
+  if (score <= 38) return { color: '#E74C3C', label: 'Severe' };
+  return { color: '#922B21', label: 'Very Severe' };
 };
 
 const acneLabels = [
@@ -43,6 +53,7 @@ const useDebounce = <T,>(value: T, delay: number): T => {
 
 const EveningCheckIn = () => {
   const navigate = useNavigate();
+  const { isMale } = useUserGender();
   const { loading, error, todayStatus, sessionId, isAlreadyComplete, retrySession, submitEveningData, submitHRV, completeSession, autosave } = useCheckinSession('evening');
   const [step, setStep] = useState<'form' | 'done' | 'error'>('form');
   const [submitting, setSubmitting] = useState(false);
@@ -63,20 +74,105 @@ const EveningCheckIn = () => {
   const [bloatingDelta, setBloatingDelta] = useState('');
   const [unusualBleeding, setUnusualBleeding] = useState(false);
 
+  // Male block — Chest/Breast Tenderness
+  const [chestLeft, setChestLeft] = useState(0);
+  const [chestRight, setChestRight] = useState(0);
+  const [chestSide, setChestSide] = useState<'Unilateral' | 'Bilateral'>('Unilateral');
+  const [chestQuality, setChestQuality] = useState<'Sharp' | 'Dull' | 'Pressure'>('Dull');
+  const [nippleSensitivity, setNippleSensitivity] = useState<number | null>(null);
+
+  // Male block — Testicular & Pelvic Discomfort
+  const [testicleLeft, setTesticleLeft] = useState(0);
+  const [testicleRight, setTesticleRight] = useState(0);
+  const [pelvicAche, setPelvicAche] = useState(0);
+  const [pelvicQuality, setPelvicQuality] = useState<'Sharp' | 'Dull' | 'Pressure' | 'Heaviness'>('Dull');
+
+  // Male block — Acne & Oily Skin
+  const [oilySkin, setOilySkin] = useState<number | null>(null);
+
+  // Male block — Urinary Symptoms (IPSS-style, each 0–5, null until rated)
+  const [urinaryUrgency, setUrinaryUrgency] = useState<number | null>(null);
+  const [urinaryWeakStream, setUrinaryWeakStream] = useState<number | null>(null);
+  const [urinaryIncomplete, setUrinaryIncomplete] = useState<number | null>(null);
+  const [urinaryStraining, setUrinaryStraining] = useState<number | null>(null);
+  const [urinaryFrequency, setUrinaryFrequency] = useState<number | null>(null);
+
+  // Male block — Sexual Function, Energy & Mood
+  const [libido, setLibido] = useState(0);
+  const [erectionHardness, setErectionHardness] = useState<string>('');
+  const [eveningEnergy, setEveningEnergy] = useState(0);
+  const [strengthStamina, setStrengthStamina] = useState(0);
+  const [lowMood, setLowMood] = useState(0);
+  const [hotFlushIntensity, setHotFlushIntensity] = useState(0);
+  const [hotFlushCount, setHotFlushCount] = useState('');
+  const [drowsinessAfterDinner, setDrowsinessAfterDinner] = useState(false);
+
+  // Male block — Red flags
+  const [redFlagBlood, setRedFlagBlood] = useState(false);
+  const [redFlagTesticular, setRedFlagTesticular] = useState(false);
+  const [redFlagUrine, setRedFlagUrine] = useState(false);
+  const [redFlagErection, setRedFlagErection] = useState(false);
+
   const mastalgiaScore = breastLeft + breastRight;
   const mastalgiaSeverity = getSeverityColor(mastalgiaScore, 20);
 
+  // GAGS weights per spec/backend: forehead×2, cheeks×2+2, nose×1, chin×1, chest&back×3 (max 44)
   const acneGAGSScore = useMemo(() => {
-    return (acneForehead * 2) + (acneRightCheek * 2) + (acneLeftCheek * 2) + (acneNose * 2) + (acneChin * 2) + (acneChestBack * 1);
+    return (acneForehead * 2) + (acneRightCheek * 2) + (acneLeftCheek * 2) + (acneNose * 1) + (acneChin * 1) + (acneChestBack * 3);
   }, [acneForehead, acneRightCheek, acneLeftCheek, acneNose, acneChin, acneChestBack]);
 
-  const acneSeverity = getSeverityColor(acneGAGSScore, 44);
+  const acneSeverity = getAcneBand(acneGAGSScore);
+
+  const chestTendernessScore = Math.max(chestLeft, chestRight);
+  const pelvicDiscomfortScore = Math.max(testicleLeft, testicleRight, pelvicAche);
+
+  const urinaryValues = [urinaryUrgency, urinaryWeakStream, urinaryIncomplete, urinaryStraining, urinaryFrequency].filter(
+    (v): v is number => v !== null
+  );
+  const urinaryScore = urinaryValues.reduce((a, b) => a + b, 0);
+
+  const anyRedFlag = redFlagBlood || redFlagTesticular || redFlagUrine || redFlagErection;
+
+  const malePayload = isMale
+    ? {
+        chest_left_vas: chestLeft,
+        chest_right_vas: chestRight,
+        chest_side: chestSide,
+        chest_quality: chestQuality,
+        ...(nippleSensitivity !== null ? { nipple_sensitivity_vas: nippleSensitivity } : {}),
+        testicle_left_vas: testicleLeft,
+        testicle_right_vas: testicleRight,
+        pelvic_ache_vas: pelvicAche,
+        pelvic_quality: pelvicQuality,
+        ...(oilySkin !== null ? { oily_skin_vas: oilySkin } : {}),
+        ...(urinaryUrgency !== null ? { urinary_urgency: urinaryUrgency } : {}),
+        ...(urinaryWeakStream !== null ? { urinary_weak_stream: urinaryWeakStream } : {}),
+        ...(urinaryIncomplete !== null ? { urinary_incomplete_emptying: urinaryIncomplete } : {}),
+        ...(urinaryStraining !== null ? { urinary_straining: urinaryStraining } : {}),
+        ...(urinaryFrequency !== null ? { urinary_daytime_frequency: urinaryFrequency } : {}),
+        libido_vas: libido,
+        ...(erectionHardness ? { erection_hardness: erectionHardness } : {}),
+        evening_energy_vas: eveningEnergy,
+        strength_stamina_vas: strengthStamina,
+        low_mood_vas: lowMood,
+        hot_flush_intensity_vas: hotFlushIntensity,
+        ...(hotFlushCount !== '' ? { hot_flush_count: Math.min(20, Math.max(0, parseInt(hotFlushCount, 10) || 0)) } : {}),
+        drowsiness_after_dinner: drowsinessAfterDinner,
+        red_flag_blood_urine_semen: redFlagBlood,
+        red_flag_severe_testicular_pain: redFlagTesticular,
+        red_flag_unable_pass_urine: redFlagUrine,
+        red_flag_prolonged_erection: redFlagErection,
+      }
+    : {};
 
   const autosavePayload = useDebounce({
-    breast_left_vas: breastLeft,
-    breast_right_vas: breastRight,
-    mastalgia_side: mastalgiaSide || null,
-    mastalgia_quality: mastalgiaQuality || null,
+    ...(isMale ? {} : {
+      breast_left_vas: breastLeft,
+      breast_right_vas: breastRight,
+      mastalgia_side: mastalgiaSide || null,
+      mastalgia_quality: mastalgiaQuality || null,
+      unusual_bleeding: unusualBleeding,
+    }),
     acne_forehead: acneForehead,
     acne_right_cheek: acneRightCheek,
     acne_left_cheek: acneLeftCheek,
@@ -84,7 +180,7 @@ const EveningCheckIn = () => {
     acne_chin: acneChin,
     acne_chest_back: acneChestBack,
     bloating_delta_cm: bloatingDelta ? parseFloat(bloatingDelta) : null,
-    unusual_bleeding: unusualBleeding,
+    ...malePayload,
   }, 2000);
 
   const prevPayloadRef = useRef('');
@@ -117,10 +213,13 @@ const EveningCheckIn = () => {
 
     try {
       await submitEveningData({
-        breast_left_vas: breastLeft,
-        breast_right_vas: breastRight,
-        mastalgia_side: mastalgiaSide || null,
-        mastalgia_quality: mastalgiaQuality || null,
+        ...(isMale ? {} : {
+          breast_left_vas: breastLeft,
+          breast_right_vas: breastRight,
+          mastalgia_side: mastalgiaSide || null,
+          mastalgia_quality: mastalgiaQuality || null,
+          unusual_bleeding: unusualBleeding,
+        }),
         acne_forehead: acneForehead,
         acne_right_cheek: acneRightCheek,
         acne_left_cheek: acneLeftCheek,
@@ -128,7 +227,7 @@ const EveningCheckIn = () => {
         acne_chin: acneChin,
         acne_chest_back: acneChestBack,
         bloating_delta_cm: bloatingDelta ? parseFloat(bloatingDelta) : null,
-        unusual_bleeding: unusualBleeding,
+        ...malePayload,
       });
     } catch (err: unknown) {
       const message = getErrorMessage(err, 'Failed to save. Please try again.');
@@ -180,8 +279,63 @@ const EveningCheckIn = () => {
     </div>
   );
 
+  const renderChoiceButtons = <T extends string>(
+    options: T[],
+    value: T,
+    onSelect: (v: T) => void
+  ) => (
+    <div className="flex flex-wrap gap-2">
+      {options.map((option) => (
+        <button
+          key={option}
+          onClick={() => onSelect(option)}
+          className={cn(
+            'px-3 py-1.5 rounded-full text-sm font-medium transition-all',
+            value === option
+              ? 'text-white'
+              : 'border border-gray-300 text-gray-600'
+          )}
+          style={value === option ? { backgroundColor: TEAL_PRIMARY } : {}}
+        >
+          {option}
+        </button>
+      ))}
+    </div>
+  );
+
+  const renderScale0to5 = (value: number | null, onChange: (v: number) => void) => (
+    <div className="flex gap-1.5">
+      {[0, 1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          onClick={() => onChange(n)}
+          className={cn(
+            'flex-1 h-9 rounded-lg text-sm font-semibold transition-all',
+            value === n
+              ? 'text-white'
+              : 'border border-gray-300 text-gray-500 bg-white hover:border-teal-300'
+          )}
+          style={value === n ? { backgroundColor: TEAL_PRIMARY } : {}}
+        >
+          {n}
+        </button>
+      ))}
+    </div>
+  );
+
+  const ehsOptions = [
+    { value: 'Not_Attempted', label: 'Not attempted' },
+    { value: '0', label: '0 — does not enlarge' },
+    { value: '1', label: '1 — enlarges, not hard' },
+    { value: '2', label: '2 — hard, not enough' },
+    { value: '3', label: '3 — hard enough' },
+    { value: '4', label: '4 — completely hard' },
+  ];
+
   const renderForm = () => (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      {/* ── FEMALE: Cyclic Breast Soreness ─────────────────────────────────── */}
+      {!isMale && (
       <div className="rounded-xl border border-gray-200 bg-teal-50 p-4 mb-6">
         <p className="text-sm font-semibold text-teal-800 mb-1" style={{ color: TEAL_PRIMARY }}>CYCLIC BREAST SORENESS</p>
         <p className="text-xs text-gray-600 mb-4">Cyclic Mastalgia</p>
@@ -249,28 +403,149 @@ const EveningCheckIn = () => {
 
         <div className="mt-4">
           <p className="text-xs text-gray-600 mb-2">Quality</p>
-          <div className="flex gap-2">
-            {['Sharp', 'Dull', 'Pressure'].map((option) => (
-              <button
-                key={option}
-                onClick={() => setMastalgiaQuality(option as 'Sharp' | 'Dull' | 'Pressure')}
-                className={cn(
-                  'px-3 py-1.5 rounded-full text-sm font-medium transition-all',
-                  mastalgiaQuality === option
-                    ? 'text-white'
-                    : 'border border-gray-300 text-gray-600'
-                )}
-                style={mastalgiaQuality === option ? { backgroundColor: TEAL_PRIMARY } : {}}
-              >
-                {option}
-              </button>
-            ))}
+          {renderChoiceButtons(
+            ['Sharp', 'Dull', 'Pressure'] as const,
+            mastalgiaQuality,
+            (v) => setMastalgiaQuality(v)
+          )}
+        </div>
+      </div>
+      )}
+
+      {/* ── MALE: Chest/Breast Tenderness ──────────────────────────────────── */}
+      {isMale && (
+      <div className="rounded-xl border border-gray-200 bg-teal-50 p-4 mb-6">
+        <p className="text-sm font-semibold text-teal-800 mb-1" style={{ color: TEAL_PRIMARY }}>CHEST / BREAST TENDERNESS</p>
+        <p className="text-xs text-gray-600 mb-4">Possible gynecomastia-related tenderness</p>
+
+        <div className="space-y-4">
+          <VASSlider
+            label="Left Chest"
+            value={chestLeft}
+            onChange={setChestLeft}
+            min={0}
+            max={10}
+            lowLabel="No pain"
+            highLabel="Worst pain"
+          />
+          <VASSlider
+            label="Right Chest"
+            value={chestRight}
+            onChange={setChestRight}
+            min={0}
+            max={10}
+            lowLabel="No pain"
+            highLabel="Worst pain"
+          />
+        </div>
+
+        <div className="mt-4">
+          <p className="text-xs text-gray-600 mb-2">Location</p>
+          {renderChoiceButtons(
+            ['Unilateral', 'Bilateral'] as const,
+            chestSide,
+            (v) => setChestSide(v)
+          )}
+        </div>
+
+        <div className="mt-4">
+          <p className="text-xs text-gray-600 mb-2">Quality</p>
+          {renderChoiceButtons(
+            ['Sharp', 'Dull', 'Pressure'] as const,
+            chestQuality,
+            (v) => setChestQuality(v)
+          )}
+        </div>
+
+        <div className="mt-4">
+          <p className="text-xs text-gray-600 mb-2">Nipple sensitivity (optional)</p>
+          <VASSlider
+            label="Nipple Sensitivity"
+            value={nippleSensitivity ?? 0}
+            onChange={setNippleSensitivity}
+            min={0}
+            max={10}
+            lowLabel="None"
+            highLabel="Severe"
+          />
+        </div>
+
+        <div className="mt-4 p-3 bg-white rounded-lg border border-teal-100">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-700">Chest Tenderness Score</span>
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-bold" style={{ color: TEAL_PRIMARY }}>
+                {chestTendernessScore}
+              </span>
+              <span className="text-xs text-gray-500">/10</span>
+            </div>
           </div>
         </div>
       </div>
+      )}
 
+      {/* ── MALE: Testicular & Pelvic Discomfort ────────────────────────────── */}
+      {isMale && (
       <div className="rounded-xl border border-gray-200 bg-teal-50 p-4 mb-6">
-        <p className="text-sm font-semibold text-teal-800 mb-1" style={{ color: TEAL_PRIMARY }}>ACNE SEVERITY</p>
+        <p className="text-sm font-semibold text-teal-800 mb-1" style={{ color: TEAL_PRIMARY }}>TESTICULAR & PELVIC DISCOMFORT</p>
+        <p className="text-xs text-gray-600 mb-4">Pain or aching in the testicles, pelvis or lower abdomen</p>
+
+        <div className="space-y-4">
+          <VASSlider
+            label="Left Testicle"
+            value={testicleLeft}
+            onChange={setTesticleLeft}
+            min={0}
+            max={10}
+            lowLabel="No pain"
+            highLabel="Worst pain"
+          />
+          <VASSlider
+            label="Right Testicle"
+            value={testicleRight}
+            onChange={setTesticleRight}
+            min={0}
+            max={10}
+            lowLabel="No pain"
+            highLabel="Worst pain"
+          />
+          <VASSlider
+            label="Pelvic / Perineal / Lower-Abdominal Ache"
+            value={pelvicAche}
+            onChange={setPelvicAche}
+            min={0}
+            max={10}
+            lowLabel="No pain"
+            highLabel="Worst pain"
+          />
+        </div>
+
+        <div className="mt-4">
+          <p className="text-xs text-gray-600 mb-2">Quality</p>
+          {renderChoiceButtons(
+            ['Sharp', 'Dull', 'Pressure', 'Heaviness'] as const,
+            pelvicQuality,
+            (v) => setPelvicQuality(v)
+          )}
+        </div>
+
+        <div className="mt-4 p-3 bg-white rounded-lg border border-teal-100">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-700">Pelvic Discomfort Score</span>
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-bold" style={{ color: TEAL_PRIMARY }}>
+                {pelvicDiscomfortScore}
+              </span>
+              <span className="text-xs text-gray-500">/10</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      )}
+
+      {/* ── SHARED: Acne Severity (GAGS) ────────────────────────────────────── */}
+      <div className="rounded-xl border border-gray-200 bg-teal-50 p-4 mb-6">
+        <p className="text-sm font-semibold text-teal-800 mb-1" style={{ color: TEAL_PRIMARY }}>{isMale ? 'ACNE & OILY SKIN' : 'ACNE SEVERITY'}</p>
         <p className="text-xs text-gray-600 mb-4">GAGS Scale</p>
 
         <p className="text-xs font-medium text-gray-700 mb-2">Face</p>
@@ -300,11 +575,32 @@ const EveningCheckIn = () => {
             </div>
           </div>
         </div>
+
+        {isMale && (
+          <div className="mt-4">
+            <p className="text-xs text-gray-600 mb-2">Oily skin (optional)</p>
+            <VASSlider
+              label="Oily Skin"
+              value={oilySkin ?? 0}
+              onChange={setOilySkin}
+              min={0}
+              max={10}
+              lowLabel="None"
+              highLabel="Severe"
+            />
+          </div>
+        )}
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-4 mb-6">
-        <label className="text-sm font-medium text-gray-700 block mb-1">Bloating Circumference Change</label>
-        <p className="text-xs text-gray-500 mb-3">Enter abdominal circumference change in cm. Leave blank if not measured.</p>
+        <label className="text-sm font-medium text-gray-700 block mb-1">
+          {isMale ? 'Abdominal Girth Change' : 'Bloating Circumference Change'}
+        </label>
+        <p className="text-xs text-gray-500 mb-3">
+          {isMale
+            ? 'Measured waist circumference change from this morning\'s baseline. Leave blank if not measured.'
+            : 'Enter abdominal circumference change in cm. Leave blank if not measured.'}
+        </p>
         <div className="flex items-center gap-2">
           <Input
             type="number"
@@ -317,6 +613,191 @@ const EveningCheckIn = () => {
         </div>
       </div>
 
+      {/* ── MALE: Urinary Symptoms (IPSS-style) ─────────────────────────────── */}
+      {isMale && (
+      <div className="rounded-xl border border-gray-200 bg-white p-4 mb-6">
+        <p className="text-sm font-semibold text-gray-800 mb-1">URINARY SYMPTOMS</p>
+        <p className="text-xs text-gray-500 mb-4">Rate each item 0 (not at all) to 5 (almost always)</p>
+
+        <div className="space-y-4">
+          {[
+            { label: 'Urgency — difficult to postpone urination', value: urinaryUrgency, set: setUrinaryUrgency },
+            { label: 'Weak stream', value: urinaryWeakStream, set: setUrinaryWeakStream },
+            { label: 'Incomplete emptying', value: urinaryIncomplete, set: setUrinaryIncomplete },
+            { label: 'Straining to start', value: urinaryStraining, set: setUrinaryStraining },
+            { label: 'Daytime frequency', value: urinaryFrequency, set: setUrinaryFrequency },
+          ].map((item) => (
+            <div key={item.label}>
+              <p className="text-xs font-medium text-gray-700 mb-2">{item.label}</p>
+              {renderScale0to5(item.value, item.set)}
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 p-3 bg-teal-50 rounded-lg border border-teal-100">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-700">Urinary Score</span>
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-bold" style={{ color: TEAL_PRIMARY }}>{urinaryScore}</span>
+              <span className="text-xs text-gray-500">/25</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      )}
+
+      {/* ── MALE: Sexual Function, Energy & Mood ────────────────────────────── */}
+      {isMale && (
+      <div className="rounded-xl border border-gray-200 bg-white p-4 mb-6">
+        <p className="text-sm font-semibold text-gray-800 mb-1">SEXUAL FUNCTION, ENERGY & MOOD</p>
+        <p className="text-xs text-gray-500 mb-4">How has your drive, energy and mood been today?</p>
+
+        <div className="space-y-4">
+          <VASSlider
+            label="Libido Today"
+            value={libido}
+            onChange={setLibido}
+            min={0}
+            max={10}
+            lowLabel="None"
+            highLabel="High"
+          />
+
+          <div>
+            <p className="text-xs font-medium text-gray-700 mb-2">Erection Hardness Score (EHS)</p>
+            <div className="space-y-1.5">
+              {ehsOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setErectionHardness(opt.value)}
+                  className={cn(
+                    'w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all',
+                    erectionHardness === opt.value
+                      ? 'text-white'
+                      : 'border border-gray-300 text-gray-600 bg-white hover:border-teal-300'
+                  )}
+                  style={erectionHardness === opt.value ? { backgroundColor: TEAL_PRIMARY } : {}}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <VASSlider
+            label="Evening Energy / Fatigue"
+            value={eveningEnergy}
+            onChange={setEveningEnergy}
+            min={0}
+            max={10}
+            lowLabel="Drained"
+            highLabel="Energetic"
+          />
+          <VASSlider
+            label="Strength & Stamina"
+            value={strengthStamina}
+            onChange={setStrengthStamina}
+            min={0}
+            max={10}
+            lowLabel="Low"
+            highLabel="High"
+          />
+          <VASSlider
+            label="Low Mood / Irritability"
+            value={lowMood}
+            onChange={setLowMood}
+            min={0}
+            max={10}
+            lowLabel="None"
+            highLabel="Severe"
+          />
+        </div>
+
+        <div className="mt-4">
+          <p className="text-xs font-medium text-gray-700 mb-2">Hot flushes / night sweats</p>
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              min={0}
+              max={20}
+              placeholder="Count"
+              value={hotFlushCount}
+              onChange={(e) => setHotFlushCount(e.target.value)}
+              className="w-24"
+            />
+            <span className="text-xs text-gray-500">episodes today</span>
+          </div>
+          <div className="mt-3">
+            <VASSlider
+              label="Hot Flush Intensity"
+              value={hotFlushIntensity}
+              onChange={setHotFlushIntensity}
+              min={0}
+              max={10}
+              lowLabel="None"
+              highLabel="Severe"
+            />
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <label className="flex items-center justify-between cursor-pointer">
+            <div>
+              <p className="text-sm font-medium text-gray-700">Drowsiness after dinner</p>
+              <p className="text-xs text-gray-500">Do you feel unusually sleepy after evening meals?</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={drowsinessAfterDinner}
+              onChange={(e) => setDrowsinessAfterDinner(e.target.checked)}
+              className="w-5 h-5"
+              style={{ accentColor: TEAL_PRIMARY }}
+            />
+          </label>
+        </div>
+      </div>
+      )}
+
+      {/* ── MALE: Red-Flag Checkboxes ───────────────────────────────────────── */}
+      {isMale && (
+      <div className="rounded-xl border border-gray-200 bg-white p-4 mb-6">
+        <p className="text-sm font-semibold text-gray-800 mb-1">RED-FLAG SYMPTOMS</p>
+        <p className="text-xs text-gray-500 mb-4">
+          Tick any that apply today. These trigger an alert — they are not scored.
+        </p>
+
+        {[
+          { label: 'Blood in urine or semen', checked: redFlagBlood, set: setRedFlagBlood },
+          { label: 'Sudden severe testicular pain or swelling', checked: redFlagTesticular, set: setRedFlagTesticular },
+          { label: 'Unable to pass urine', checked: redFlagUrine, set: setRedFlagUrine },
+          { label: 'Painful erection lasting more than 4 hours', checked: redFlagErection, set: setRedFlagErection },
+        ].map((flag) => (
+          <label key={flag.label} className="flex items-center justify-between cursor-pointer py-2 border-b border-gray-100 last:border-0">
+            <span className="text-sm text-gray-700">{flag.label}</span>
+            <input
+              type="checkbox"
+              checked={flag.checked}
+              onChange={(e) => flag.set(e.target.checked)}
+              className="w-5 h-5"
+              style={{ accentColor: '#E74C3C' }}
+            />
+          </label>
+        ))}
+
+        {anyRedFlag && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2">
+            <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
+            <p className="text-sm text-red-700">
+              <span className="font-semibold">Please seek medical care promptly.</span>{' '}
+              The symptoms you selected can be serious and should be checked by a clinician.
+            </p>
+          </div>
+        )}
+      </div>
+      )}
+
+      {/* ── FEMALE ONLY: Unusual Bleeding ───────────────────────────────────── */}
+      {!isMale && (
       <div className="rounded-xl border border-gray-200 bg-white p-4">
         <label className="flex items-center justify-between cursor-pointer">
           <div>
@@ -332,6 +813,7 @@ const EveningCheckIn = () => {
           />
         </label>
       </div>
+      )}
 
       {submitError && (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
