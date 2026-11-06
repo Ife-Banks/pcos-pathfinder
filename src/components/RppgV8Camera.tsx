@@ -135,10 +135,14 @@ function resampleRRIntervals(
 /** Remove peaks that produce physiologically impossible RR intervals. */
 function filterPeaks(peaks: number[], minRR = 300): number[] {
   if (peaks.length < 2) return peaks;
-  const filtered = [peaks[0]];
-  for (let i = 1; i < peaks.length; i++) {
-    const rr = peaks[i] - filtered[filtered.length - 1];
-    if (rr >= minRR && rr <= 2000) filtered.push(peaks[i]);
+  const filtered: number[] = [];
+  for (let i = 0; i < peaks.length; i++) {
+    if (i === 0) {
+      filtered.push(peaks[i]);
+    } else {
+      const rr = peaks[i] - peaks[i - 1];
+      if (rr >= minRR && rr <= 2000) filtered.push(peaks[i]);
+    }
   }
   return filtered;
 }
