@@ -1585,9 +1585,9 @@ const DashboardScreen = () => {
             <div className="p-3 rounded-lg bg-gray-50">
               <TrendingUp className="h-4 w-4 mx-auto mb-1.5 text-amber-500" />
               <p className="text-xl font-bold font-display text-gray-900">
-                {todaySummary?.fatigue_vas !== null && todaySummary?.fatigue_vas !== undefined ? `${todaySummary.fatigue_vas.toFixed(1)}` : morningComplete ? '✓' : '—'}
+                {todaySummary?.fatigue_vas && todaySummary.fatigue_vas > 0 ? `${todaySummary.fatigue_vas.toFixed(1)}` : morningComplete ? '✓' : '—'}
               </p>
-              {todaySummary?.fatigue_vas !== null && todaySummary?.fatigue_vas !== undefined ? (
+              {todaySummary?.fatigue_vas && todaySummary.fatigue_vas > 0 ? (
                 <p className="text-[10px] text-gray-500 mt-0.5 font-medium">
                   {fatigueLabel(todaySummary.fatigue_vas)}
                 </p>
