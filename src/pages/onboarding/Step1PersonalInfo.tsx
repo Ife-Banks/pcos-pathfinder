@@ -190,10 +190,10 @@ const Step1PersonalInfo = () => {
         <motion.button
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate('/login')}
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8 self-start"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to Dashboard
+          <ArrowLeft className="h-4 w-4" /> Back to Login
         </motion.button>
 
         <div className="flex justify-between items-center mb-4">
