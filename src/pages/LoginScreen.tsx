@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,17 +13,22 @@ import { Logo } from "@/components/Logo";
 const LoginScreen = () => {
   const navigate = useNavigate();
   const { login, user, accessToken, routeAfterLogin } = useAuth();
+  const [searchParams] = useSearchParams();
+  const fromOnboarding = searchParams.get('from') === 'onboarding';
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState({ identifier: "", password: "" });
 
   useEffect(() => {
+    // Don't redirect if coming from onboarding - user wants to see login page
+    if (fromOnboarding) return;
+    
     if (user && accessToken) {
       const dashboardRoute = routeAfterLogin(user);
       navigate(dashboardRoute);
     }
-  }, [user, accessToken, navigate, routeAfterLogin]);
+  }, [user, accessToken, navigate, routeAfterLogin, fromOnboarding]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
