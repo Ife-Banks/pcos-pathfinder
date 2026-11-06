@@ -158,7 +158,7 @@ function rejectRRIntervalOutliers(rrIntervals: number[]): number[] {
   if (rrIntervals.length < 5) return rrIntervals;
   const meanRR = mean(rrIntervals);
   const stdRR = std(rrIntervals);
-  const threshold = stdRR * 1.5;  // Remove intervals beyond 1.5 std deviations
+  const threshold = stdRR * 1.0;  // Tightened from 1.5 to 1.0 std deviation for cleaner RMSSD
   return rrIntervals.filter(rr => Math.abs(rr - meanRR) <= threshold);
 }
 
