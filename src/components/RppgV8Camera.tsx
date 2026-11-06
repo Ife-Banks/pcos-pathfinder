@@ -609,11 +609,12 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     const r = Math.max(...ac) - Math.min(...ac);
     const s = std(ac);
     let quality = 0;
-    if (r > 1.5 && s > 0.6) quality = 85;
-    else if (r > 1.0 && s > 0.4) quality = 70;
-    else if (r > 0.6 && s > 0.25) quality = 55;
-    else if (r > 0.3 && s > 0.15) quality = 40;
-    else if (r > 0.15) quality = 25;
+    // Lowered thresholds to be more realistic for valid signals with smaller AC amplitude
+    if (r > 1.0 && s > 0.4) quality = 85;
+    else if (r > 0.6 && s > 0.25) quality = 70;
+    else if (r > 0.3 && s > 0.15) quality = 55;
+    else if (r > 0.15 && s > 0.08) quality = 40;
+    else if (r > 0.08) quality = 25;
     else quality = 10;
     signalQualityRef.current = quality;
     setSignalQuality(quality);
