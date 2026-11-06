@@ -133,7 +133,7 @@ function resampleRRIntervals(
 }
 
 /** Remove peaks that produce physiologically impossible RR intervals. */
-function filterPeaks(peaks: number[], minRR = 350): number[] {
+function filterPeaks(peaks: number[], minRR = 300): number[] {
   if (peaks.length < 2) return peaks;
   const filtered = [peaks[0]];
   for (let i = 1; i < peaks.length; i++) {
@@ -143,14 +143,23 @@ function filterPeaks(peaks: number[], minRR = 350): number[] {
   return filtered;
 }
 
-/** Remove RR interval outliers — keep only intervals within 50–180% of median. */
+/** Remove RR interval outliers — keep only intervals within 60–140% of median. */
 function filterRRIntervals(rrIntervals: number[]): number[] {
   if (rrIntervals.length < 4) return rrIntervals;
   const sorted = [...rrIntervals].sort((a, b) => a - b);
   const median = sorted[Math.floor(sorted.length * 0.5)];
-  const lower = median * 0.5;
-  const upper = median * 1.8;
+  const lower = median * 0.6;  // Tightened from 0.5 to 0.6
+  const upper = median * 1.4;  // Tightened from 1.8 to 1.4
   return rrIntervals.filter(rr => rr >= lower && rr <= upper);
+}
+
+/** Remove statistical outliers from RR intervals before RMSSD calculation. */
+function rejectRRIntervalOutliers(rrIntervals: number[]): number[] {
+  if (rrIntervals.length < 5) return rrIntervals;
+  const meanRR = mean(rrIntervals);
+  const stdRR = std(rrIntervals);
+  const threshold = stdRR * 1.0;  // Tightened from 1.5 to 1.0 std deviation for cleaner RMSSD
+  return rrIntervals.filter(rr => Math.abs(rr - meanRR) <= threshold);
 }
 
 /** Compute LF power (0.04-0.15 Hz) and HF power (0.15-0.40 Hz) from peak times. */
@@ -581,13 +590,17 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     const aboveThreshold = peakAc > minVal + 0.15 * range;
     const hasFallen = signalDrop > range * 0.15;
 
+    // Adaptive prominence threshold: require peak to be at least 20% of signal range
+    const prominenceThreshold = range * 0.2;
+    const hasProminence = peakAc - minAc > prominenceThreshold;
+
     if (frameCountRef.current % 30 === 0) {
-      console.log(`[peak] maxAc=${peakAc.toFixed(3)} minAc=${minAc.toFixed(3)} idx=${peakIdx}/${lookback} range=${range.toFixed(3)} drop=${signalDrop.toFixed(3)} atEdge=${!peakNotAtEdge} positive=${positiveExcursion} above=${aboveThreshold} fallen=${hasFallen} peaks=${peakTimesRef.current.length}`);
+      console.log(`[peak] maxAc=${peakAc.toFixed(3)} minAc=${minAc.toFixed(3)} idx=${peakIdx}/${lookback} range=${range.toFixed(3)} drop=${signalDrop.toFixed(3)} atEdge=${!peakNotAtEdge} positive=${positiveExcursion} above=${aboveThreshold} fallen=${hasFallen} prominence=${hasProminence} peaks=${peakTimesRef.current.length}`);
     }
 
-    if (peakNotAtEdge && positiveExcursion && aboveThreshold && hasFallen) {
+    if (peakNotAtEdge && positiveExcursion && aboveThreshold && hasFallen && hasProminence) {
       const lastPeak = lastPeakTimeRef.current;
-      const minRR = 350;
+      const minRR = 300;  // Allow up to 200 bpm for valid physiologic intervals
       if (!lastPeak || (peakTime - lastPeak) >= minRR) {
         peakTimesRef.current.push(peakTime);
         lastPeakTimeRef.current = peakTime;
@@ -609,11 +622,12 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     const r = Math.max(...ac) - Math.min(...ac);
     const s = std(ac);
     let quality = 0;
-    if (r > 1.5 && s > 0.6) quality = 85;
-    else if (r > 1.0 && s > 0.4) quality = 70;
-    else if (r > 0.6 && s > 0.25) quality = 55;
-    else if (r > 0.3 && s > 0.15) quality = 40;
-    else if (r > 0.15) quality = 25;
+    // Lowered thresholds to be more realistic for valid signals with smaller AC amplitude
+    if (r > 1.0 && s > 0.4) quality = 85;
+    else if (r > 0.6 && s > 0.25) quality = 70;
+    else if (r > 0.3 && s > 0.15) quality = 55;
+    else if (r > 0.15 && s > 0.08) quality = 40;
+    else if (r > 0.08) quality = 25;
     else quality = 10;
     signalQualityRef.current = quality;
     setSignalQuality(quality);
@@ -649,7 +663,7 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     const peaks = peakTimesRef.current;
     if (peaks.length < 3) return;
 
-    const cleanPeaks = filterPeaks(peaks, 350);
+    const cleanPeaks = filterPeaks(peaks, 300);
     const recentPeaks = cleanPeaks.slice(-20);
     const rawRR: number[] = [];
     for (let i = 0; i < recentPeaks.length - 1; i++) {
@@ -657,25 +671,27 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     }
 
     const rrIntervals = filterRRIntervals(rawRR);
+    const cleanRR = rejectRRIntervalOutliers(rrIntervals);
 
-    if (rrIntervals.length < 2) return;
+    if (cleanRR.length < 2) return;
 
-    const avgRR = mean(rrIntervals);
+    const avgRR = mean(cleanRR);
     if (avgRR < 300 || avgRR > 2000) return;
     const hr = 60000 / avgRR;
     setLiveHeartRate(Math.round(hr));
 
-    if (rrIntervals.length >= 3) {
-      const diffs = rrIntervals.slice(1).map((v, i) => (v - rrIntervals[i]) ** 2);
+    if (cleanRR.length >= 3) {
+      const diffs = cleanRR.slice(1).map((v, i) => (v - cleanRR[i]) ** 2);
       const rmssdVal = Math.sqrt(mean(diffs));
-      const clamped = Math.min(rmssdVal, 200);
-      const roundedRMSSD = Math.round(clamped * 100) / 100;
+      // Don't clamp RMSSD - let backend handle artifact detection
+      // Physiological RMSSD can range 20-150ms, but noisy signals can exceed this
+      const roundedRMSSD = Math.round(rmssdVal * 100) / 100;
       setLiveRMSSD(roundedRMSSD);
       setLiveHRVStatus(computeHRVStatus(roundedRMSSD));
     }
 
     if (frameCountRef.current % 60 === 0) {
-      console.log(`[liveMetrics] cleanPeaks=${cleanPeaks.length} rawRR=${rawRR.length} rrFiltered=${rrIntervals.length} avgRR=${avgRR.toFixed(0)} hr=${Math.round(hr)}`);
+      console.log(`[liveMetrics] cleanPeaks=${cleanPeaks.length} rawRR=${rawRR.length} rrFiltered=${rrIntervals.length} rrOutliersRemoved=${rrIntervals.length - cleanRR.length} avgRR=${avgRR.toFixed(0)} hr=${Math.round(hr)}`);
     }
 
     if (cleanPeaks.length >= 4) {
@@ -705,23 +721,26 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     const rawRR: number[] = [];
     for (let i = 0; i < cleanPeaks.length - 1; i++) {
       const rr = cleanPeaks[i + 1] - cleanPeaks[i];
-      if (rr >= 400 && rr <= 1500) rawRR.push(rr);
+      // Widen RR range to 300-2000ms (30-200 bpm) to capture valid physiologic intervals
+      if (rr >= 300 && rr <= 2000) rawRR.push(rr);
     }
 
     const rrIntervals = filterRRIntervals(rawRR);
+    const cleanRR = rejectRRIntervalOutliers(rrIntervals);
 
-    console.log(`[finalMetrics] peaks=${peaks.length} cleanPeaks=${cleanPeaks.length} rawRR=${rawRR.length} filteredRR=${rrIntervals.length}`);
+    console.log(`[finalMetrics] peaks=${peaks.length} cleanPeaks=${cleanPeaks.length} rawRR=${rawRR.length} filteredRR=${rrIntervals.length} outliersRemoved=${rrIntervals.length - cleanRR.length}`);
 
-    const avgRR = rrIntervals.length ? mean(rrIntervals) : 600;
+    const avgRR = cleanRR.length ? mean(cleanRR) : 600;
     const hr = 60000 / avgRR;
 
     let rmssdVal: number | null = null;
-    if (rrIntervals.length >= 3) {
-      const diffs = rrIntervals.slice(1).map((v, i) => (v - rrIntervals[i]) ** 2);
-      rmssdVal = Math.min(Math.sqrt(mean(diffs)), 200);
+    if (cleanRR.length >= 3) {
+      const diffs = cleanRR.slice(1).map((v, i) => (v - cleanRR[i]) ** 2);
+      // Don't clamp RMSSD - let backend handle artifact detection
+      rmssdVal = Math.sqrt(mean(diffs));
     }
 
-    const hrvVal = rrIntervals.length >= 3 ? std(rrIntervals) : null;
+    const hrvVal = cleanRR.length >= 3 ? std(cleanRR) : null;
 
     let lfPower = 0, hfPower = 0;
     let lfHfRatio: number | null = null;
@@ -768,12 +787,15 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     // Clamp values to Node.js Joi validation ranges
     const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
+    // Only submit HRV metrics if signal quality is >= 50%
+    const shouldSubmitHRV = quality >= 50;
+
     const payload: RppgV8SessionPayload = {
-      rmssd: rmssdVal !== null ? clamp(Math.round(rmssdVal * 100) / 100, 0, 1000) : 0,
-      hf: clamp(parseFloat(hfPower.toFixed(4)), 0, 5000),
-      lf_hf_ratio: lfHfRatio !== null ? clamp(lfHfRatio, 0, 20) : 0,
+      rmssd: shouldSubmitHRV && rmssdVal !== null ? clamp(Math.round(rmssdVal * 100) / 100, 0, 500) : 0,  // Increased max from 1000 to 500
+      hf: shouldSubmitHRV ? clamp(parseFloat(hfPower.toFixed(4)), 0, 5000) : 0,
+      lf_hf_ratio: shouldSubmitHRV && lfHfRatio !== null ? clamp(lfHfRatio, 0, 20) : 0,
       heart_rate: Math.round(clamp(hr, 30, 200)),
-      hrv: hrvVal !== null ? clamp(Math.round(hrvVal * 100) / 100, 0, 1000) : 0,
+      hrv: shouldSubmitHRV && hrvVal !== null ? clamp(Math.round(hrvVal * 100) / 100, 0, 1000) : 0,
       estimated_spo2: clamp(spo2, 80, 100),
       skin_temperature: clamp(skinTemp, 25, 42),
       hr_trend: hrTrend !== null ? clamp(hrTrend, -10, 10) : null,
@@ -786,7 +808,7 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
       ac_dc_ratio: acDcRatio !== null ? clamp(acDcRatio, 0, 10) : null,
       pulse_amplitude: pulseAmp !== null ? clamp(pulseAmp, 0, 100) : null,
       signal_quality: quality !== null ? clamp(quality, 0, 100) : null,
-      respiratory_rate: respRate !== null ? clamp(respRate, 5, 40) : null,
+      respiratory_rate: shouldSubmitHRV && respRate !== null ? clamp(respRate, 5, 40) : null,
       session_type: 'checkin',
       session_quality: quality >= 50 ? 'good' : quality >= 25 ? 'poor' : 'motion_artifact',
     };
