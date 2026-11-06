@@ -334,8 +334,8 @@ const RiskGauge = ({ score }: { score?: number }) => {
 
   return (
     <div className="flex flex-col items-center">
-      <div className="relative w-48 h-28 overflow-hidden">
-        <svg viewBox="0 0 200 110" className="w-full h-full">
+      <div className="relative w-56 h-32 overflow-hidden">
+        <svg viewBox="0 0 220 120" className="w-full h-full">
           <defs>
             <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#27AE60" />
@@ -343,52 +343,64 @@ const RiskGauge = ({ score }: { score?: number }) => {
               <stop offset="66%" stopColor="#E67E22" />
               <stop offset="100%" stopColor="#E74C3C" />
             </linearGradient>
+            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
           </defs>
+          {/* Background track */}
           <path
-            d="M 20 100 A 80 80 0 0 1 180 100"
+            d="M 15 110 A 95 95 0 0 1 205 110"
             fill="none"
-            stroke="#E5E7EB"
-            strokeWidth="12"
+            stroke="#F3F4F6"
+            strokeWidth="14"
             strokeLinecap="round"
           />
+          {/* Colored progress arc */}
           <motion.path
-            d="M 20 100 A 80 80 0 0 1 180 100"
+            d="M 15 110 A 95 95 0 0 1 205 110"
             fill="none"
             stroke="url(#gaugeGrad)"
-            strokeWidth="12"
+            strokeWidth="14"
             strokeLinecap="round"
             initial={{ pathLength: 0 }}
             animate={{ pathLength: score }}
-            transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
+            transition={{ duration: 1.5, ease: "easeOut", delay: 0.3 }}
+            filter="url(#glow)"
           />
+          {/* Needle */}
           <motion.line
-            x1="100" y1="100" x2="100" y2="30"
-            stroke="#1F2937"
-            strokeWidth="2.5"
+            x1="110" y1="110" x2="110" y2="25"
+            stroke="#374151"
+            strokeWidth="3"
             strokeLinecap="round"
-            style={{ transformOrigin: "100px 100px" }}
+            style={{ transformOrigin: "110px 110px" }}
             initial={{ rotate: -90 }}
             animate={{ rotate: angle - 90 }}
-            transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
+            transition={{ duration: 1.5, ease: "easeOut", delay: 0.3 }}
           />
-          <circle cx="100" cy="100" r="4" fill="#1F2937" />
+          {/* Center circle */}
+          <circle cx="110" cy="110" r="6" fill="#374151" />
+          <circle cx="110" cy="110" r="3" fill="#fff" />
         </svg>
       </div>
       <motion.div
-        initial={{ opacity: 0, y: 8 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
         className="text-center -mt-2"
       >
-       <span>
-  <span className="text-3xl font-bold font-display" style={{ color: tier.color }}>
-    {safeScore.toFixed(2)}
-  </span>{' '}
-  <span className="text-lg font-extrabold text-black-500">/ 1.00</span>
-</span>
-        <p className="text-sm text-semibold text-gray-800">
-          Risk Tier: <span className="font-extrabold" style={{ color: tier.color }}>{tier.label}</span>
-        </p>
+        <div className="flex items-baseline justify-center gap-1">
+          <span className="text-4xl font-bold font-display" style={{ color: tier.color }}>
+            {safeScore.toFixed(2)}
+          </span>
+          <span className="text-lg font-semibold text-gray-500">/ 1.00</span>
+        </div>
+        <div className="mt-2 inline-flex items-center gap-2 px-4 py-1.5 rounded-full" style={{ backgroundColor: tier.bg }}>
+          <span className="text-sm font-bold" style={{ color: tier.color }}>
+            {tier.label} Risk
+          </span>
+        </div>
       </motion.div>
     </div>
   );
