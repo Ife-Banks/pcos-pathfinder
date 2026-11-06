@@ -3,10 +3,10 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Camera, Activity } from 'lucide-react';
-import RppgCamera from '@/components/RppgCamera';
-import type { ReadinessState } from '@/components/RppgCamera';
-import { rppgService } from '@/services/rppgService';
-import type { RppgSessionPayload } from '@/components/RppgCamera';
+import RppgV8Camera from '@/components/RppgV8Camera';
+import type { ReadinessState } from '@/components/RppgV8Camera';
+import { rppgV8Service } from '@/services/rppgV8Service';
+import type { RppgV8SessionPayload } from '@/services/rppgV8Service';
 import { toast } from '@/hooks/use-toast';
 
 const TEAL_PRIMARY = '#00897B';
@@ -19,7 +19,7 @@ const RppgCaptureScreen = () => {
   const [captureComplete, setCaptureComplete] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [sessionData, setSessionData] = useState<{ payload: RppgSessionPayload } | null>(null);
+  const [sessionData, setSessionData] = useState<{ payload: RppgV8SessionPayload } | null>(null);
 
   const [captureTimerActive, setCaptureTimerActive] = useState(false);
   const [nextCaptureAt, setNextCaptureAt] = useState<number | null>(null);
@@ -35,17 +35,17 @@ const RppgCaptureScreen = () => {
   }, [showPreview]);
 
   useEffect(() => {
-    localStorage.removeItem('nextRppgCaptureAt');
+    localStorage.removeItem('nextRppgV8CaptureAt');
   }, []);
 
   useEffect(() => {
     if (!captureTimerActive) return;
     const check = setInterval(() => {
       const now = Date.now();
-      const next = localStorage.getItem('nextRppgCaptureAt');
+      const next = localStorage.getItem('nextRppgV8CaptureAt');
       if (next && parseInt(next, 10) <= now) {
         setCaptureTimerActive(false);
-        localStorage.removeItem('nextRppgCaptureAt');
+        localStorage.removeItem('nextRppgV8CaptureAt');
       }
     }, 10000);
     return () => clearInterval(check);
@@ -58,7 +58,7 @@ const RppgCaptureScreen = () => {
       return;
     }
     const next = Date.now() + 4 * 60 * 60 * 1000;
-    localStorage.setItem('nextRppgCaptureAt', next.toString());
+    localStorage.setItem('nextRppgV8CaptureAt', next.toString());
     setNextCaptureAt(next);
     setCaptureTimerActive(true);
   }, []);
@@ -70,7 +70,7 @@ const RppgCaptureScreen = () => {
     setErrors({});
   };
 
-  const handleCaptureComplete = async (metrics: RppgSessionPayload) => {
+  const handleCaptureComplete = async (metrics: RppgV8SessionPayload) => {
     setIsLoading(true);
     setErrors({});
     
@@ -79,12 +79,12 @@ const RppgCaptureScreen = () => {
     setIsCapturing(false);
 
     try {
-      await rppgService.logSession(metrics);
+      await rppgV8Service.logSession(metrics);
 
       scheduleNextCapture();
       toast({
-        title: 'HRV Captured',
-        description: 'Your heart rate variability has been measured.',
+        title: 'rPPG v8 Measurement Complete',
+        description: 'Your heart rate variability has been measured with 18 physiological metrics.',
       });
     } catch (err: any) {
       console.warn('Backend save failed (results shown locally):', err);
@@ -109,9 +109,9 @@ const RppgCaptureScreen = () => {
           <button onClick={() => navigate('/dashboard')} className="text-white/80 hover:text-white">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-xl font-bold text-white font-[var(--font-display)]">Measure HRV</h1>
+          <h1 className="text-xl font-bold text-white font-[var(--font-display)]">Measure rPPG v8</h1>
         </div>
-        <p className="text-white/70 text-sm ml-8 mt-1">Capture your heart rate variability</p>
+        <p className="text-white/70 text-sm ml-8 mt-1">Capture 18 physiological metrics</p>
       </div>
 
       <div className="px-6 py-6 max-w-md mx-auto">
@@ -131,31 +131,56 @@ const RppgCaptureScreen = () => {
               <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
                 <Activity className="w-8 h-8 text-green-600" />
               </div>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">Measurement Complete!</h2>
-              <p className="text-gray-500 mb-6">Your HRV has been captured successfully.</p>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">rPPG v8 Measurement Complete!</h2>
+              <p className="text-gray-500 mb-6">Your physiological data has been captured successfully.</p>
               
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-sm text-gray-500 mb-1">HRV (RMSSD)</p>
+                  <p className="text-sm text-gray-500 mb-1">HR</p>
+                  <p className="text-2xl font-bold text-gray-900">{sessionData.payload.heart_rate}</p>
+                  <p className="text-xs text-gray-400">bpm</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <p className="text-sm text-gray-500 mb-1">RMSSD</p>
                   <p className="text-2xl font-bold text-gray-900">{sessionData.payload.rmssd.toFixed(1)}</p>
                   <p className="text-xs text-gray-400">ms</p>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-sm text-gray-500 mb-1">ASI</p>
-                  <p className="text-2xl font-bold text-gray-900">{sessionData.payload.asi?.toFixed(2) ?? '--'}</p>
+                  <p className="text-sm text-gray-500 mb-1">SpO2</p>
+                  <p className="text-2xl font-bold text-gray-900">{sessionData.payload.estimated_spo2.toFixed(1)}</p>
+                  <p className="text-xs text-gray-400">%</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <p className="text-sm text-gray-500 mb-1">Skin Temp</p>
+                  <p className="text-2xl font-bold text-gray-900">{sessionData.payload.skin_temperature.toFixed(1)}</p>
+                  <p className="text-xs text-gray-400">°C</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <div className="bg-gray-50 rounded-xl p-3">
-                  <p className="text-xs text-gray-500 mb-1">Temp</p>
-                  <p className="text-lg font-bold text-gray-900">{sessionData.payload.mean_temp}°C</p>
+                  <p className="text-xs text-gray-500 mb-1">EDA</p>
+                  <p className="text-lg font-bold text-gray-900">{sessionData.payload.mean_eda.toFixed(2)}µS</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-3">
-                  <p className="text-xs text-gray-500 mb-1">EDA</p>
-                  <p className="text-lg font-bold text-gray-900">{sessionData.payload.mean_eda}µS</p>
+                  <p className="text-xs text-gray-500 mb-1">ASI</p>
+                  <p className="text-lg font-bold text-gray-900">{sessionData.payload.asi?.toFixed(3) ?? '--'}</p>
                 </div>
               </div>
+
+              {sessionData.payload.signal_quality && (
+                <div className="bg-blue-50 rounded-xl p-3 mb-4">
+                  <p className="text-sm text-blue-700">
+                    Signal Quality: <span className="font-bold">{sessionData.payload.signal_quality}%</span>
+                    <span className={`ml-2 text-xs ${sessionData.payload.session_quality === 'good' ? 'text-green-600' : sessionData.payload.session_quality === 'poor' ? 'text-yellow-600' : 'text-red-600'}`}>
+                      ({sessionData.payload.session_quality})
+                    </span>
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3">
@@ -192,7 +217,7 @@ const RppgCaptureScreen = () => {
                 <div>
                   <h3 className="font-semibold text-teal-900 mb-1">About this measurement</h3>
                   <p className="text-sm text-teal-700">
-                    We'll use your phone camera to measure heart rate variability (HRV) through 
+                    We'll use your phone camera to measure 18 physiological metrics through 
                     remote photoplethysmography (rPPG). This takes 1 minute.
                   </p>
                   {showPreview && readiness && (
@@ -220,7 +245,7 @@ const RppgCaptureScreen = () => {
               </div>
             </div>
 
-            <RppgCamera
+            <RppgV8Camera
               onCaptureComplete={handleCaptureComplete}
               onCaptureError={handleCaptureError}
               isCapturing={isCapturing}
