@@ -38,7 +38,7 @@ function std(arr: number[]): number {
 }
 
 /** Remove peaks that produce physiologically impossible RR intervals. */
-function filterPeaks(peaks: number[], minRR = 350): number[] {
+function filterPeaks(peaks: number[], minRR = 400): number[] {
   if (peaks.length < 2) return peaks;
   const filtered = [peaks[0]];
   for (let i = 1; i < peaks.length; i++) {
@@ -412,7 +412,7 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
 
     const diffs = validRR.slice(1).map((v, i) => (v - validRR[i]) ** 2);
     let rmssdVal = Math.sqrt(mean(diffs));
-    if (rmssdVal > 200) rmssdVal = 35;
+    // Don't clamp or reset RMSSD - let backend handle artifact detection
     setLiveRMSSD(Math.round(rmssdVal * 100) / 100);
   }
 
@@ -431,7 +431,7 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     if (validRR.length >= 3) {
       const diffs = validRR.slice(1).map((v, i) => (v - validRR[i]) ** 2);
       rmssdVal = Math.sqrt(mean(diffs));
-      if (rmssdVal > 200) rmssdVal = 35;
+      // Don't clamp or reset RMSSD - let backend handle artifact detection
     }
 
     const skinTemp = parseFloat(simTempRef.current.toFixed(1));

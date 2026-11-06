@@ -133,7 +133,7 @@ function resampleRRIntervals(
 }
 
 /** Remove peaks that produce physiologically impossible RR intervals. */
-function filterPeaks(peaks: number[], minRR = 350): number[] {
+function filterPeaks(peaks: number[], minRR = 400): number[] {
   if (peaks.length < 2) return peaks;
   const filtered = [peaks[0]];
   for (let i = 1; i < peaks.length; i++) {
@@ -143,13 +143,13 @@ function filterPeaks(peaks: number[], minRR = 350): number[] {
   return filtered;
 }
 
-/** Remove RR interval outliers — keep only intervals within 50–180% of median. */
+/** Remove RR interval outliers — keep only intervals within 60–140% of median. */
 function filterRRIntervals(rrIntervals: number[]): number[] {
   if (rrIntervals.length < 4) return rrIntervals;
   const sorted = [...rrIntervals].sort((a, b) => a - b);
   const median = sorted[Math.floor(sorted.length * 0.5)];
-  const lower = median * 0.5;
-  const upper = median * 1.8;
+  const lower = median * 0.6;  // Tightened from 0.5 to 0.6
+  const upper = median * 1.4;  // Tightened from 1.8 to 1.4
   return rrIntervals.filter(rr => rr >= lower && rr <= upper);
 }
 
@@ -587,7 +587,7 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
 
     if (peakNotAtEdge && positiveExcursion && aboveThreshold && hasFallen) {
       const lastPeak = lastPeakTimeRef.current;
-      const minRR = 350;
+      const minRR = 400;  // Increased from 350ms to 400ms for better physiological accuracy
       if (!lastPeak || (peakTime - lastPeak) >= minRR) {
         peakTimesRef.current.push(peakTime);
         lastPeakTimeRef.current = peakTime;
@@ -668,8 +668,9 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     if (rrIntervals.length >= 3) {
       const diffs = rrIntervals.slice(1).map((v, i) => (v - rrIntervals[i]) ** 2);
       const rmssdVal = Math.sqrt(mean(diffs));
-      const clamped = Math.min(rmssdVal, 200);
-      const roundedRMSSD = Math.round(clamped * 100) / 100;
+      // Don't clamp RMSSD - let backend handle artifact detection
+      // Physiological RMSSD can range 20-150ms, but noisy signals can exceed this
+      const roundedRMSSD = Math.round(rmssdVal * 100) / 100;
       setLiveRMSSD(roundedRMSSD);
       setLiveHRVStatus(computeHRVStatus(roundedRMSSD));
     }
@@ -718,7 +719,8 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     let rmssdVal: number | null = null;
     if (rrIntervals.length >= 3) {
       const diffs = rrIntervals.slice(1).map((v, i) => (v - rrIntervals[i]) ** 2);
-      rmssdVal = Math.min(Math.sqrt(mean(diffs)), 200);
+      // Don't clamp RMSSD - let backend handle artifact detection
+      rmssdVal = Math.sqrt(mean(diffs));
     }
 
     const hrvVal = rrIntervals.length >= 3 ? std(rrIntervals) : null;
@@ -769,7 +771,7 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
     const payload: RppgV8SessionPayload = {
-      rmssd: rmssdVal !== null ? clamp(Math.round(rmssdVal * 100) / 100, 0, 1000) : 0,
+      rmssd: rmssdVal !== null ? clamp(Math.round(rmssdVal * 100) / 100, 0, 500) : 0,  // Increased max from 1000 to 500
       hf: clamp(parseFloat(hfPower.toFixed(4)), 0, 5000),
       lf_hf_ratio: lfHfRatio !== null ? clamp(lfHfRatio, 0, 20) : 0,
       heart_rate: Math.round(clamp(hr, 30, 200)),
