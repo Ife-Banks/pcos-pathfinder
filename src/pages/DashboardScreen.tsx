@@ -598,23 +598,13 @@ const DashboardScreen = () => {
       }
 
       // Try to get fatigue from today's morning session ID
-      if (todayRes.status === 'fulfilled') {
-        console.log('[TodaySummary] Today status response:', todayRes.value.data);
-        const morningSessionId = todayRes.value.data?.morning_session_id;
-        console.log('[TodaySummary] Morning session ID:', morningSessionId);
-        
-        if (morningSessionId) {
-          try {
-            const morningRes = await apiClient.get(`/checkin/morning/${morningSessionId}/`);
-            console.log('[TodaySummary] Morning session response:', morningRes.data);
-            if (morningRes.data?.data) {
-              fatigue = morningRes.data.data.fatigue_vas ?? null;
-              console.log('[TodaySummary] Fatigue value:', fatigue);
-            }
-          } catch (err) {
-            console.error('[TodaySummary] Failed to fetch morning session:', err);
+      if (todayRes.status === 'fulfilled' && todayRes.value.data?.morning_session_id) {
+        try {
+          const morningRes = await apiClient.get(`/checkin/morning/${todayRes.value.data.morning_session_id}/`);
+          if (morningRes.data?.data) {
+            fatigue = morningRes.data.data.fatigue_vas ?? null;
           }
-        }
+        } catch { /* ignore */ }
       }
 
       if (moodRes.status === 'fulfilled') {
@@ -625,7 +615,6 @@ const DashboardScreen = () => {
         }
       }
 
-      console.log('[TodaySummary] Final values:', { hrv, fatigue, mood });
       setTodaySummary({ hrv_rmssd: hrv, fatigue_vas: fatigue, mood_score: mood });
       return true;
     } catch {
@@ -1596,9 +1585,9 @@ const DashboardScreen = () => {
             <div className="p-3 rounded-lg bg-gray-50">
               <TrendingUp className="h-4 w-4 mx-auto mb-1.5 text-amber-500" />
               <p className="text-xl font-bold font-display text-gray-900">
-                {todaySummary?.fatigue_vas ? `${todaySummary.fatigue_vas.toFixed(1)}` : morningComplete ? '✓' : '—'}
+                {todaySummary?.fatigue_vas !== null && todaySummary?.fatigue_vas !== undefined ? `${todaySummary.fatigue_vas.toFixed(1)}` : morningComplete ? '✓' : '—'}
               </p>
-              {todaySummary?.fatigue_vas ? (
+              {todaySummary?.fatigue_vas !== null && todaySummary?.fatigue_vas !== undefined ? (
                 <p className="text-[10px] text-gray-500 mt-0.5 font-medium">
                   {fatigueLabel(todaySummary.fatigue_vas)}
                 </p>
