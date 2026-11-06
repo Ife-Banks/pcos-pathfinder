@@ -38,7 +38,7 @@ function std(arr: number[]): number {
 }
 
 /** Remove peaks that produce physiologically impossible RR intervals. */
-function filterPeaks(peaks: number[], minRR = 400): number[] {
+function filterPeaks(peaks: number[], minRR = 300): number[] {
   if (peaks.length < 2) return peaks;
   const filtered = [peaks[0]];
   for (let i = 1; i < peaks.length; i++) {
@@ -56,6 +56,16 @@ function filterRRIntervals(rrIntervals: number[]): number[] {
   const lower = median * 0.6;
   const upper = median * 1.4;
   return rrIntervals.filter(rr => rr >= lower && rr <= upper);
+}
+
+/** Remove statistical outliers beyond 1.0 standard deviation from mean. */
+function rejectRRIntervalOutliers(rrIntervals: number[]): number[] {
+  if (rrIntervals.length < 6) return rrIntervals;
+  const meanRR = mean(rrIntervals);
+  const stdRR = std(rrIntervals);
+  if (stdRR === 0) return rrIntervals;
+  const threshold = stdRR * 1.0;
+  return rrIntervals.filter(rr => Math.abs(rr - meanRR) <= threshold);
 }
 
 /** Compute Autonomic Stress Index from RMSSD, EDA, temperature */
@@ -333,10 +343,16 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     const range = maxVal - minVal;
     if (range < 0.5) return;
 
+    // Compute prominence to filter noise peaks
+    const currentVal = buffer[n - 1];
+    const prominence = currentVal - minVal;
+    const prominenceThreshold = range * 0.3;
+    const hasProminence = prominence >= prominenceThreshold;
+
     const normalized = (buffer[n - 1] - minVal) / range;
     adaptiveThresholdRef.current = minVal + 0.7 * range;
 
-    if (normalized > 0.7 && buffer[n - 1] <= buffer[n - 2] && buffer[n - 2] > buffer[n - 3]) {
+    if (hasProminence && normalized > 0.7 && buffer[n - 1] <= buffer[n - 2] && buffer[n - 2] > buffer[n - 3]) {
       const lastPeak = lastPeakTimeRef.current;
       const minRR = 300;
       if (lastPeak === null || (now - lastPeak) >= minRR) {
@@ -356,11 +372,12 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     const r = Math.max(...recent) - Math.min(...recent);
     const s = std(recent);
     let quality = 0;
-    if (r > 8 && s > 2.5) quality = 85;
-    else if (r > 5 && s > 1.5) quality = 70;
-    else if (r > 3 && s > 1.0) quality = 50;
-    else if (r > 1.5) quality = 30;
-    else quality = 15;
+    if (r > 1.0 && s > 0.4) quality = 85;
+    else if (r > 0.6 && s > 0.25) quality = 70;
+    else if (r > 0.3 && s > 0.15) quality = 55;
+    else if (r > 0.15 && s > 0.08) quality = 40;
+    else if (r > 0.08) quality = 25;
+    else quality = 10;
     signalQualityRef.current = quality;
     setSignalQuality(quality);
   }
@@ -394,7 +411,7 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     const peaks = peakTimesRef.current;
     if (peaks.length < 3) return;
 
-    const cleanPeaks = filterPeaks(peaks, 350);
+    const cleanPeaks = filterPeaks(peaks, 300);
     const recentPeaks = cleanPeaks.slice(-15);
     const rrIntervals: number[] = [];
     for (let i = 0; i < recentPeaks.length - 1; i++) {
@@ -418,14 +435,15 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
 
   function computeFinalMetrics() {
     const peaks = peakTimesRef.current;
-    const cleanPeaks = filterPeaks(peaks, 350);
+    const cleanPeaks = filterPeaks(peaks, 300);
     const rrIntervals: number[] = [];
     for (let i = 0; i < cleanPeaks.length - 1; i++) {
       const rr = cleanPeaks[i + 1] - cleanPeaks[i];
-      if (rr >= 350 && rr <= 2000) rrIntervals.push(rr);
+      if (rr >= 300 && rr <= 2000) rrIntervals.push(rr);
     }
 
-    const validRR = filterRRIntervals(rrIntervals);
+    const medianFiltered = filterRRIntervals(rrIntervals);
+    const validRR = rejectRRIntervalOutliers(medianFiltered);
 
     let rmssdVal = 35;
     if (validRR.length >= 3) {
@@ -438,11 +456,14 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     const meanEda = parseFloat(simEdaRef.current.toFixed(2));
     const asi = computeASI(rmssdVal, meanEda, skinTemp);
 
+    // Quality gate: only submit HRV metrics if signal quality >= 50%
+    const hasValidHRV = signalQualityRef.current >= 50 && validRR.length >= 3;
+
     const payload: RppgSessionPayload = {
-      rmssd: Math.round(rmssdVal * 100) / 100,
+      rmssd: hasValidHRV ? Math.round(rmssdVal * 100) / 100 : 0,
       mean_temp: skinTemp,
       mean_eda: meanEda,
-      asi: parseFloat(asi.toFixed(4)),
+      asi: hasValidHRV ? parseFloat(asi.toFixed(4)) : null,
       session_type: 'checkin',
       session_quality: signalQualityRef.current >= 50 ? 'good' : signalQualityRef.current >= 25 ? 'poor' : 'motion_artifact',
     };
