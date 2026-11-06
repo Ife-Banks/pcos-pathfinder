@@ -334,8 +334,8 @@ const RiskGauge = ({ score }: { score?: number }) => {
 
   return (
     <div className="flex flex-col items-center">
-      <div className="relative w-56 h-32 overflow-hidden">
-        <svg viewBox="0 0 220 120" className="w-full h-full">
+      <div className="relative w-64 h-36 overflow-hidden">
+        <svg viewBox="0 0 260 140" className="w-full h-full">
           <defs>
             <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#27AE60" />
@@ -347,21 +347,25 @@ const RiskGauge = ({ score }: { score?: number }) => {
               <feGaussianBlur stdDeviation="3" result="blur" />
               <feComposite in="SourceGraphic" in2="blur" operator="over" />
             </filter>
+            <linearGradient id="needleGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#374151" />
+              <stop offset="100%" stopColor="#1F2937" />
+            </linearGradient>
           </defs>
           {/* Background track */}
           <path
-            d="M 15 110 A 95 95 0 0 1 205 110"
+            d="M 20 130 A 110 110 0 0 1 240 130"
             fill="none"
             stroke="#F3F4F6"
-            strokeWidth="14"
+            strokeWidth="16"
             strokeLinecap="round"
           />
           {/* Colored progress arc */}
           <motion.path
-            d="M 15 110 A 95 95 0 0 1 205 110"
+            d="M 20 130 A 110 110 0 0 1 240 130"
             fill="none"
             stroke="url(#gaugeGrad)"
-            strokeWidth="14"
+            strokeWidth="16"
             strokeLinecap="round"
             initial={{ pathLength: 0 }}
             animate={{ pathLength: score }}
@@ -370,18 +374,31 @@ const RiskGauge = ({ score }: { score?: number }) => {
           />
           {/* Needle */}
           <motion.line
-            x1="110" y1="110" x2="110" y2="25"
-            stroke="#374151"
-            strokeWidth="3"
+            x1="130" y1="130" x2="130" y2="30"
+            stroke="url(#needleGrad)"
+            strokeWidth="4"
             strokeLinecap="round"
-            style={{ transformOrigin: "110px 110px" }}
+            style={{ transformOrigin: "130px 130px" }}
             initial={{ rotate: -90 }}
             animate={{ rotate: angle - 90 }}
             transition={{ duration: 1.5, ease: "easeOut", delay: 0.3 }}
           />
           {/* Center circle */}
-          <circle cx="110" cy="110" r="6" fill="#374151" />
-          <circle cx="110" cy="110" r="3" fill="#fff" />
+          <circle cx="130" cy="130" r="8" fill="#374151" />
+          <circle cx="130" cy="130" r="4" fill="#fff" />
+          {/* Tick marks */}
+          {[0, 0.25, 0.5, 0.75, 1].map((tick, i) => (
+            <line
+              key={i}
+              x1={130 + 95 * Math.cos((tick * 180 - 90) * Math.PI / 180)}
+              y1={130 + 95 * Math.sin((tick * 180 - 90) * Math.PI / 180)}
+              x2={130 + 105 * Math.cos((tick * 180 - 90) * Math.PI / 180)}
+              y2={130 + 105 * Math.sin((tick * 180 - 90) * Math.PI / 180)}
+              stroke="#9CA3AF"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          ))}
         </svg>
       </div>
       <motion.div
@@ -391,14 +408,14 @@ const RiskGauge = ({ score }: { score?: number }) => {
         className="text-center -mt-2"
       >
         <div className="flex items-baseline justify-center gap-1">
-          <span className="text-4xl font-bold font-display" style={{ color: tier.color }}>
+          <span className="text-5xl font-bold font-display" style={{ color: tier.color }}>
             {safeScore.toFixed(2)}
           </span>
           <span className="text-lg font-semibold text-gray-500">/ 1.00</span>
         </div>
-        <div className="mt-2 inline-flex items-center gap-2 px-4 py-1.5 rounded-full" style={{ backgroundColor: tier.bg }}>
+        <div className="mt-3 inline-flex items-center gap-2 px-5 py-2 rounded-full shadow-sm" style={{ backgroundColor: tier.bg }}>
           <span className="text-sm font-bold" style={{ color: tier.color }}>
-            {tier.label} Risk
+            Risk Tier: {tier.label}
           </span>
         </div>
       </motion.div>
@@ -569,10 +586,11 @@ const DashboardScreen = () => {
       let fatigue: number | null = null;
       let mood: number | null = null;
 
-      const [hrvRes, todayRes, moodRes] = await Promise.allSettled([
+      const [hrvRes, todayRes, moodRes, morningSessionsRes] = await Promise.allSettled([
         apiClient.get('/rppg/sessions'),
         checkinService.getTodayStatus(),
         apiClient.get('/mood/history'),
+        apiClient.get('/checkin/morning/sessions/'),
       ]);
 
       if (hrvRes.status === 'fulfilled' && hrvRes.value.data?.data?.sessions?.length > 0) {
@@ -580,6 +598,7 @@ const DashboardScreen = () => {
         hrv = latestSession.rmssd ?? latestSession.hrv_rmssd ?? null;
       }
 
+      // Try to get fatigue from today's morning session ID first
       if (todayRes.status === 'fulfilled' && todayRes.value.data?.morning_session_id) {
         try {
           const morningRes = await apiClient.get(`/checkin/morning/${todayRes.value.data.morning_session_id}/`);
@@ -587,6 +606,14 @@ const DashboardScreen = () => {
             fatigue = morningRes.data.data.fatigue_vas ?? null;
           }
         } catch { /* ignore */ }
+      }
+
+      // Fallback: try to get fatigue from the latest morning session
+      if (fatigue === null && morningSessionsRes.status === 'fulfilled' && morningSessionsRes.value.data?.data?.sessions?.length > 0) {
+        const latestMorning = morningSessionsRes.value.data.data.sessions[0];
+        if (latestMorning?.fatigue_vas !== null && latestMorning?.fatigue_vas !== undefined) {
+          fatigue = latestMorning.fatigue_vas;
+        }
       }
 
       if (moodRes.status === 'fulfilled') {
@@ -777,7 +804,7 @@ const DashboardScreen = () => {
     ? `Cycle Length ${Math.round(menstrualSummary.mean_cycle_len)} days · CLV ${menstrualSummary.CLV ?? '—'} · ${getCycleStatus(menstrualSummary)}`
     : "Log your cycle";
 
-  const riskScoreTitle = isMale ? "Metabolic-Associated Male Hypogonadism" : "Polyendocrine Metabolic Ovarian Syndrome (PMOS) Score";
+  const riskScoreTitle = isMale ? "Metabolic-Associated Male Hypogonadism (MAMH)" : "Polyendocrine Metabolic Ovarian Syndrome (PMOS) Score";
 
   const morningComplete = todayData?.morning_status === 'complete';
   const eveningComplete = todayData?.evening_status === 'complete';
@@ -1061,16 +1088,26 @@ const DashboardScreen = () => {
               transition={{ delay: 0.1 }}
               className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm"
             >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-display font-bold text-gray-900 text-lg">{riskScoreTitle}</h2>
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-1">
+                  <h2 className="font-display font-bold text-gray-900 text-base leading-tight">{riskScoreTitle}</h2>
+                </div>
                 {prediction && hasValidDate && (
-                  <span className="text-xs text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full font-medium">
+                  <span className="text-xs text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full font-medium shrink-0 ml-2">
                     Updated {predictionAge}
                   </span>
                 )}
               </div>
               {prediction ? (
-                <RiskGauge score={prediction.risk_score} />
+                <>
+                  <RiskGauge score={prediction.risk_score} />
+                  <p className="text-sm text-gray-600 mt-4 text-center leading-relaxed">
+                    {isMale
+                      ? "Some indicators associated with MAMH are present. Continue monitoring and discuss with a clinician if symptoms persist."
+                      : "Some indicators associated with PMOS are present. Continue monitoring and discuss with a clinician if symptoms persist."
+                    }
+                  </p>
+                </>
               ) : predictionLoading ? (
                 <div className="flex flex-col items-center py-8">
                   <div className="w-48 h-28 flex items-center justify-center text-gray-400">
@@ -1102,7 +1139,7 @@ const DashboardScreen = () => {
               >
                 <h3 className="font-display font-extrabold text-gray-900 mb-4 text-xl flex items-center gap-2">
                   <AlertCircle className="w-6 h-6 text-teal-600" />
-                  Downstream Diseases Risk Prediction
+                  Downstream Health Conditions Risk Status
                 </h3>
 
                 {/* Unified per-disease scores — grouped grid */}
@@ -1124,7 +1161,7 @@ const DashboardScreen = () => {
                         return (
                           <div key={group.title}>
                             <h4 className="text-sm font-extrabold text-gray-800 uppercase tracking-wider mb-3">{group.title}</h4>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            <div className="grid grid-cols-2 gap-3">
                               {items.map(({ key, data, w }) => {
                                 if (w && wellnessKeys.includes(key)) {
                                   const score = w.raw_score ?? (w.risk_score != null ? w.risk_score * 100 : null);
@@ -1142,8 +1179,8 @@ const DashboardScreen = () => {
                                     {getDiseaseIcon(key, getWellnessColor(sev))}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="text-xs font-bold text-gray-900 truncate">
+                                    <div className="flex items-start gap-1.5">
+                                      <span className="text-xs font-bold text-gray-900 leading-tight">
                                         {expandAbbreviation(key)}
                                           </span>
                                           <span
@@ -1190,8 +1227,8 @@ const DashboardScreen = () => {
                                     {getDiseaseIcon(key, getUnifiedSeverityColor(data.severity))}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="text-xs font-bold text-gray-900 truncate">
+                                    <div className="flex items-start gap-1.5">
+                                      <span className="text-xs font-bold text-gray-900 leading-tight">
                                         {expandAbbreviation(key)}
                                       </span>
                                       <span
@@ -1248,7 +1285,7 @@ const DashboardScreen = () => {
                     >
                       {showModelDetail ? <ChevronUp className="w-6 h-6" /> : <ChevronDown className="w-6 h-6" />}
                       <span className="tracking-wide">
-                        {showModelDetail ? 'Hide' : 'Click to check'} Downstream Diseases Breakdown
+                        {showModelDetail ? 'Hide' : 'Click to check'} Downstream Health Conditions Breakdown
                       </span>
                       <Info className="w-5 h-5 opacity-70" />
                     </button>
