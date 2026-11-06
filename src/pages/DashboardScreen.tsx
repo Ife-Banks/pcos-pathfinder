@@ -1164,7 +1164,7 @@ const DashboardScreen = () => {
                                             />
                                           </div>
                                           <span className="text-xs font-extrabold text-gray-800 w-10 text-right">
-                                            {score != null ? `${score.toFixed(0)}%` : '—'}
+                                            {score != null && score > 0 ? `${score.toFixed(0)}%` : '—'}
                                           </span>
                                         </div>
                                         <div className="mt-1">
@@ -1212,7 +1212,7 @@ const DashboardScreen = () => {
                                         />
                                       </div>
                                       <span className="text-xs font-extrabold text-gray-800 w-10 text-right">
-                                        {(data.unified_score * 100).toFixed(0)}%
+                                        {data.unified_score > 0 ? `${(data.unified_score * 100).toFixed(0)}%` : '—'}
                                       </span>
                                     </div>
                                     <div className="mt-1">
