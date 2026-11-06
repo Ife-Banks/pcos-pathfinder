@@ -586,11 +586,10 @@ const DashboardScreen = () => {
       let fatigue: number | null = null;
       let mood: number | null = null;
 
-      const [hrvRes, todayRes, moodRes, morningSessionsRes] = await Promise.allSettled([
+      const [hrvRes, todayRes, moodRes] = await Promise.allSettled([
         apiClient.get('/rppg/sessions'),
         checkinService.getTodayStatus(),
         apiClient.get('/mood/history'),
-        apiClient.get('/checkin/morning/sessions/'),
       ]);
 
       if (hrvRes.status === 'fulfilled' && hrvRes.value.data?.data?.sessions?.length > 0) {
@@ -598,21 +597,23 @@ const DashboardScreen = () => {
         hrv = latestSession.rmssd ?? latestSession.hrv_rmssd ?? null;
       }
 
-      // Try to get fatigue from today's morning session ID first
-      if (todayRes.status === 'fulfilled' && todayRes.value.data?.morning_session_id) {
-        try {
-          const morningRes = await apiClient.get(`/checkin/morning/${todayRes.value.data.morning_session_id}/`);
-          if (morningRes.data?.data) {
-            fatigue = morningRes.data.data.fatigue_vas ?? null;
+      // Try to get fatigue from today's morning session ID
+      if (todayRes.status === 'fulfilled') {
+        console.log('[TodaySummary] Today status response:', todayRes.value.data);
+        const morningSessionId = todayRes.value.data?.morning_session_id;
+        console.log('[TodaySummary] Morning session ID:', morningSessionId);
+        
+        if (morningSessionId) {
+          try {
+            const morningRes = await apiClient.get(`/checkin/morning/${morningSessionId}/`);
+            console.log('[TodaySummary] Morning session response:', morningRes.data);
+            if (morningRes.data?.data) {
+              fatigue = morningRes.data.data.fatigue_vas ?? null;
+              console.log('[TodaySummary] Fatigue value:', fatigue);
+            }
+          } catch (err) {
+            console.error('[TodaySummary] Failed to fetch morning session:', err);
           }
-        } catch { /* ignore */ }
-      }
-
-      // Fallback: try to get fatigue from the latest morning session
-      if (fatigue === null && morningSessionsRes.status === 'fulfilled' && morningSessionsRes.value.data?.data?.sessions?.length > 0) {
-        const latestMorning = morningSessionsRes.value.data.data.sessions[0];
-        if (latestMorning?.fatigue_vas !== null && latestMorning?.fatigue_vas !== undefined) {
-          fatigue = latestMorning.fatigue_vas;
         }
       }
 
@@ -624,6 +625,7 @@ const DashboardScreen = () => {
         }
       }
 
+      console.log('[TodaySummary] Final values:', { hrv, fatigue, mood });
       setTodaySummary({ hrv_rmssd: hrv, fatigue_vas: fatigue, mood_score: mood });
       return true;
     } catch {
