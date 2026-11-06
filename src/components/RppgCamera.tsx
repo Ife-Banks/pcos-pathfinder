@@ -445,6 +445,9 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     const medianFiltered = filterRRIntervals(rrIntervals);
     const validRR = rejectRRIntervalOutliers(medianFiltered);
 
+    console.log('[rPPG] peaks:', peaks.length, 'cleanPeaks:', cleanPeaks.length, 'rawRR:', rrIntervals.length, 'filteredRR:', validRR.length, 'quality:', signalQualityRef.current);
+    console.log('[rPPG] RR intervals:', validRR.slice(0, 20).map(r => Math.round(r)));
+
     let rmssdVal = 35;
     if (validRR.length >= 3) {
       const diffs = validRR.slice(1).map((v, i) => (v - validRR[i]) ** 2);
