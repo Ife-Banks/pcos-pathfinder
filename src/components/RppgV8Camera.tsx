@@ -133,7 +133,7 @@ function resampleRRIntervals(
 }
 
 /** Remove peaks that produce physiologically impossible RR intervals. */
-function filterPeaks(peaks: number[], minRR = 400): number[] {
+function filterPeaks(peaks: number[], minRR = 300): number[] {
   if (peaks.length < 2) return peaks;
   const filtered = [peaks[0]];
   for (let i = 1; i < peaks.length; i++) {
@@ -650,7 +650,7 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     const peaks = peakTimesRef.current;
     if (peaks.length < 3) return;
 
-    const cleanPeaks = filterPeaks(peaks, 350);
+    const cleanPeaks = filterPeaks(peaks, 300);
     const recentPeaks = cleanPeaks.slice(-20);
     const rawRR: number[] = [];
     for (let i = 0; i < recentPeaks.length - 1; i++) {
@@ -707,7 +707,8 @@ const RppgCamera: React.FC<RppgCameraProps> = ({
     const rawRR: number[] = [];
     for (let i = 0; i < cleanPeaks.length - 1; i++) {
       const rr = cleanPeaks[i + 1] - cleanPeaks[i];
-      if (rr >= 400 && rr <= 1500) rawRR.push(rr);
+      // Widen RR range to 300-2000ms (30-200 bpm) to capture valid physiologic intervals
+      if (rr >= 300 && rr <= 2000) rawRR.push(rr);
     }
 
     const rrIntervals = filterRRIntervals(rawRR);
