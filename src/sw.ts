@@ -34,18 +34,27 @@ registerRoute(
   })
 );
 
-// API routes — NetworkFirst
+// API routes — NetworkFirst with shorter cache
 registerRoute(
   ({ url }) => url.pathname.startsWith('/api/'),
   new NetworkFirst({
     cacheName: 'api-cache',
     networkTimeoutSeconds: 10,
     plugins: [
-      new ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 }),
+      new ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 60 * 60 }), // 1 hour
       new CacheableResponsePlugin({ statuses: [0, 200] }),
     ],
   })
 );
+
+// ── Service Worker Update Handling ───────────────────────────────────────────
+
+// Handle skip waiting message from main.tsx
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
 
 // ── Push Notification Handler ─────────────────────────────────────────────────
 
