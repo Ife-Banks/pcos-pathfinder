@@ -64,7 +64,7 @@ const RppgV8CaptureScreen = () => {
       setCaptureTimerActive(false);
       return;
     }
-    const next = Date.now() + 4 * 60 * 60 * 1000;
+    const next = Date.now() + 1 * 60 * 60 * 1000;
     localStorage.setItem('nextRppgV8CaptureAt', next.toString());
     setNextCaptureAt(next);
     setCaptureTimerActive(true);
