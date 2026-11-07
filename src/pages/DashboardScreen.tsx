@@ -514,8 +514,13 @@ const DashboardScreen = () => {
 
     // Listen for prediction updates via WebSocket
     const handlePredictionUpdate = (event: CustomEvent) => {
-      console.log('Dashboard received prediction update:', event.detail);
+      console.log('🔄 [Dashboard] Prediction update event received');
+      console.log('  - Prediction ID:', event.detail.prediction_id);
+      console.log('  - Risk Score:', event.detail.risk_score);
+      console.log('  - Risk Tier:', event.detail.risk_tier);
+      console.log('  - Invalidating dashboard queries...');
       invalidateDashboard();
+      console.log('  - Dashboard queries invalidated');
     };
     window.addEventListener('prediction-update', handlePredictionUpdate as EventListener);
 
