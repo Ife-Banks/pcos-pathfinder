@@ -18,6 +18,7 @@ import { menstrualService, CriterionFlags } from "@/services/menstrualService";
 import { apiClient } from "@/services/apiClient";
 import { isToolCompleteThisWeek, getCurrentWeekKey, isToolCompleteToday } from "@/utils/weekUtils";
 import { getHrvLabel, getFatigueLabel, getMoodLabel, getRiskSeverityLabel } from "@/utils/dashboardHelpers";
+import { useDashboardData } from "@/hooks/useDashboardQueries";
 import logo from "@/assets/logo.png";
 import { AnimatePresence } from "framer-motion";
 
@@ -486,18 +487,23 @@ const DashboardScreen = () => {
   const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [todayData, setTodayData] = useState<TodayData | null>(null);
-  const [prediction, setPrediction] = useState<PredictionData | null>(null);
-  const [predictionLoading, setPredictionLoading] = useState(false);
+  // const [refreshing, setRefreshing] = useState(false); // Removed - React Query handles background refetching
   const [menstrualSummary, setMenstrualSummary] = useState<MenstrualSummary | null>(null);
-  const [todaySummary, setTodaySummary] = useState<TodaySummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showModelDetail, setShowModelDetail] = useState(false);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const pollingAttempts = useRef(0);
+
+  // Use React Query hooks for data fetching
+  const {
+    profile: profileQuery,
+    predictions: predictionsQuery,
+    checkinToday: checkinTodayQuery,
+    todaySummary: todaySummaryQuery,
+    menstrualHistory: menstrualHistoryQuery,
+    morningCheckin: morningCheckinQuery,
+    invalidateDashboard,
+  } = useDashboardData(profile?.gender);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -519,82 +525,17 @@ const DashboardScreen = () => {
   const dailyToolsComplete = isToolCompleteToday('phq4') && isToolCompleteToday('sleep');
   const dailyContinuousComplete = isToolCompleteToday('affect') && isToolCompleteToday('focus');
 
-  const fetchPrediction = useCallback(async (silent = false) => {
-    if (!silent) setPredictionLoading(true);
-    try {
-      // Use new ML predictions service with gender from profile state
-      const res = await dashboardService.getMLPredictions(profile?.gender);
-      if (res.data) {
-        setPrediction(res.data);
-        return res.data;
-      }
-      setPrediction(null);
-      return null;
-    } catch {
-      setPrediction(null);
-      return null;
-    } finally {
-      if (!silent) setPredictionLoading(false);
-    }
-  }, [profile?.gender]);
+  // Extract data from queries
+  const prediction = predictionsQuery.data?.data || null;
+  const profile = profileQuery.data?.data || null;
+  const todayData = checkinTodayQuery.data?.data || null;
+  const todaySummary = todaySummaryQuery.data || null;
+  const menstrualHistory = menstrualHistoryQuery.data?.data || null;
+  const morningCheckin = morningCheckinQuery.data || null;
 
-  const fetchMenstrualSummary = useCallback(async () => {
-    try {
-      const res = await menstrualService.getCycleHistory();
-      const cycles = res.data?.cycles || [];
-      if (cycles.length === 0) return;
-      const aggregates = res.data?.aggregates;
-      setMenstrualSummary({
-        mean_cycle_len: aggregates?.mean_cycle_len ?? null,
-        CLV: aggregates?.CLV ?? null,
-        total_cycles_stored: cycles.length,
-        criterion_flags: res.data?.criterion_flags,
-      });
-      return true;
-    } catch {
-      return false;
-    }
-  }, []);
-
-  const fetchTodaySummary = useCallback(async () => {
-    try {
-      let hrv: number | null = null;
-      let fatigue: number | null = null;
-      let mood: number | null = null;
-      let todayStatus = null;
-
-      const [todaySummaryRes, todayRes] = await Promise.allSettled([
-        dashboardService.getTodaySummary(),
-        checkinService.getTodayStatus(),
-      ]);
-
-      if (todaySummaryRes.status === 'fulfilled' && todaySummaryRes.value?.rppg) {
-        hrv = todaySummaryRes.value.rppg.rmssd ?? todaySummaryRes.value.rppg.hrv_rmssd ?? null;
-      }
-
-      if (todaySummaryRes.status === 'fulfilled' && todaySummaryRes.value?.mood) {
-        mood = todaySummaryRes.value.mood.phq4_total ?? null;
-      }
-
-      if (todayRes.status === 'fulfilled') {
-        todayStatus = todayRes.value.data;
-        // Try to get fatigue from today's morning session ID
-        if (todayStatus.morning_session_id) {
-          try {
-            const morningRes = await apiClient.get(`/checkin/morning/${todayStatus.morning_session_id}/`);
-            if (morningRes.data?.data) {
-              fatigue = morningRes.data.data.fatigue_vas ?? null;
-            }
-          } catch { /* ignore */ }
-        }
-      }
-
-      setTodaySummary({ hrv_rmssd: hrv, fatigue_vas: fatigue, mood_score: mood });
-      return todayStatus;
-    } catch {
-      return null;
-    }
-  }, []);
+  // Set loading states
+  const loading = profileQuery.isLoading || predictionsQuery.isLoading || checkinTodayQuery.isLoading;
+  const predictionLoading = predictionsQuery.isLoading;
 
   const startPredictionPolling = useCallback(() => {
     if (pollingRef.current) return;
@@ -602,7 +543,9 @@ const DashboardScreen = () => {
     pollingRef.current = setInterval(async () => {
       pollingAttempts.current++;
       try {
-        const newPred = await fetchPrediction(true);
+        // Use React Query to refetch predictions
+        await invalidateDashboard();
+        const newPred = predictionsQuery.data?.data;
         if (newPred && newPred.id) {
           const days = getDaysSince(newPred.computed_at);
           const isNew = days === 0;
@@ -619,104 +562,25 @@ const DashboardScreen = () => {
         pollingRef.current = null;
       }
     }, 5000);
-  }, [fetchPrediction]);
+  }, [invalidateDashboard, predictionsQuery.data]);
 
-  const fetchDashboardData = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
-    setError(null);
-
-    try {
-      // Fire all requests in parallel immediately
-      setPredictionLoading(true);
-      const predPromise = dashboardService.getMLPredictions(profile?.gender); // Pass gender if available, fallback fetches if not
-      const profilePromise = dashboardService.getUserProfile();
-      const menstrualPromise = fetchMenstrualSummary();
-      const todaySummaryPromise = fetchTodaySummary(); // Now returns todayStatus
-
-      // Wait only for critical data (fast Django-local calls)
-      const [profileRes, todayStatus] = await Promise.allSettled([profilePromise, todaySummaryPromise]);
-
-      if (profileRes.status === 'fulfilled') {
-        setProfile(profileRes.value.data);
-      } else {
-        const err = profileRes.reason;
-        if (err?.status === 401) {
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          navigate('/login');
-          return;
-        }
-      }
-
-      // Use todayStatus from fetchTodaySummary instead of calling checkinService again
-      if (todayStatus) {
-        setTodayData({
-          morning_status: todayStatus.morning_status,
-          evening_status: todayStatus.evening_status,
-          streak_days: todayStatus.streak_days ?? 0,
-          completeness_pct: todayStatus.completeness_pct ?? 0,
-          missed_yesterday: todayStatus.missed_yesterday ?? [],
-          date: todayStatus.date,
-        });
-
-        if (todayStatus.morning_status === 'complete' && todayStatus.evening_status === 'complete') {
-          startPredictionPolling();
-        }
-      }
-
-      // Show UI immediately with critical data
-      setLoading(false);
-
-      // Collect remaining results as they complete
-      const predRes = await Promise.allSettled([predPromise]);
-      if (predRes[0].status === 'fulfilled' && predRes[0].value.data) {
-        setPrediction(predRes[0].value.data);
-      }
-      setPredictionLoading(false);
-
-      // menstrualPromise and todaySummaryPromise fire-and-forget (they call setState internally)
-    } catch (err: any) {
-      setError('Unable to load data');
-      setPredictionLoading(false);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [navigate, fetchMenstrualSummary, fetchTodaySummary, startPredictionPolling]);
-
-  const abortControllerRef = useRef<AbortController | null>(null);
-
-  const fetchDashboardDataSafe = useCallback(async (isRefresh = false) => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
-
-    try {
-      await fetchDashboardData(isRefresh);
-    } catch (err: any) {
-      if (err.name === 'CanceledError' || err?.message?.includes('canceled')) {
-        console.log('[Dashboard] Request was cancelled, ignoring');
-        return;
-      }
-      throw err;
-    }
-  }, [fetchDashboardData]);
+  // React Query handles data fetching automatically
+  // Initial load is handled by useDashboardData hook
+  // Refresh is handled by invalidateDashboard from useDashboardData
 
   useEffect(() => {
-    fetchDashboardData();
+    // Start prediction polling if both check-ins are complete
+    if (todayData?.morning_status === 'complete' && todayData?.evening_status === 'complete') {
+      startPredictionPolling();
+    }
+
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
-      if (abortControllerRef.current) abortControllerRef.current.abort();
     };
-  }, [fetchDashboardData]);
+  }, [todayData?.morning_status, todayData?.evening_status, startPredictionPolling]);
 
-  useEffect(() => {
-    const handleFocus = () => fetchDashboardDataSafe(true);
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [fetchDashboardDataSafe]);
+  // Handle window focus for background refetch (React Query handles this automatically)
+  // useDashboardData hook has refetchOnWindowFocus: true
 
   const getInitials = (name: string) => name.charAt(0).toUpperCase();
 
@@ -988,7 +852,7 @@ const DashboardScreen = () => {
       </motion.header>
       <TrialBanner />
       <div className="flex-1 px-6 py-6 max-w-4xl mx-auto w-full space-y-6">
-        {refreshing && (
+        {(profileQuery.isFetching || predictionsQuery.isFetching) && (
           <div className="flex items-center justify-center py-2">
             <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
             <span className="text-sm text-gray-500 ml-2">Refreshing...</span>
