@@ -18,7 +18,7 @@ export const useMLPredictions = (userGender?: string) => {
     queryFn: () => dashboardService.getMLPredictions(userGender),
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false, // Don't refetch on window focus - predictions are expensive
   });
 };
 
