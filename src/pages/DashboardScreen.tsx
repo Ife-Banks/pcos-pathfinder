@@ -511,8 +511,19 @@ const DashboardScreen = () => {
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+
+    // Listen for prediction updates via WebSocket
+    const handlePredictionUpdate = (event: CustomEvent) => {
+      console.log('Dashboard received prediction update:', event.detail);
+      invalidateDashboard();
+    };
+    window.addEventListener('prediction-update', handlePredictionUpdate as EventListener);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('prediction-update', handlePredictionUpdate as EventListener);
+    };
+  }, [invalidateDashboard]);
 
   const greeting = getGreeting();
   const currentHour = new Date().getHours();

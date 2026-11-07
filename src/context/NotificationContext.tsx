@@ -142,6 +142,13 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
         setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
         setUnreadCount(0);
         break;
+
+      case 'prediction_update':
+        // New prediction ready - invalidate dashboard queries to fetch fresh data
+        console.log('Prediction update received:', msg.data);
+        // Trigger a custom event that components can listen to
+        window.dispatchEvent(new CustomEvent('prediction-update', { detail: msg.data }));
+        break;
     }
   }, []);
 
