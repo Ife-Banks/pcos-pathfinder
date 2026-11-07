@@ -563,18 +563,15 @@ const DashboardScreen = () => {
       let mood: number | null = null;
       let todayStatus = null;
 
-      // Use new dashboard today-summary endpoint (single call for rPPG + mood)
-      const [todaySummaryRes, todayRes] = await Promise.allSettled([
-        dashboardService.getTodaySummary(),
+      const [hrvRes, todayRes, moodRes] = await Promise.allSettled([
+        apiClient.get('/rppg/sessions?limit=1'), // Only need latest session
         checkinService.getTodayStatus(),
+        apiClient.get('/mood/history?limit=1'), // Only need latest log
       ]);
 
-      if (todaySummaryRes.status === 'fulfilled' && todaySummaryRes.value?.rppg) {
-        hrv = todaySummaryRes.value.rppg.rmssd ?? todaySummaryRes.value.rppg.hrv_rmssd ?? null;
-      }
-
-      if (todaySummaryRes.status === 'fulfilled' && todaySummaryRes.value?.mood) {
-        mood = todaySummaryRes.value.mood.phq4_total ?? null;
+      if (hrvRes.status === 'fulfilled' && hrvRes.value.data?.data?.sessions?.length > 0) {
+        const latestSession = hrvRes.value.data.data.sessions[0];
+        hrv = latestSession.rmssd ?? latestSession.hrv_rmssd ?? null;
       }
 
       if (todayRes.status === 'fulfilled') {
@@ -587,6 +584,14 @@ const DashboardScreen = () => {
               fatigue = morningRes.data.data.fatigue_vas ?? null;
             }
           } catch { /* ignore */ }
+        }
+      }
+
+      if (moodRes.status === 'fulfilled') {
+        const logs = moodRes.value.data?.data?.logs;
+        if (Array.isArray(logs) && logs.length > 0) {
+          const latestMood = logs[0];
+          mood = latestMood.phq4Total ?? latestMood.phq4_total ?? null;
         }
       }
 
