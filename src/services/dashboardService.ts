@@ -425,4 +425,19 @@ export const dashboardService = {
       return null;
     }
   },
+
+  // NEW: Get today's dashboard summary (rPPG + mood in one call)
+  getTodaySummary: async (): Promise<{
+    rppg: { rmssd: number; hrv_rmssd: number; mean_temp: number; mean_eda: number; asi?: number; session_type: string; session_quality?: string; captured_at: string } | null;
+    mood: { phq4_total: number; affect_quadrant: string; log_date: string } | null;
+  } | null> => {
+    try {
+      const res = await apiClient.get('/dashboard/today-summary/');
+      const body = res.data;
+      ensureSuccess(body);
+      return body.data || null;
+    } catch {
+      return null;
+    }
+  },
 };
