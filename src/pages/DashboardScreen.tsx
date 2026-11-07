@@ -648,70 +648,33 @@ const DashboardScreen = () => {
     bgTint?: string; tappable?: boolean; locked?: boolean;
   }> = [];
 
-  // MORNING WINDOW: 5:00 AM – 11:59 AM
-  if (currentHour >= 5 && currentHour <= 11) {
-    if (morningComplete) {
-      quickActions.push({
-        icon: Sun, title: "Morning done ✓", subtitle: "See you this evening",
-        route: "/checkin/morning", gradient: "gradient-primary",
-        urgent: false, dotColor: '#27AE60', bgTint: 'bg-green-50 border-green-200', tappable: false,
-      });
-    } else {
-      quickActions.push({
-        icon: Sun, title: "Morning Check-In", subtitle: getMorningSubtitle(),
-        route: "/checkin/morning", gradient: "gradient-primary",
-        urgent: true, dotColor: todayData?.morning_status === 'in_progress' ? '#F59E0B' : '#F59E0B',
-      });
-    }
-    // Evening preview (locked, greyed out) if morning is complete
-    if (morningComplete && !eveningComplete) {
-      quickActions.push({
-        icon: Moon, title: "Evening Check-In", subtitle: "Available from 12:00 PM",
-        route: "/checkin/evening", gradient: "bg-teal-500",
-        urgent: false, dotColor: TEAL_PRIMARY,
-        bgTint: 'bg-gray-50 border-gray-200 opacity-60', locked: true,
-      });
-    }
+  // Always show both Morning and Evening check-ins regardless of time
+  if (morningComplete) {
+    quickActions.push({
+      icon: Sun, title: "Morning Check-In ✓", subtitle: "Completed today",
+      route: "/checkin/morning", gradient: "gradient-primary",
+      urgent: false, dotColor: '#27AE60', bgTint: 'bg-green-50 border-green-200', tappable: false,
+    });
+  } else {
+    quickActions.push({
+      icon: Sun, title: "Morning Check-In", subtitle: getMorningSubtitle(),
+      route: "/checkin/morning", gradient: "gradient-primary",
+      urgent: true, dotColor: todayData?.morning_status === 'in_progress' ? '#F59E0B' : '#F59E0B',
+    });
   }
-  // AFTERNOON/EVENING WINDOW: 12:00 PM – 11:59 PM
-  else if (currentHour >= 12 && currentHour <= 23) {
-    if (eveningComplete) {
-      quickActions.push({
-        icon: Moon, title: "Evening done ✓", subtitle: "Great job today!",
-        route: "/checkin/evening", gradient: "bg-teal-500",
-        urgent: false, dotColor: '#27AE60', bgTint: 'bg-green-50 border-green-200', tappable: false,
-      });
-    } else {
-      quickActions.push({
-        icon: Moon, title: "Evening Check-In", subtitle: getEveningSubtitle(),
-        route: "/checkin/evening", gradient: "bg-teal-500",
-        urgent: true, dotColor: TEAL_PRIMARY,
-      });
-    }
-    if (!morningComplete) {
-      quickActions.push({
-        icon: Sun, title: "Morning Check-In", subtitle: getMorningSubtitle(),
-        route: "/checkin/morning", gradient: "gradient-primary",
-        urgent: true, dotColor: '#F59E0B',
-      });
-    }
-  }
-  // LATE NIGHT WINDOW: 12:00 AM – 4:59 AM
-  else {
-    const eveningNotDone = todayData?.evening_status !== 'complete';
-    if (eveningNotDone) {
-      quickActions.push({
-        icon: Moon, title: "Evening Check-In", subtitle: getEveningSubtitle(),
-        route: "/checkin/evening", gradient: "bg-teal-500",
-        urgent: true, dotColor: TEAL_PRIMARY,
-      });
-    } else {
-      quickActions.push({
-        icon: Sun, title: "Morning Check-In", subtitle: getMorningSubtitle(),
-        route: "/checkin/morning", gradient: "gradient-primary",
-        urgent: true, dotColor: '#F59E0B',
-      });
-    }
+
+  if (eveningComplete) {
+    quickActions.push({
+      icon: Moon, title: "Evening Check-In ✓", subtitle: "Completed today",
+      route: "/checkin/evening", gradient: "bg-teal-500",
+      urgent: false, dotColor: '#27AE60', bgTint: 'bg-green-50 border-green-200', tappable: false,
+    });
+  } else {
+    quickActions.push({
+      icon: Moon, title: "Evening Check-In", subtitle: getEveningSubtitle(),
+      route: "/checkin/evening", gradient: "bg-teal-500",
+      urgent: true, dotColor: TEAL_PRIMARY,
+    });
   }
 
   if (isFemale) {
