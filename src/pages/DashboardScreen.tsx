@@ -11,11 +11,13 @@ import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/context/NotificationContext";
 import { useAuth } from "@/context/AuthContext";
 import { NotificationPanel } from "@/components/NotificationPanel";
+import { MetricCard } from "@/components/Dashboard/MetricCard";
 import { dashboardService, UserProfile, PredictionData } from "@/services/dashboardService";
 import { checkinService } from "@/services/checkinService";
 import { menstrualService, CriterionFlags } from "@/services/menstrualService";
 import { apiClient } from "@/services/apiClient";
 import { isToolCompleteThisWeek, getCurrentWeekKey, isToolCompleteToday } from "@/utils/weekUtils";
+import { getHrvLabel, getFatigueLabel, getMoodLabel, getRiskSeverityLabel } from "@/utils/dashboardHelpers";
 import logo from "@/assets/logo.png";
 import { AnimatePresence } from "framer-motion";
 
@@ -212,13 +214,47 @@ const expandAbbreviation = (key: string): string => {
   return mapping[key] || key.replace(/_/g, ' ');
 };
 
-const getHrvLabel = (rmssd: number): string => {
-  if (rmssd >= 50) return 'Normal';
-  if (rmssd >= 40) return 'Very Good';
-  if (rmssd >= 30) return 'Good';
-  if (rmssd >= 20) return 'Low';
-  if (rmssd >= 10) return 'Very Low';
-  return 'Extremely Low';
+
+
+const getDiseaseIcon = (disease: string, color?: string): React.ReactNode => {
+  const iconClass = "w-5 h-5 shrink-0";
+  const c = color || '#6b7280';
+  switch (disease) {
+    case 'CVD': return <Heart className={iconClass} style={{ color: c }} />;
+    case 'T2D': return <Droplets className={iconClass} style={{ color: c }} />;
+    case 'Metabolic': return <Activity className={iconClass} style={{ color: c }} />;
+    case 'HeartFailure': return <HeartPulse className={iconClass} style={{ color: c }} />;
+    case 'ChronicStress': return <Brain className={iconClass} style={{ color: c }} />;
+    case 'Infertility': return <Target className={iconClass} style={{ color: c }} />;
+    case 'PMDD': return <Moon className={iconClass} style={{ color: c }} />;
+    case 'Dysmenorrhea': return <Thermometer className={iconClass} style={{ color: c }} />;
+    case 'Endometrial': return <Stethoscope className={iconClass} style={{ color: c }} />;
+    case 'Sleep_Quality': return <Moon className={iconClass} style={{ color: c }} />;
+    case 'Focus_Memory': return <Brain className={iconClass} style={{ color: c }} />;
+    case 'Mental_Wellness': return <Heart className={iconClass} style={{ color: c }} />;
+    case 'Mood_Score': return <Sun className={iconClass} style={{ color: c }} />;
+    case 'Anxiety': return <Smile className={iconClass} style={{ color: c }} />;
+    case 'Depression': return <Frown className={iconClass} style={{ color: c }} />;
+    case 'Stroke': return <Zap className={iconClass} style={{ color: c }} />;
+    case 'MetSyn': return <Shield className={iconClass} style={{ color: c }} />;
+    case 'Infertility_Mood': return <Target className={iconClass} style={{ color: c }} />;
+    case 'CVD_Mood': return <Heart className={iconClass} style={{ color: c }} />;
+    case 'T2D_Mood': return <Droplets className={iconClass} style={{ color: c }} />;
+    case 'MetSyn_Mood': return <Shield className={iconClass} style={{ color: c }} />;
+    case 'Stroke_Mood': return <Zap className={iconClass} style={{ color: c }} />;
+    default: return <Activity className={iconClass} style={{ color: c }} />;
+  }
+};
+
+const getDiseaseBorderColor = (severity: string): string => {
+  switch (severity) {
+    case 'Extreme': return '#dc2626';
+    case 'Severe': return '#ea580c';
+    case 'Moderate': return '#d97706';
+    case 'Mild': return '#2563eb';
+    case 'Minimal': return '#16a34a';
+    default: return '#d1d5db';
+  }
 };
 
 const getUnifiedSeverityColor = (severity: string): string => {
@@ -265,67 +301,7 @@ const getWellnessBg = (severity: string): string => {
   }
 };
 
-const getDiseaseIcon = (disease: string, color?: string): React.ReactNode => {
-  const iconClass = "w-5 h-5 shrink-0";
-  const c = color || '#6b7280';
-  switch (disease) {
-    case 'CVD': return <Heart className={iconClass} style={{ color: c }} />;
-    case 'T2D': return <Droplets className={iconClass} style={{ color: c }} />;
-    case 'Metabolic': return <Activity className={iconClass} style={{ color: c }} />;
-    case 'HeartFailure': return <HeartPulse className={iconClass} style={{ color: c }} />;
-    case 'ChronicStress': return <Brain className={iconClass} style={{ color: c }} />;
-    case 'Infertility': return <Target className={iconClass} style={{ color: c }} />;
-    case 'PMDD': return <Moon className={iconClass} style={{ color: c }} />;
-    case 'Dysmenorrhea': return <Thermometer className={iconClass} style={{ color: c }} />;
-    case 'Endometrial': return <Stethoscope className={iconClass} style={{ color: c }} />;
-    case 'Sleep_Quality': return <Moon className={iconClass} style={{ color: c }} />;
-    case 'Focus_Memory': return <Brain className={iconClass} style={{ color: c }} />;
-    case 'Mental_Wellness': return <Heart className={iconClass} style={{ color: c }} />;
-    case 'Mood_Score': return <Sun className={iconClass} style={{ color: c }} />;
-    case 'Anxiety': return <Smile className={iconClass} style={{ color: c }} />;
-    case 'Depression': return <Frown className={iconClass} style={{ color: c }} />;
-    case 'Stroke': return <Zap className={iconClass} style={{ color: c }} />;
-    case 'MetSyn': return <Shield className={iconClass} style={{ color: c }} />;
-    case 'Infertility_Mood': return <Target className={iconClass} style={{ color: c }} />;
-    case 'CVD_Mood': return <Heart className={iconClass} style={{ color: c }} />;
-    case 'T2D_Mood': return <Droplets className={iconClass} style={{ color: c }} />;
-    case 'MetSyn_Mood': return <Shield className={iconClass} style={{ color: c }} />;
-    case 'Stroke_Mood': return <Zap className={iconClass} style={{ color: c }} />;
-    default: return <Activity className={iconClass} style={{ color: c }} />;
-  }
-};
 
-const getDiseaseBorderColor = (severity: string): string => {
-  switch (severity) {
-    case 'Extreme': return '#dc2626';
-    case 'Severe': return '#ea580c';
-    case 'Moderate': return '#d97706';
-    case 'Mild': return '#2563eb';
-    case 'Minimal': return '#16a34a';
-    default: return '#d1d5db';
-  }
-};
-
-const fatigueLabel = (v: number): string => {
-  if (v <= 3) return 'Low';
-  if (v <= 6) return 'Moderate';
-  return 'High';
-};
-
-const moodLabel = (v: number): string => {
-  if (v <= 2) return 'Normal';
-  if (v <= 5) return 'Mild';
-  if (v <= 8) return 'Moderate';
-  return 'Severe';
-};
-
-const riskSeverityLabel = (v: number): string => {
-  if (v < 0.20) return 'Minimal';
-  if (v < 0.40) return 'Mild';
-  if (v < 0.60) return 'Moderate';
-  if (v < 0.80) return 'Severe';
-  return 'Extreme';
-};
 
 const RiskGauge = ({ score }: { score?: number }) => {
   const safeScore = score ?? 0;
@@ -1079,15 +1055,15 @@ const DashboardScreen = () => {
               transition={{ delay: 0.1 }}
               className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm"
             >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1">
-                  <h2 className="font-display font-bold text-gray-900 text-base leading-tight">{riskScoreTitle}</h2>
+              <div className="mb-2">
+                <div className="flex justify-end mb-2">
+                  {prediction && hasValidDate && (
+                    <span className="text-xs text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full font-medium">
+                      Updated {predictionAge}
+                    </span>
+                  )}
                 </div>
-                {prediction && hasValidDate && (
-                  <span className="text-xs text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full font-medium shrink-0 ml-2">
-                    Updated {predictionAge}
-                  </span>
-                )}
+                <h2 className="font-display font-bold text-gray-900 text-base leading-tight">{riskScoreTitle}</h2>
               </div>
               {prediction ? (
                 <>
@@ -1137,7 +1113,7 @@ const DashboardScreen = () => {
                 {prediction.unified_disease_scores && Object.keys(prediction.unified_disease_scores).length > 0 && (() => {
                   const wellnessKeys = ['Sleep_Quality', 'Focus_Memory', 'Mental_Wellness', 'Mood_Score'];
                   const v8wellness = prediction.rppg_v8_risks || {};
-                  const diseaseGroups: { title: string; keys: string[] }[] = [
+                  const diseaseGroups: { title: string; keys: string[]; cols?: number }[] = [
                     { title: 'Mental Health', keys: [...wellnessKeys, 'Anxiety', 'Depression', 'ChronicStress', 'PMDD'] },
                     { title: 'Metabolic Health', keys: ['T2D', 'Metabolic'] },
                     { title: 'Cardiovascular & Neurological Health', keys: ['CVD', 'Stroke', 'HeartFailure'] },
@@ -1152,7 +1128,7 @@ const DashboardScreen = () => {
                         return (
                           <div key={group.title}>
                             <h4 className="text-sm font-extrabold text-gray-800 uppercase tracking-wider mb-3">{group.title}</h4>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className={`grid gap-2 ${group.cols === 3 ? 'grid-cols-3' : 'grid-cols-1'}`}>
                               {items.map(({ key, data, w }) => {
                                 if (w && wellnessKeys.includes(key)) {
                                   const score = w.raw_score ?? (w.risk_score != null ? w.risk_score * 100 : null);
@@ -1160,29 +1136,29 @@ const DashboardScreen = () => {
                                   return (
                                     <div
                                       key={key}
-                                      className="flex items-center gap-2 p-3 rounded-xl border-l-4 shadow-sm"
+                                      className="flex items-center gap-2 p-2 rounded-lg border-l-4 shadow-sm"
                                       style={{
                                         backgroundColor: getWellnessBg(sev),
                                         borderLeftColor: getWellnessColor(sev),
                                       }}
                                     >
-                                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/80 shadow-sm shrink-0">
+                                  <div className="flex items-center justify-center w-7 h-7 rounded-full bg-white/90 shadow-sm shrink-0">
                                     {getDiseaseIcon(key, getWellnessColor(sev))}
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-start gap-1.5">
-                                      <span className="text-xs font-bold text-gray-900 leading-tight">
+                                      <span className="text-[10px] font-bold text-gray-900 leading-tight line-clamp-1">
                                         {expandAbbreviation(key)}
                                           </span>
                                           <span
-                                            className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white shadow-sm shrink-0"
+                                            className="text-[9px] font-bold px-1 py-0.5 rounded-full text-white shadow-sm shrink-0"
                                             style={{ backgroundColor: getWellnessColor(sev) }}
                                           >
                                             {sev}
                                           </span>
                                         </div>
                                         <div className="flex items-center gap-1.5 mt-1">
-                                          <div className="flex-1 bg-white/70 rounded-full h-1.5 overflow-hidden shadow-inner">
+                                          <div className="flex-1 bg-white/70 rounded-full h-1 overflow-hidden shadow-inner">
                                             <div
                                               className="h-full rounded-full transition-all duration-500"
                                               style={{
@@ -1191,15 +1167,11 @@ const DashboardScreen = () => {
                                               }}
                                             />
                                           </div>
-                                          <span className="text-xs font-extrabold text-gray-800 w-10 text-right">
+                                          <span className="text-[10px] font-extrabold text-gray-800 w-10 text-right">
                                             {score != null && score > 0 ? `${score.toFixed(0)}%` : '—'}
                                           </span>
                                         </div>
-                                        <div className="mt-1">
-                                          <span className="text-[9px] font-semibold text-gray-500 bg-white/70 px-1.5 py-0.5 rounded-full">
-                                            1 Health Index
-                                          </span>
-                                        </div>
+
                                       </div>
                                     </div>
                                   );
@@ -1208,29 +1180,29 @@ const DashboardScreen = () => {
                                   return (
                                     <div
                                       key={key}
-                                      className="flex items-center gap-2 p-3 rounded-xl border-l-4 shadow-sm"
+                                      className="flex items-center gap-2 p-2 rounded-lg border-l-4 shadow-sm"
                                       style={{
                                         backgroundColor: getUnifiedSeverityBg(data.severity),
                                         borderLeftColor: getDiseaseBorderColor(data.severity),
                                       }}
                                     >
-                                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/80 shadow-sm shrink-0">
+                                  <div className="flex items-center justify-center w-7 h-7 rounded-full bg-white/90 shadow-sm shrink-0">
                                     {getDiseaseIcon(key, getUnifiedSeverityColor(data.severity))}
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-start gap-1.5">
-                                      <span className="text-xs font-bold text-gray-900 leading-tight">
+                                      <span className="text-[10px] font-bold text-gray-900 leading-tight line-clamp-1">
                                         {expandAbbreviation(key)}
                                       </span>
                                       <span
-                                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white shadow-sm shrink-0"
+                                        className="text-[9px] font-bold px-1 py-0.5 rounded-full text-white shadow-sm shrink-0"
                                         style={{ backgroundColor: getUnifiedSeverityColor(data.severity) }}
                                       >
                                         {data.severity}
                                       </span>
                                     </div>
                                     <div className="flex items-center gap-1.5 mt-1">
-                                      <div className="flex-1 bg-white/70 rounded-full h-1.5 overflow-hidden shadow-inner">
+                                      <div className="flex-1 bg-white/70 rounded-full h-1 overflow-hidden shadow-inner">
                                         <div
                                           className="h-full rounded-full transition-all duration-500"
                                           style={{
@@ -1239,15 +1211,11 @@ const DashboardScreen = () => {
                                           }}
                                         />
                                       </div>
-                                      <span className="text-xs font-extrabold text-gray-800 w-10 text-right">
+                                      <span className="text-[10px] font-extrabold text-gray-800 w-10 text-right">
                                         {data.unified_score > 0 ? `${(data.unified_score * 100).toFixed(0)}%` : '—'}
                                       </span>
                                     </div>
-                                    <div className="mt-1">
-                                      <span className="text-[9px] font-semibold text-gray-500 bg-white/70 px-1.5 py-0.5 rounded-full">
-                                        {data.contributing_models || 1} Health Indices
-                                      </span>
-                                    </div>
+
                                   </div>
                                 </div>
                               );
@@ -1292,11 +1260,11 @@ const DashboardScreen = () => {
                               </div>
                               <p className="text-base font-bold text-gray-900">Symptom Intensity</p>
                             </div>
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-2 gap-3">
                               {Object.entries(prediction.symptom_intensity_risks).map(([key, value]) => (
                                 <div key={key} className="text-center p-3 bg-teal-50 rounded-xl border border-teal-100">
-                                  <div className="font-semibold text-gray-700 text-sm">{expandAbbreviation(key)}</div>
-                                  <div className="text-teal-700 font-extrabold text-lg mt-1">{(value * 100).toFixed(0)}%</div>
+                                  <div className="font-semibold text-gray-700 text-xs line-clamp-2 leading-tight">{expandAbbreviation(key)}</div>
+                                  <div className="text-teal-700 font-extrabold text-base mt-1">{(value * 100).toFixed(0)}%</div>
                                 </div>
                               ))}
                             </div>
@@ -1312,11 +1280,11 @@ const DashboardScreen = () => {
                               </div>
                               <p className="text-base font-bold text-gray-900">Menstrual Health</p>
                             </div>
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-2 gap-3">
                               {Object.entries(prediction.menstrual_risks).map(([key, value]) => (
                                 <div key={key} className="text-center p-3 bg-purple-50 rounded-xl border border-purple-100">
-                                  <div className="font-semibold text-gray-700 text-sm">{expandAbbreviation(key)}</div>
-                                  <div className="text-purple-700 font-extrabold text-lg mt-1">{(value * 100).toFixed(0)}%</div>
+                                  <div className="font-semibold text-gray-700 text-xs line-clamp-2 leading-tight">{expandAbbreviation(key)}</div>
+                                  <div className="text-purple-700 font-extrabold text-base mt-1">{(value * 100).toFixed(0)}%</div>
                                 </div>
                               ))}
                             </div>
@@ -1479,7 +1447,7 @@ const DashboardScreen = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="grid grid-cols-2 gap-3"
+              className="grid grid-cols-1 gap-3"
             >
               <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4">
                 <CompletenessRing percent={completenessPct} missing={missingCount} />
@@ -1569,100 +1537,65 @@ const DashboardScreen = () => {
           className="bg-white rounded-2xl border border-gray-200 p-5"
         >
           <h3 className="font-display font-bold text-gray-900 mb-4 text-lg">Today's Summary</h3>
-          <div className="grid grid-cols-4 gap-3 text-center">
-            <div className="p-3 rounded-lg bg-gray-50">
-              <Heart className="h-4 w-4 mx-auto mb-1.5 text-teal-500" />
-              <p className="text-xl font-bold font-display text-gray-900">
-                {todaySummary?.hrv_rmssd ? `${todaySummary.hrv_rmssd.toFixed(0)}` : '—'}
-              </p>
-              {todaySummary?.hrv_rmssd ? (
-                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">
-                  {getHrvLabel(todaySummary.hrv_rmssd)}
-                </p>
-              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
-              <p className="text-xs text-gray-600 mt-1 font-medium">HRV</p>
-            </div>
-            <div className="p-3 rounded-lg bg-gray-50">
-              <TrendingUp className="h-4 w-4 mx-auto mb-1.5 text-amber-500" />
-              <p className="text-xl font-bold font-display text-gray-900">
-                {todaySummary?.fatigue_vas && todaySummary.fatigue_vas > 0 ? `${todaySummary.fatigue_vas.toFixed(1)}` : morningComplete ? '✓' : '—'}
-              </p>
-              {todaySummary?.fatigue_vas && todaySummary.fatigue_vas > 0 ? (
-                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">
-                  {fatigueLabel(todaySummary.fatigue_vas)}
-                </p>
-              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
-              <p className="text-xs text-gray-600 mt-1 font-medium">Fatigue</p>
-            </div>
-            <div className="p-3 rounded-lg bg-gray-50">
-              <Sun className="h-4 w-4 mx-auto mb-1.5 text-purple-500" />
-              <p className="text-xl font-bold font-display text-gray-900">
-                {todaySummary?.mood_score ? `${todaySummary.mood_score.toFixed(0)}` : '—'}
-              </p>
-              {todaySummary?.mood_score ? (
-                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">
-                  {moodLabel(todaySummary.mood_score)}
-                </p>
-              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
-              <p className="text-xs text-gray-600 mt-1 font-medium">Mood</p>
-            </div>
-            <div className="p-3 rounded-lg" style={{ backgroundColor: prediction?.unified_disease_scores?.CVD ? getUnifiedSeverityBg(prediction.unified_disease_scores.CVD.severity) : '#f9fafb' }}>
-              <HeartPulse className="h-4 w-4 mx-auto mb-1.5" style={{ color: prediction?.unified_disease_scores?.CVD ? getUnifiedSeverityColor(prediction.unified_disease_scores.CVD.severity) : '#9ca3af' }} />
-              <p className="text-xl font-bold font-display text-gray-900">
-                {prediction?.unified_disease_scores?.CVD ? `${(prediction.unified_disease_scores.CVD.unified_score * 100).toFixed(0)}` : '—'}
-              </p>
-              {prediction?.unified_disease_scores?.CVD ? (
-                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">{prediction.unified_disease_scores.CVD.severity}</p>
-              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
-              <p className="text-xs text-gray-600 mt-1 font-medium">Cardiovascular</p>
-            </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <MetricCard
+              icon={Heart}
+              value={todaySummary?.hrv_rmssd ? todaySummary.hrv_rmssd.toFixed(0) : null}
+              label="HRV"
+              severity={todaySummary?.hrv_rmssd ? getHrvLabel(todaySummary.hrv_rmssd) : null}
+              iconColor="text-teal-500"
+            />
+            <MetricCard
+              icon={TrendingUp}
+              value={todaySummary?.fatigue_vas && todaySummary.fatigue_vas > 0 ? todaySummary.fatigue_vas.toFixed(1) : morningComplete ? '✓' : null}
+              label="Fatigue"
+              severity={todaySummary?.fatigue_vas && todaySummary.fatigue_vas > 0 ? getFatigueLabel(todaySummary.fatigue_vas) : null}
+              iconColor="text-amber-500"
+            />
+            <MetricCard
+              icon={Sun}
+              value={todaySummary?.mood_score ? todaySummary.mood_score.toFixed(0) : null}
+              label="Mood"
+              severity={todaySummary?.mood_score ? getMoodLabel(todaySummary.mood_score) : null}
+              iconColor="text-purple-500"
+            />
+            <MetricCard
+              icon={HeartPulse}
+              value={prediction?.unified_disease_scores?.CVD ? (prediction.unified_disease_scores.CVD.unified_score * 100).toFixed(0) : null}
+              label="Cardiovascular"
+              severity={prediction?.unified_disease_scores?.CVD?.severity || null}
+            />
             {!isMale && (
-            <div className="p-3 rounded-lg" style={{ backgroundColor: prediction?.unified_disease_scores?.Infertility ? getUnifiedSeverityBg(prediction.unified_disease_scores.Infertility.severity) : '#f9fafb' }}>
-              <Target className="h-4 w-4 mx-auto mb-1.5" style={{ color: prediction?.unified_disease_scores?.Infertility ? getUnifiedSeverityColor(prediction.unified_disease_scores.Infertility.severity) : '#9ca3af' }} />
-              <p className="text-xl font-bold font-display text-gray-900">
-                {prediction?.unified_disease_scores?.Infertility ? `${(prediction.unified_disease_scores.Infertility.unified_score * 100).toFixed(0)}` : '—'}
-              </p>
-              {prediction?.unified_disease_scores?.Infertility ? (
-                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">{prediction.unified_disease_scores.Infertility.severity}</p>
-              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
-              <p className="text-xs text-gray-600 mt-1 font-medium">Infertility</p>
-            </div>
+              <MetricCard
+                icon={Target}
+                value={prediction?.unified_disease_scores?.Infertility ? (prediction.unified_disease_scores.Infertility.unified_score * 100).toFixed(0) : null}
+                label="Infertility"
+                severity={prediction?.unified_disease_scores?.Infertility?.severity || null}
+              />
             )}
-            <div className="p-3 rounded-lg" style={{ backgroundColor: prediction?.unified_disease_scores?.T2D ? getUnifiedSeverityBg(prediction.unified_disease_scores.T2D.severity) : '#f9fafb' }}>
-              <Droplets className="h-4 w-4 mx-auto mb-1.5" style={{ color: prediction?.unified_disease_scores?.T2D ? getUnifiedSeverityColor(prediction.unified_disease_scores.T2D.severity) : '#9ca3af' }} />
-              <p className="text-xl font-bold font-display text-gray-900">
-                {prediction?.unified_disease_scores?.T2D ? `${(prediction.unified_disease_scores.T2D.unified_score * 100).toFixed(0)}` : '—'}
-              </p>
-              {prediction?.unified_disease_scores?.T2D ? (
-                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">{prediction.unified_disease_scores.T2D.severity}</p>
-              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
-              <p className="text-xs text-gray-600 mt-1 font-medium">Type 2 Diabetes</p>
-            </div>
-            <div className="p-3 rounded-lg" style={{ backgroundColor: prediction?.unified_disease_scores?.ChronicStress ? getUnifiedSeverityBg(prediction.unified_disease_scores.ChronicStress.severity) : '#f9fafb' }}>
-              <Brain className="h-4 w-4 mx-auto mb-1.5" style={{ color: prediction?.unified_disease_scores?.ChronicStress ? getUnifiedSeverityColor(prediction.unified_disease_scores.ChronicStress.severity) : '#9ca3af' }} />
-              <p className="text-xl font-bold font-display text-gray-900">
-                {prediction?.unified_disease_scores?.ChronicStress ? `${(prediction.unified_disease_scores.ChronicStress.unified_score * 100).toFixed(0)}` : '—'}
-              </p>
-              {prediction?.unified_disease_scores?.ChronicStress ? (
-                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">{prediction.unified_disease_scores.ChronicStress.severity}</p>
-              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
-              <p className="text-xs text-gray-600 mt-1 font-medium">Chronic Stress</p>
-            </div>
-            <div className="p-3 rounded-lg bg-gray-50">
-              <Frown className="h-4 w-4 mx-auto mb-1.5 text-gray-400" />
-              <p className="text-xl font-bold font-display text-gray-900">
-                {prediction?.rppg_risks?.mood?.Depression ? `${(prediction.rppg_risks.mood.Depression * 100).toFixed(0)}` : '—'}
-              </p>
-              {prediction?.rppg_risks?.mood?.Depression ? (
-                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">
-                  {riskSeverityLabel(prediction.rppg_risks.mood.Depression)}
-                </p>
-              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
-              <p className="text-xs text-gray-600 mt-1 font-medium">Depression</p>
-            </div>
+            <MetricCard
+              icon={Droplets}
+              value={prediction?.unified_disease_scores?.T2D ? (prediction.unified_disease_scores.T2D.unified_score * 100).toFixed(0) : null}
+              label="Type 2 Diabetes"
+              severity={prediction?.unified_disease_scores?.T2D?.severity || null}
+            />
+            <MetricCard
+              icon={Brain}
+              value={prediction?.unified_disease_scores?.ChronicStress ? (prediction.unified_disease_scores.ChronicStress.unified_score * 100).toFixed(0) : null}
+              label="Chronic Stress"
+              severity={prediction?.unified_disease_scores?.ChronicStress?.severity || null}
+            />
+            <MetricCard
+              icon={Frown}
+              value={prediction?.rppg_risks?.mood?.Depression ? (prediction.rppg_risks.mood.Depression * 100).toFixed(0) : null}
+              label="Depression"
+              severity={prediction?.rppg_risks?.mood?.Depression ? getRiskSeverityLabel(prediction.rppg_risks.mood.Depression) : null}
+            />
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
+          {/* Morning/Evening Check-in Status */}
+          <div className="flex flex-wrap gap-2">
             {morningComplete ? (
               <span className="flex items-center gap-1.5 text-sm bg-green-100 text-green-800 px-3 py-1.5 rounded-full font-semibold">
                 <span className="h-2 w-2 rounded-full bg-green-500" />Morning: Done
