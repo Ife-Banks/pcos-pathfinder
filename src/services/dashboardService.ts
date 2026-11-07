@@ -415,9 +415,13 @@ export const dashboardService = {
     }
   },
 
-  getMoodSummary: async (): Promise<MoodSummary | null> => {
+  // NEW: Get today's dashboard summary (rPPG + mood in one call via Django proxy)
+  getTodaySummary: async (): Promise<{
+    rppg: { rmssd: number; hrv_rmssd: number; mean_temp: number; mean_eda: number; asi?: number; session_type: string; session_quality?: string; captured_at: string } | null;
+    mood: { phq4_total: number; affect_quadrant: string; log_date: string } | null;
+  } | null> => {
     try {
-      const res = await apiClient.get('/mood/summary/today/');
+      const res = await apiClient.get('/ml-proxy/dashboard/today-summary/');
       const body = res.data;
       ensureSuccess(body);
       return body.data || null;
