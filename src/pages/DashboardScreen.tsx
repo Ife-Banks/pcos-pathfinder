@@ -731,7 +731,7 @@ const DashboardScreen = () => {
       icon: User,
       title: "Androgenic Hair Pattern",
       subtitle: getMfgSubtitle(),
-      route: "/weekly-tools/hirsutism",
+      route: "/weekly-tools",
       gradient: "gradient-primary",
       urgent: !mfgComplete,
       dotColor: mfgComplete ? '#27AE60' : '#F59E0B',
