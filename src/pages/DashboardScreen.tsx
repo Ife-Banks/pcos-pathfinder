@@ -600,6 +600,18 @@ const DashboardScreen = () => {
     }
   };
 
+  const [mfgData, setMfgData] = useState<any>(null);
+
+  const loadMfgData = useCallback(async () => {
+    try {
+      const { hairPatternService } = await import('@/services/mfgService');
+      const data = await hairPatternService.getLatest();
+      setMfgData(data?.data);
+    } catch (err) {
+      console.warn('Failed to load mfg data:', err);
+    }
+  }, []);
+
   const getWeeklyToolsSubtitle = () => {
     if (mfgComplete && phq4Complete) return "All tools complete this week ✓";
     const pending = [];
@@ -607,6 +619,17 @@ const DashboardScreen = () => {
     if (!phq4Complete) pending.push('PHQ-4');
     return `${pending.join(' & ')} due`;
   };
+
+  const getMfgSubtitle = () => {
+    if (mfgData?.total_score !== undefined) {
+      return `Score: ${mfgData.total_score}/36 · ${mfgData.hirsutism_severity || 'Normal'}`;
+    }
+    return mfgComplete ? "Hair pattern complete" : "Track hair pattern & PHQ-4 due";
+  };
+
+  useEffect(() => {
+    loadMfgData();
+  }, [loadMfgData]);
 
   const isMale = profile?.gender === 'male';
   const isFemale = profile?.gender === 'female';
@@ -707,7 +730,7 @@ const DashboardScreen = () => {
     {
       icon: User,
       title: "Androgenic Hair Pattern",
-      subtitle: mfgComplete ? "Hair pattern complete" : "Track hair pattern & PHQ-4 due",
+      subtitle: getMfgSubtitle(),
       route: "/hair-pattern",
       gradient: "gradient-primary",
       urgent: !mfgComplete,
