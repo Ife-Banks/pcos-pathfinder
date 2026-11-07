@@ -66,11 +66,12 @@ export const useMorningCheckin = (sessionId: string | null) => {
   });
 };
 
-export const useDashboardData = (userGender?: string) => {
+export const useDashboardData = () => {
   const queryClient = useQueryClient();
 
   const profileQuery = useUserProfile();
-  const predictionsQuery = useMLPredictions(userGender);
+  const gender = profileQuery.data?.data?.gender?.toLowerCase();
+  const predictionsQuery = useMLPredictions(gender);
   const checkinTodayQuery = useCheckinToday();
   const todaySummaryQuery = useTodaySummary();
   const menstrualHistoryQuery = useMenstrualHistory();

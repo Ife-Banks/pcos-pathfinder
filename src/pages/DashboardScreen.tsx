@@ -503,7 +503,7 @@ const DashboardScreen = () => {
     menstrualHistory: menstrualHistoryQuery,
     morningCheckin: morningCheckinQuery,
     invalidateDashboard,
-  } = useDashboardData(profile?.gender);
+  } = useDashboardData();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
