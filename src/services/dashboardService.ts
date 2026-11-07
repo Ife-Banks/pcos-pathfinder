@@ -421,7 +421,7 @@ export const dashboardService = {
     mood: { phq4_total: number; affect_quadrant: string; log_date: string } | null;
   } | null> => {
     try {
-      const res = await apiClient.get('/ml-proxy/dashboard/today-summary/');
+      const res = await apiClient.get('/dashboard/today-summary/');
       const body = res.data;
       ensureSuccess(body);
       return body.data || null;
