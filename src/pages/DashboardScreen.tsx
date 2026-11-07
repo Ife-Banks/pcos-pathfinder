@@ -1400,23 +1400,23 @@ const DashboardScreen = () => {
           <div className="grid grid-cols-3 gap-3">
             <MetricCard
               icon={Heart}
-              value={todaySummary?.hrv_rmssd ? todaySummary.hrv_rmssd.toFixed(0) : null}
+              value={todaySummary?.checkin?.hrv_rmssd ? todaySummary.checkin.hrv_rmssd.toFixed(0) : null}
               label="HRV"
-              severity={todaySummary?.hrv_rmssd ? getHrvLabel(todaySummary.hrv_rmssd) : null}
+              severity={todaySummary?.checkin?.hrv_rmssd ? getHrvLabel(todaySummary.checkin.hrv_rmssd) : null}
               iconColor="text-teal-500"
             />
             <MetricCard
               icon={TrendingUp}
-              value={todaySummary?.fatigue_vas && todaySummary.fatigue_vas > 0 ? todaySummary.fatigue_vas.toFixed(1) : morningComplete ? '✓' : null}
+              value={todaySummary?.checkin?.fatigue_vas && todaySummary.checkin.fatigue_vas > 0 ? todaySummary.checkin.fatigue_vas.toFixed(1) : morningComplete ? '✓' : null}
               label="Fatigue"
-              severity={todaySummary?.fatigue_vas && todaySummary.fatigue_vas > 0 ? getFatigueLabel(todaySummary.fatigue_vas) : null}
+              severity={todaySummary?.checkin?.fatigue_vas && todaySummary.checkin.fatigue_vas > 0 ? getFatigueLabel(todaySummary.checkin.fatigue_vas) : null}
               iconColor="text-amber-500"
             />
             <MetricCard
               icon={Sun}
-              value={todaySummary?.mood_score ? todaySummary.mood_score.toFixed(0) : null}
+              value={todaySummary?.mood?.phq4_total ? todaySummary.mood.phq4_total.toFixed(0) : null}
               label="Mood"
-              severity={todaySummary?.mood_score ? getMoodLabel(todaySummary.mood_score) : null}
+              severity={todaySummary?.mood?.phq4_total ? getMoodLabel(todaySummary.mood.phq4_total) : null}
               iconColor="text-purple-500"
             />
             <MetricCard
