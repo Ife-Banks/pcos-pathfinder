@@ -522,8 +522,8 @@ const DashboardScreen = () => {
   const fetchPrediction = useCallback(async (silent = false) => {
     if (!silent) setPredictionLoading(true);
     try {
-      // Use new ML predictions service
-      const res = await dashboardService.getMLPredictions();
+      // Use new ML predictions service with gender from profile state
+      const res = await dashboardService.getMLPredictions(profile?.gender);
       if (res.data) {
         setPrediction(res.data);
         return res.data;
@@ -536,7 +536,7 @@ const DashboardScreen = () => {
     } finally {
       if (!silent) setPredictionLoading(false);
     }
-  }, []);
+  }, [profile?.gender]);
 
   const fetchMenstrualSummary = useCallback(async () => {
     try {
@@ -561,11 +561,12 @@ const DashboardScreen = () => {
       let hrv: number | null = null;
       let fatigue: number | null = null;
       let mood: number | null = null;
+      let todayStatus = null;
 
       const [hrvRes, todayRes, moodRes] = await Promise.allSettled([
-        apiClient.get('/rppg/sessions'),
+        apiClient.get('/rppg/sessions?limit=1'), // Only need latest session
         checkinService.getTodayStatus(),
-        apiClient.get('/mood/history'),
+        apiClient.get('/mood/history?limit=1'), // Only need latest log
       ]);
 
       if (hrvRes.status === 'fulfilled' && hrvRes.value.data?.data?.sessions?.length > 0) {
@@ -573,14 +574,17 @@ const DashboardScreen = () => {
         hrv = latestSession.rmssd ?? latestSession.hrv_rmssd ?? null;
       }
 
-      // Try to get fatigue from today's morning session ID
-      if (todayRes.status === 'fulfilled' && todayRes.value.data?.morning_session_id) {
-        try {
-          const morningRes = await apiClient.get(`/checkin/morning/${todayRes.value.data.morning_session_id}/`);
-          if (morningRes.data?.data) {
-            fatigue = morningRes.data.data.fatigue_vas ?? null;
-          }
-        } catch { /* ignore */ }
+      if (todayRes.status === 'fulfilled') {
+        todayStatus = todayRes.value.data;
+        // Try to get fatigue from today's morning session ID
+        if (todayStatus.morning_session_id) {
+          try {
+            const morningRes = await apiClient.get(`/checkin/morning/${todayStatus.morning_session_id}/`);
+            if (morningRes.data?.data) {
+              fatigue = morningRes.data.data.fatigue_vas ?? null;
+            }
+          } catch { /* ignore */ }
+        }
       }
 
       if (moodRes.status === 'fulfilled') {
@@ -592,9 +596,9 @@ const DashboardScreen = () => {
       }
 
       setTodaySummary({ hrv_rmssd: hrv, fatigue_vas: fatigue, mood_score: mood });
-      return true;
+      return todayStatus;
     } catch {
-      return false;
+      return null;
     }
   }, []);
 
@@ -631,14 +635,13 @@ const DashboardScreen = () => {
     try {
       // Fire all requests in parallel immediately
       setPredictionLoading(true);
-      const predPromise = dashboardService.getMLPredictions();
+      const predPromise = dashboardService.getMLPredictions(profile?.gender); // Pass gender if available, fallback fetches if not
       const profilePromise = dashboardService.getUserProfile();
-      const todayPromise = checkinService.getTodayStatus();
       const menstrualPromise = fetchMenstrualSummary();
-      const todaySummaryPromise = fetchTodaySummary();
+      const todaySummaryPromise = fetchTodaySummary(); // Now returns todayStatus
 
       // Wait only for critical data (fast Django-local calls)
-      const [profileRes, todayRes] = await Promise.allSettled([profilePromise, todayPromise]);
+      const [profileRes, todayStatus] = await Promise.allSettled([profilePromise, todaySummaryPromise]);
 
       if (profileRes.status === 'fulfilled') {
         setProfile(profileRes.value.data);
@@ -652,18 +655,18 @@ const DashboardScreen = () => {
         }
       }
 
-      if (todayRes.status === 'fulfilled') {
-        const td = todayRes.value.data;
+      // Use todayStatus from fetchTodaySummary instead of calling checkinService again
+      if (todayStatus) {
         setTodayData({
-          morning_status: td.morning_status,
-          evening_status: td.evening_status,
-          streak_days: td.streak_days ?? 0,
-          completeness_pct: td.completeness_pct ?? 0,
-          missed_yesterday: td.missed_yesterday ?? [],
-          date: td.date,
+          morning_status: todayStatus.morning_status,
+          evening_status: todayStatus.evening_status,
+          streak_days: todayStatus.streak_days ?? 0,
+          completeness_pct: todayStatus.completeness_pct ?? 0,
+          missed_yesterday: todayStatus.missed_yesterday ?? [],
+          date: todayStatus.date,
         });
 
-        if (td.morning_status === 'complete' && td.evening_status === 'complete') {
+        if (todayStatus.morning_status === 'complete' && todayStatus.evening_status === 'complete') {
           startPredictionPolling();
         }
       }

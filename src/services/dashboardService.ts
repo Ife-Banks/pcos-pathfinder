@@ -178,18 +178,19 @@ export const dashboardService = {
   },
 
   // NEW: Get comprehensive ML predictions
-  getMLPredictions: async (): Promise<PredictionResponse> => {
+  getMLPredictions: async (userGender?: string): Promise<PredictionResponse> => {
     try {
-      // Get user profile to check gender
-      const profileRes = await apiClient.get('/auth/me/');
-      const profile = profileRes.data?.data;
-      const userGender = profile?.gender?.toLowerCase();
-
       // Use comprehensive endpoint for both genders (backend handles gender filtering)
       const endpoint = '/predictions/comprehensive/';
-      console.log('[getMLPredictions] User gender:', userGender, 'Using endpoint:', endpoint);
 
-      const res = await apiClient.get(endpoint);
+      // Don't fetch profile as fallback - pass gender or null to backend
+      // Backend handles gender filtering regardless
+      const gender = userGender?.toLowerCase() || null;
+
+      console.log('[getMLPredictions] User gender:', gender, 'Using endpoint:', endpoint);
+
+      // Use POST to trigger fresh inference (for debugging - this calls all models including rPPG)
+      const res = await apiClient.post(endpoint);
       const body = res.data;
       
       console.log('[getMLPredictions] API response status:', res.status, 'body keys:', Object.keys(body || {}));
@@ -327,7 +328,7 @@ export const dashboardService = {
       // Male users: strip female-only diseases from the per-model breakdowns
       // (backend already filters unified_disease_scores; this covers the
       // symptom/menstrual/rppg detail cards which are built client-side).
-      if (userGender === 'male') {
+      if (gender === 'male') {
         const femaleKeys = ['Infertility', 'PMDD', 'Endometrial_Cancer', 'Endometrial', 'Dysmenorrhea'];
         for (const key of femaleKeys) {
           delete combinedData.symptom_intensity_risks?.[key as keyof typeof combinedData.symptom_intensity_risks];
@@ -338,7 +339,7 @@ export const dashboardService = {
         }
       }
 
-      const message = userGender === 'male'
+      const message = gender === 'male'
         ? 'Comprehensive risk score retrieved successfully'
         : 'PCOS risk score retrieved successfully';
 

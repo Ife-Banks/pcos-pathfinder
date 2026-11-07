@@ -99,8 +99,9 @@ export const rppgService = {
   },
 
   // Get session history
-  getSessions: async (): Promise<RppgSessionsResponse> => {
-    const res = await apiClient.get(`${BASE}/sessions`);
+  getSessions: async (limit?: number): Promise<RppgSessionsResponse> => {
+    const query = limit ? `?limit=${limit}` : '';
+    const res = await apiClient.get(`${BASE}/sessions${query}`);
     const body = res.data;
     ensureSuccess(body);
     return body;
