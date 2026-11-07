@@ -19,6 +19,7 @@ export const useMLPredictions = (userGender?: string) => {
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false, // Don't refetch on window focus - predictions are expensive
+    enabled: !!userGender, // Only run when gender is available to avoid duplicate calls
   });
 };
 
@@ -71,7 +72,10 @@ export const useDashboardData = () => {
 
   const profileQuery = useUserProfile();
   const gender = profileQuery.data?.data?.gender?.toLowerCase();
+  
+  // Only run predictions query when gender is available to avoid duplicate calls
   const predictionsQuery = useMLPredictions(gender);
+  
   const checkinTodayQuery = useCheckinToday();
   const todaySummaryQuery = useTodaySummary();
   const menstrualHistoryQuery = useMenstrualHistory();
