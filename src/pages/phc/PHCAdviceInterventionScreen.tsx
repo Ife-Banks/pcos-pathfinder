@@ -184,6 +184,9 @@ const PHCAdviceInterventionScreen = () => {
       case 'pcos': return 'bg-purple-100 text-purple-800';
       case 'maternal': return 'bg-pink-100 text-pink-800';
       case 'cardiovascular': return 'bg-blue-100 text-blue-800';
+      case 'mens_endocrine': return 'bg-teal-100 text-teal-800';
+      case 'mens_reproductive': return 'bg-indigo-100 text-indigo-800';
+      case 'mental_health': return 'bg-amber-100 text-amber-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -193,6 +196,9 @@ const PHCAdviceInterventionScreen = () => {
       case 'pcos': return <Heart className="h-4 w-4 text-purple-600" />;
       case 'maternal': return <Activity className="h-4 w-4 text-pink-600" />;
       case 'cardiovascular': return <Activity className="h-4 w-4 text-blue-600" />;
+      case 'mens_endocrine': return <Activity className="h-4 w-4 text-teal-600" />;
+      case 'mens_reproductive': return <Activity className="h-4 w-4 text-indigo-600" />;
+      case 'mental_health': return <Activity className="h-4 w-4 text-amber-600" />;
       default: return <Activity className="h-4 w-4 text-gray-600" />;
     }
   };
@@ -211,6 +217,9 @@ const PHCAdviceInterventionScreen = () => {
     { value: 'pcos', label: 'PCOS' },
     { value: 'maternal', label: 'Maternal Health' },
     { value: 'cardiovascular', label: 'Cardiovascular' },
+    { value: 'mens_endocrine', label: "Men's Endocrine" },
+    { value: 'mens_reproductive', label: "Men's Reproductive" },
+    { value: 'mental_health', label: 'Mental Health' },
   ];
 
   const defaultTemplates: AdviceTemplate[] = [
@@ -549,6 +558,9 @@ const PHCAdviceInterventionScreen = () => {
                         <SelectItem value="pcos">PCOS</SelectItem>
                         <SelectItem value="maternal">Maternal Health</SelectItem>
                         <SelectItem value="cardiovascular">Cardiovascular</SelectItem>
+                        <SelectItem value="mens_endocrine">Men's Endocrine Health</SelectItem>
+                        <SelectItem value="mens_reproductive">Men's Reproductive Health</SelectItem>
+                        <SelectItem value="mental_health">Mental Health</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

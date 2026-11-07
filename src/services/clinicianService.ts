@@ -502,6 +502,17 @@ export const clinicianAPI = {
   },
 
   getDownstreamDiseases: async () => {
+    try {
+      const res = await apiClient.get('/centers/clinician/downstream-diseases/');
+      const body = res.data;
+      ensureSuccess(body);
+      const list = body?.data;
+      if (Array.isArray(list) && list.length) {
+        return list.map((d: any) => ({ key: d.key, name: d.name }));
+      }
+    } catch {
+      // Fall through to static list
+    }
     return [
       { key: 'type2_diabetes', name: 'Type 2 Diabetes / Metabolic Syndrome' },
       { key: 'cardiovascular_disease', name: 'Cardiovascular Disease (CVD, Hypertension)' },
@@ -516,6 +527,10 @@ export const clinicianAPI = {
       },
       { key: 'mental_health', name: 'Mental Health (Depression, Anxiety)' },
       { key: 'dermatologic', name: 'Dermatologic Manifestations (Acne, Hirsutism)' },
+      { key: 'male_hypogonadism', name: 'Male Hypogonadism / Low Testosterone (MEMS, MAMH)' },
+      { key: 'male_subfertility', name: 'Male Subfertility' },
+      { key: 'prostate_disorder', name: 'Prostate Disorders' },
+      { key: 'sexual_dysfunction', name: 'Male Sexual Dysfunction' },
     ];
   },
 

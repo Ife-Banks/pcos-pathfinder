@@ -211,6 +211,11 @@ const expandAbbreviation = (key: string): string => {
     'Focus_Memory': 'Focus & Memory',
     'Mental_Wellness': 'Mental Wellness',
     'Mood_Score': 'Mood Check',
+    'Hypogonadism': 'Male Hypogonadism',
+    'MAMH': 'Metabolic-Associated Male Hypogonadism',
+    'SexualDysfunction': 'Male Sexual Dysfunction',
+    'Prostatitis': 'Prostatitis',
+    'ProstateCancer': 'Prostate Cancer',
   };
   return mapping[key] || key.replace(/_/g, ' ');
 };
@@ -650,6 +655,11 @@ const DashboardScreen = () => {
   const isMale = profile?.gender === 'male';
   const isFemale = profile?.gender === 'female';
 
+  // For males the 'PCOS' disease slot carries the MEMS (male metabolic
+  // phenotype) signal — label it accordingly instead of the ovarian term.
+  const diseaseDisplayName = (key: string): string =>
+    isMale && key === 'PCOS' ? 'Male Metabolic Phenotype (MEMS)' : expandAbbreviation(key);
+
   const getCycleStatus = (summary: MenstrualSummary): string => {
     const flags = summary.criterion_flags;
     if (!flags) return '';
@@ -988,6 +998,7 @@ const DashboardScreen = () => {
                     { title: 'Metabolic Health', keys: ['T2D', 'Metabolic'] },
                     { title: 'Cardiovascular & Neurological Health', keys: ['CVD', 'Stroke', 'HeartFailure'] },
                     { title: 'Reproductive Health', keys: ['Infertility', 'Endometrial', 'Dysmenorrhea'] },
+                    { title: "Men's Health", keys: ['PCOS', 'Hypogonadism', 'MAMH', 'SexualDysfunction', 'ProstateCancer'] },
                   ];
                   const scores = prediction.unified_disease_scores!;
                   return (
@@ -1018,7 +1029,7 @@ const DashboardScreen = () => {
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-start gap-1.5">
                                       <span className="text-[10px] font-bold text-gray-900 leading-tight line-clamp-1">
-                                        {expandAbbreviation(key)}
+                                        {diseaseDisplayName(key)}
                                           </span>
                                           <span
                                             className="text-[9px] font-bold px-1 py-0.5 rounded-full text-white shadow-sm shrink-0"
@@ -1062,7 +1073,7 @@ const DashboardScreen = () => {
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-start gap-1.5">
                                       <span className="text-[10px] font-bold text-gray-900 leading-tight line-clamp-1">
-                                        {expandAbbreviation(key)}
+                                        {diseaseDisplayName(key)}
                                       </span>
                                       <span
                                         className="text-[9px] font-bold px-1 py-0.5 rounded-full text-white shadow-sm shrink-0"
@@ -1133,7 +1144,7 @@ const DashboardScreen = () => {
                             <div className="grid grid-cols-2 gap-3">
                               {Object.entries(prediction.symptom_intensity_risks).map(([key, value]) => (
                                 <div key={key} className="text-center p-3 bg-teal-50 rounded-xl border border-teal-100">
-                                  <div className="font-semibold text-gray-700 text-xs line-clamp-2 leading-tight">{expandAbbreviation(key)}</div>
+                                  <div className="font-semibold text-gray-700 text-xs line-clamp-2 leading-tight">{diseaseDisplayName(key)}</div>
                                   <div className="text-teal-700 font-extrabold text-base mt-1">{(value * 100).toFixed(0)}%</div>
                                 </div>
                               ))}
@@ -1153,7 +1164,7 @@ const DashboardScreen = () => {
                             <div className="grid grid-cols-2 gap-3">
                               {Object.entries(prediction.menstrual_risks).map(([key, value]) => (
                                 <div key={key} className="text-center p-3 bg-purple-50 rounded-xl border border-purple-100">
-                                  <div className="font-semibold text-gray-700 text-xs line-clamp-2 leading-tight">{expandAbbreviation(key)}</div>
+                                  <div className="font-semibold text-gray-700 text-xs line-clamp-2 leading-tight">{diseaseDisplayName(key)}</div>
                                   <div className="text-purple-700 font-extrabold text-base mt-1">{(value * 100).toFixed(0)}%</div>
                                 </div>
                               ))}
@@ -1269,7 +1280,7 @@ const DashboardScreen = () => {
                                       rawScore >= 20 ? 'text-amber-700' : 'text-emerald-700';
                                   return (
                                     <div key={key} className={`p-3 rounded-xl text-center border ${bgColor} ${borderColor}`}>
-                                      <div className="text-sm font-bold text-gray-800">{expandAbbreviation(key)}</div>
+                                      <div className="text-sm font-bold text-gray-800">{diseaseDisplayName(key)}</div>
                                       <div className={`font-extrabold text-lg mt-1 ${textColor}`}>
                                         {rawScore.toFixed(2)}%
                                       </div>
@@ -1298,7 +1309,7 @@ const DashboardScreen = () => {
                             <div className="grid grid-cols-2 gap-3">
                               {Object.entries(prediction.rppg_risks.mood).slice(0, 3).map(([key, value]) => (
                                 <div key={key} className="text-center p-3 bg-violet-50 rounded-xl border border-violet-100">
-                                  <div className="font-semibold text-gray-700 text-xs line-clamp-2 leading-tight">{expandAbbreviation(key)}</div>
+                                  <div className="font-semibold text-gray-700 text-xs line-clamp-2 leading-tight">{diseaseDisplayName(key)}</div>
                                   <div className="text-violet-700 font-extrabold text-lg mt-1">{(value * 100).toFixed(0)}%</div>
                                 </div>
                               ))}

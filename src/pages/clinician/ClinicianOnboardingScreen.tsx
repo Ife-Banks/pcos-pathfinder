@@ -50,22 +50,46 @@ const specializations = [
   { value: "clinical_psychology", label: "Clinical Psychology" },
   { value: "community_mental_health", label: "Community Mental Health" },
   { value: "dermatology", label: "Dermatology" },
+  { value: "urology", label: "Urology" },
+  { value: "andrology", label: "Andrology & Male Health" },
   { value: "nutrition", label: "Nutrition & Dietetics" },
   { value: "community_health", label: "Community Health" },
   { value: "public_health", label: "Public Health & Epidemiology" },
 ];
 
-const downstreamDiseases = [
-  { key: "type2_diabetes", name: "Type 2 Diabetes / Metabolic Syndrome", icon: Activity },
-  { key: "cardiovascular_disease", name: "Cardiovascular Disease (CVD, Hypertension)", icon: Heart },
-  { key: "obesity", name: "Obesity", icon: Activity },
-  { key: "infertility", name: "Infertility & Reproductive Complications", icon: Baby },
-  { key: "endometrial_hyperplasia", name: "Endometrial Hyperplasia / Cancer", icon: AlertTriangle },
-  { key: "fatty_liver", name: "Nonalcoholic Fatty Liver Disease (NAFLD)", icon: Activity },
-  { key: "sleep_apnea", name: "Sleep Apnea", icon: Brain },
-  { key: "pregnancy_complications", name: "Pregnancy Complications (GDM, Pre-eclampsia)", icon: Baby },
-  { key: "mental_health", name: "Mental Health (Depression, Anxiety)", icon: Brain },
-  { key: "dermatologic", name: "Dermatologic Manifestations (Acne, Hirsutism)", icon: AlertTriangle },
+// Icons keyed by downstream disease key; fetched list comes from the API.
+const DISEASE_ICONS: Record<string, any> = {
+  type2_diabetes: Activity,
+  cardiovascular_disease: Heart,
+  obesity: Activity,
+  infertility: Baby,
+  endometrial_hyperplasia: AlertTriangle,
+  fatty_liver: Activity,
+  sleep_apnea: Brain,
+  pregnancy_complications: Baby,
+  mental_health: Brain,
+  dermatologic: AlertTriangle,
+  male_hypogonadism: Activity,
+  male_subfertility: Baby,
+  prostate_disorder: Stethoscope,
+  sexual_dysfunction: Heart,
+};
+
+const FALLBACK_DISEASES = [
+  { key: "type2_diabetes", name: "Type 2 Diabetes / Metabolic Syndrome" },
+  { key: "cardiovascular_disease", name: "Cardiovascular Disease (CVD, Hypertension)" },
+  { key: "obesity", name: "Obesity" },
+  { key: "infertility", name: "Infertility & Reproductive Complications" },
+  { key: "endometrial_hyperplasia", name: "Endometrial Hyperplasia / Cancer" },
+  { key: "fatty_liver", name: "Nonalcoholic Fatty Liver Disease (NAFLD)" },
+  { key: "sleep_apnea", name: "Sleep Apnea" },
+  { key: "pregnancy_complications", name: "Pregnancy Complications (GDM, Pre-eclampsia)" },
+  { key: "mental_health", name: "Mental Health (Depression, Anxiety)" },
+  { key: "dermatologic", name: "Dermatologic Manifestations (Acne, Hirsutism)" },
+  { key: "male_hypogonadism", name: "Male Hypogonadism / Low Testosterone (MEMS, MAMH)" },
+  { key: "male_subfertility", name: "Male Subfertility" },
+  { key: "prostate_disorder", name: "Prostate Disorders" },
+  { key: "sexual_dysfunction", name: "Male Sexual Dysfunction" },
 ];
 
 const ClinicianOnboardingScreen = () => {
@@ -73,7 +97,14 @@ const ClinicianOnboardingScreen = () => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+  const [downstreamDiseases, setDownstreamDiseases] = useState<{ key: string; name: string }[]>(FALLBACK_DISEASES);
+
+  useEffect(() => {
+    clinicianAPI.getDownstreamDiseases()
+      .then(setDownstreamDiseases)
+      .catch(() => setDownstreamDiseases(FALLBACK_DISEASES));
+  }, []);
+
   const [formData, setFormData] = useState({
     specialization: "",
     downstream_expertise: [] as string[],
@@ -202,7 +233,7 @@ const ClinicianOnboardingScreen = () => {
                         ? "bg-pink-500 text-white"
                         : "bg-gray-100 text-gray-600"
                     }`}>
-                      {getDiseaseIcon(disease.icon)}
+                      {getDiseaseIcon(DISEASE_ICONS[disease.key] || Stethoscope)}
                     </div>
                     <span className="font-medium flex-1 text-left">{disease.name}</span>
                     {formData.downstream_expertise.includes(disease.key) && (

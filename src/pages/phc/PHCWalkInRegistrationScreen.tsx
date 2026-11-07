@@ -176,7 +176,7 @@ export default function PHCWalkInRegistrationScreen() {
         ethnicity: form.ethnicity || undefined,
         blood_group: form.blood_group || undefined,
         genotype: form.genotype || undefined,
-        condition: 'pcos',
+        condition: form.gender === 'male' ? 'mens_endocrine' : 'pcos',
         severity: 'moderate',
         height_cm: form.height_cm ?? undefined,
         weight_kg: form.weight_kg ?? undefined,

@@ -76,14 +76,15 @@ export interface PredictionData {
     T2D: number;
     CVD: number;
   };
-  // Separate Symptom Intensity risks
+  // Separate Symptom Intensity risks (female + male disease keys)
   symptom_intensity_risks?: {
-    Infertility: number;
-    Dysmenorrhea: number;
-    PMDD: number;
-    Endometrial_Cancer: number;
-    T2D: number;
-    CVD: number;
+    Infertility?: number;
+    Dysmenorrhea?: number;
+    PMDD?: number;
+    Endometrial_Cancer?: number;
+    T2D?: number;
+    CVD?: number;
+    [key: string]: number | undefined;
   };
   // rPPG + Mood (for dashboard display)
   rppg_risks?: {
@@ -251,15 +252,17 @@ export const dashboardService = {
         weights_used: pcosData.weights_used || undefined,
         calculation_breakdown: pcosData.calculation_breakdown || undefined,
         severity_flags: pcosData.severity_flags || undefined,
-        // Symptom Intensity predictions - use risk_score (continuous 0-1)
-        symptom_intensity_risks: {
-          Infertility: symptomPreds.Infertility?.risk_score || 0,
-          Dysmenorrhea: symptomPreds.Dysmenorrhea?.risk_score || 0,
-          PMDD: symptomPreds.PMDD?.risk_score || 0,
-          Endometrial_Cancer: symptomPreds.Endometrial?.risk_score || 0,
-          T2D: symptomPreds.T2D?.risk_score || 0,
-          CVD: symptomPreds.CVD?.risk_score || 0,
-        },
+        // Symptom Intensity predictions - pass through every disease key the
+        // backend returned (female set or the 10 male targets) so male-specific
+        // conditions are not dropped by a hardcoded female-only list.
+        symptom_intensity_risks: Object.fromEntries(
+          Object.entries(symptomPreds)
+            .filter(([k, v]) => k !== '_meta' && v && typeof v === 'object')
+            .map(([k, v]: [string, any]) => [
+              k === 'Endometrial' ? 'Endometrial_Cancer' : k,
+              v?.risk_score ?? 0,
+            ])
+        ),
         // Unified per-disease scores from server-side weighted ensemble (replaces client-side MAX-merge)
         menstrual_risks: pcosData.unified_disease_scores
           ? {
@@ -329,7 +332,8 @@ export const dashboardService = {
       // (backend already filters unified_disease_scores; this covers the
       // symptom/menstrual/rppg detail cards which are built client-side).
       if (gender === 'male') {
-        const femaleKeys = ['Infertility', 'PMDD', 'Endometrial_Cancer', 'Endometrial', 'Dysmenorrhea'];
+        // Infertility is kept: for males it carries Male_Subfertility.
+        const femaleKeys = ['PMDD', 'Endometrial_Cancer', 'Endometrial', 'Dysmenorrhea'];
         for (const key of femaleKeys) {
           delete combinedData.symptom_intensity_risks?.[key as keyof typeof combinedData.symptom_intensity_risks];
           delete combinedData.menstrual_risks?.[key as keyof typeof combinedData.menstrual_risks];
