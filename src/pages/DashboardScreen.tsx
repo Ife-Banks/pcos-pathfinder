@@ -1284,10 +1284,10 @@ const DashboardScreen = () => {
                               </div>
                               <p className="text-base font-bold text-gray-900">Mood Analysis</p>
                             </div>
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-2 gap-3">
                               {Object.entries(prediction.rppg_risks.mood).slice(0, 3).map(([key, value]) => (
                                 <div key={key} className="text-center p-3 bg-violet-50 rounded-xl border border-violet-100">
-                                  <div className="font-semibold text-gray-700 text-sm">{expandAbbreviation(key)}</div>
+                                  <div className="font-semibold text-gray-700 text-xs line-clamp-2 leading-tight">{expandAbbreviation(key)}</div>
                                   <div className="text-violet-700 font-extrabold text-lg mt-1">{(value * 100).toFixed(0)}%</div>
                                 </div>
                               ))}
