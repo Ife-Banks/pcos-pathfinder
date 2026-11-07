@@ -1406,6 +1406,13 @@ const DashboardScreen = () => {
               iconColor="text-teal-500"
             />
             <MetricCard
+              icon={Sun}
+              value={todaySummary?.mood?.mood_valence ? todaySummary.mood.mood_valence.toFixed(0) : null}
+              label="Mood"
+              severity={todaySummary?.mood?.mood_valence ? getMoodLabel(todaySummary.mood.mood_valence) : null}
+              iconColor="text-purple-500"
+            />
+            <MetricCard
               icon={TrendingUp}
               value={todaySummary?.checkin?.fatigue_vas && todaySummary.checkin.fatigue_vas > 0 ? todaySummary.checkin.fatigue_vas.toFixed(1) : morningComplete ? '✓' : null}
               label="Fatigue"
@@ -1413,11 +1420,10 @@ const DashboardScreen = () => {
               iconColor="text-amber-500"
             />
             <MetricCard
-              icon={Sun}
-              value={todaySummary?.mood?.phq4_total ? todaySummary.mood.phq4_total.toFixed(0) : null}
-              label="Mood"
-              severity={todaySummary?.mood?.phq4_total ? getMoodLabel(todaySummary.mood.phq4_total) : null}
-              iconColor="text-purple-500"
+              icon={Droplets}
+              value={prediction?.unified_disease_scores?.T2D ? (prediction.unified_disease_scores.T2D.unified_score * 100).toFixed(0) : null}
+              label="Type 2 Diabetes"
+              severity={prediction?.unified_disease_scores?.T2D?.severity || null}
             />
             <MetricCard
               icon={HeartPulse}
@@ -1425,7 +1431,20 @@ const DashboardScreen = () => {
               label="Cardiovascular"
               severity={prediction?.unified_disease_scores?.CVD?.severity || null}
             />
-            {!isMale && (
+            <MetricCard
+              icon={Brain}
+              value={prediction?.unified_disease_scores?.ChronicStress ? (prediction.unified_disease_scores.ChronicStress.unified_score * 100).toFixed(0) : todaySummary?.mood_chronic_stress ? (todaySummary.mood_chronic_stress * 100).toFixed(0) : null}
+              label="Chronic Stress"
+              severity={prediction?.unified_disease_scores?.ChronicStress?.severity || (todaySummary?.mood_chronic_stress ? getRiskSeverityLabel(todaySummary.mood_chronic_stress) : null)}
+            />
+            {isMale ? (
+              <MetricCard
+                icon={Activity}
+                value={prediction?.unified_disease_scores?.HeartFailure ? (prediction.unified_disease_scores.HeartFailure.unified_score * 100).toFixed(0) : null}
+                label="Heart Failure"
+                severity={prediction?.unified_disease_scores?.HeartFailure?.severity || null}
+              />
+            ) : (
               <MetricCard
                 icon={Target}
                 value={prediction?.unified_disease_scores?.Infertility ? (prediction.unified_disease_scores.Infertility.unified_score * 100).toFixed(0) : null}
@@ -1434,22 +1453,10 @@ const DashboardScreen = () => {
               />
             )}
             <MetricCard
-              icon={Droplets}
-              value={prediction?.unified_disease_scores?.T2D ? (prediction.unified_disease_scores.T2D.unified_score * 100).toFixed(0) : null}
-              label="Type 2 Diabetes"
-              severity={prediction?.unified_disease_scores?.T2D?.severity || null}
-            />
-            <MetricCard
-              icon={Brain}
-              value={prediction?.unified_disease_scores?.ChronicStress ? (prediction.unified_disease_scores.ChronicStress.unified_score * 100).toFixed(0) : null}
-              label="Chronic Stress"
-              severity={prediction?.unified_disease_scores?.ChronicStress?.severity || null}
-            />
-            <MetricCard
               icon={Frown}
-              value={prediction?.rppg_risks?.mood?.Depression ? (prediction.rppg_risks.mood.Depression * 100).toFixed(0) : null}
+              value={prediction?.unified_disease_scores?.Depression ? (prediction.unified_disease_scores.Depression.unified_score * 100).toFixed(0) : null}
               label="Depression"
-              severity={prediction?.rppg_risks?.mood?.Depression ? getRiskSeverityLabel(prediction.rppg_risks.mood.Depression) : null}
+              severity={prediction?.unified_disease_scores?.Depression?.severity || null}
             />
           </div>
 
