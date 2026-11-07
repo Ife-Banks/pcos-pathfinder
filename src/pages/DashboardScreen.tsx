@@ -687,7 +687,7 @@ const DashboardScreen = () => {
     {
       icon: Timer,
       title: dailyContinuousComplete ? "Daily Continuous check-in done ✓" : "Daily Continuous check-in",
-      subtitle: dailyContinuousComplete ? "All hourly tracking complete" : "Hourly tracking & 4-hourly tracking",
+      subtitle: "Hourly tracking & 4-hourly tracking",
       route: "/daily-continuous",
       gradient: "bg-indigo-500",
       urgent: false,
@@ -697,18 +697,27 @@ const DashboardScreen = () => {
     {
       icon: Wrench,
       title: dailyToolsComplete ? "Daily Tools check-in done ✓" : "Daily Tools check-in",
-      subtitle: dailyToolsComplete ? "All daily tools complete" : "Mood, sleep, focus and mental wellness",
+      subtitle: "Mood, sleep, focus and mental wellness",
       route: "/daily-tools",
       gradient: "gradient-clinical",
       urgent: false,
       dotColor: dailyToolsComplete ? '#27AE60' : '#F59E0B',
       bgTint: dailyToolsComplete ? 'bg-green-50 border-green-200' : undefined,
     },
-    { icon: ClipboardCheck, title: "Weekly Tools", subtitle: getWeeklyToolsSubtitle(), route: "/weekly-tools", gradient: "gradient-primary", urgent: !mfgComplete || !phq4Complete },
-    { icon: Activity, title: "Measure rPPG HRV", subtitle: "rPPG Passive Sensing (Capture Raw rPPG Signals - More than 18 physiological metrics)", route: "/rppg-passive", gradient: "bg-emerald-500", urgent: false },
+    {
+      icon: User,
+      title: "Androgenic Hair Pattern",
+      subtitle: mfgComplete ? "Hair pattern complete" : "Track hair pattern & PHQ-4 due",
+      route: "/hair-pattern",
+      gradient: "gradient-primary",
+      urgent: !mfgComplete,
+      dotColor: mfgComplete ? '#27AE60' : '#F59E0B',
+      bgTint: mfgComplete ? 'bg-green-50 border-green-200' : undefined,
+    },
+    { icon: Activity, title: "Measure rPPG HRV", subtitle: "rPPG Passive Sensing (Capture Raw rPPG Signals – More than 18 physiological metrics)", route: "/rppg-passive", gradient: "bg-emerald-500", urgent: false },
     { icon: Camera, title: "Measure HRV", subtitle: "Capture heart rate variability", route: "/rppg-capture", gradient: "bg-blue-500", urgent: false },
-     { icon: BarChart3, title: "Risk Trends", subtitle: "View your history", route: "/risk-trend", gradient: "gradient-clinical", urgent: false }
-    
+    { icon: BarChart3, title: "Risk Trends", subtitle: "View your history", route: "/risk-trend", gradient: "gradient-clinical", urgent: false },
+    { icon: ClipboardCheck, title: "Weekly Tools", subtitle: getWeeklyToolsSubtitle(), route: "/weekly-tools", gradient: "gradient-primary", urgent: !mfgComplete || !phq4Complete }
   );
 
   const riskTier = prediction ? getRiskTier(prediction.risk_score) : null;
