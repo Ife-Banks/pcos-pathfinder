@@ -78,7 +78,7 @@ export const useDashboardData = () => {
   
   const checkinTodayQuery = useCheckinToday();
   const todaySummaryQuery = useTodaySummary();
-  const menstrualHistoryQuery = useMenstrualHistory();
+  // Removed menstrualHistoryQuery - not used on dashboard, saves 7.8KB request
 
   // Get session ID for morning check-in
   const morningSessionId = checkinTodayQuery.data?.morning_session_id || null;
@@ -89,7 +89,6 @@ export const useDashboardData = () => {
     queryClient.invalidateQueries({ queryKey: ['ml-predictions'] });
     queryClient.invalidateQueries({ queryKey: ['checkin-today'] });
     queryClient.invalidateQueries({ queryKey: ['today-summary'] });
-    queryClient.invalidateQueries({ queryKey: ['menstrual-history'] });
   };
 
   return {
@@ -97,7 +96,6 @@ export const useDashboardData = () => {
     predictions: predictionsQuery,
     checkinToday: checkinTodayQuery,
     todaySummary: todaySummaryQuery,
-    menstrualHistory: menstrualHistoryQuery,
     morningCheckin: morningCheckinQuery,
     invalidateDashboard,
     isLoading: profileQuery.isLoading || predictionsQuery.isLoading || checkinTodayQuery.isLoading,

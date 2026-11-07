@@ -500,7 +500,6 @@ const DashboardScreen = () => {
     predictions: predictionsQuery,
     checkinToday: checkinTodayQuery,
     todaySummary: todaySummaryQuery,
-    menstrualHistory: menstrualHistoryQuery,
     morningCheckin: morningCheckinQuery,
     invalidateDashboard,
   } = useDashboardData();
@@ -530,7 +529,6 @@ const DashboardScreen = () => {
   const profile = profileQuery.data?.data || null;
   const todayData = checkinTodayQuery.data?.data || null;
   const todaySummary = todaySummaryQuery.data || null;
-  const menstrualHistory = menstrualHistoryQuery.data?.data || null;
   const morningCheckin = morningCheckinQuery.data || null;
 
   // Set loading states
