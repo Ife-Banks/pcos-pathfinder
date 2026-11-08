@@ -82,6 +82,7 @@ export interface EveningCheckinPayload {
   urinary_incomplete_emptying?: number | null;
   urinary_straining?: number | null;
   urinary_daytime_frequency?: number | null;
+  daytime_voids_count?: number | null;
   libido_vas?: number | null;
   erection_hardness?: string | null;
   evening_energy_vas?: number | null;
