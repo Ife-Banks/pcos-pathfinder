@@ -39,7 +39,14 @@ interface AnalyticsData {
   escalated_this_period: number;
   avg_time_to_action_days: number;
   risk_distribution: { low: number; moderate: number };
-  condition_breakdown: { pcos: number; hormonal: number; metabolic: number };
+  condition_breakdown: {
+    pcos: number;
+    hormonal: number;
+    metabolic: number;
+    mens_endocrine?: number;
+    mens_reproductive?: number;
+    mental_health?: number;
+  };
   escalations_timeline: Array<{ week: string; count: number }>;
   staff_actions: {
     advice_sent: number;
@@ -54,7 +61,7 @@ const PLACEHOLDER_DATA: AnalyticsData = {
   escalated_this_period: 0,
   avg_time_to_action_days: 0,
   risk_distribution: { low: 0, moderate: 0 },
-  condition_breakdown: { pcos: 0, hormonal: 0, metabolic: 0 },
+  condition_breakdown: { pcos: 0, hormonal: 0, metabolic: 0, mens_endocrine: 0, mens_reproductive: 0, mental_health: 0 },
   escalations_timeline: [],
   staff_actions: { advice_sent: 0, followups_scheduled: 0, patients_discharged: 0 },
 };
@@ -96,11 +103,15 @@ const PHCAnalyticsScreen = () => {
     { name: "Moderate", value: data.risk_distribution.moderate, color: "#F59E0B" },
   ];
 
+  const cb = data.condition_breakdown;
   const conditionData = [
-    { name: "PCOS", count: data.condition_breakdown.pcos },
-    { name: "Hormonal", count: data.condition_breakdown.hormonal },
-    { name: "Metabolic", count: data.condition_breakdown.metabolic },
-  ];
+    { name: "PCOS", count: cb.pcos },
+    { name: "Hormonal", count: cb.hormonal },
+    { name: "Metabolic", count: cb.metabolic },
+    { name: "Men's Endocrine", count: cb.mens_endocrine ?? 0 },
+    { name: "Men's Reproductive", count: cb.mens_reproductive ?? 0 },
+    { name: "Mental Health", count: cb.mental_health ?? 0 },
+  ].filter((c) => c.count > 0);
 
   const escalationData = data.escalations_timeline.map((item) => ({
     week: item.week,

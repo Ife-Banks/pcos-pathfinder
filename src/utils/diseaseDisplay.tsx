@@ -4,7 +4,8 @@ import {
 } from "lucide-react";
 import React from "react";
 
-export const expandAbbreviation = (key: string): string => {
+export const expandAbbreviation = (key: string, isMale = false): string => {
+  if (isMale && key === 'PCOS') return 'Male Metabolic Phenotype (MEMS)';
   const mapping: Record<string, string> = {
     'T2D': 'Type 2 Diabetes',
     'CVD': 'Cardiovascular Disease',
@@ -29,6 +30,13 @@ export const expandAbbreviation = (key: string): string => {
     'Focus_Memory': 'Focus & Memory',
     'Mental_Wellness': 'Mental Wellness',
     'Mood_Score': 'Mood Check',
+    'PCOS': 'PCOS',
+    'MAMH': 'Metabolic-Associated Male Hypogonadism',
+    'Hypogonadism': 'Functional Hypogonadism',
+    'SexualDysfunction': 'Sexual Dysfunction',
+    'ProstateCancer': 'Prostate Condition Risk',
+    'Depression': 'Depression',
+    'Anxiety': 'Anxiety',
   };
   return mapping[key] || key.replace(/_/g, ' ');
 };
@@ -114,6 +122,11 @@ export const getDiseaseIcon = (disease: string, color?: string): React.ReactNode
     case 'T2D_Mood': return <Droplets className={iconClass} style={{ color: c }} />;
     case 'MetSyn_Mood': return <Shield className={iconClass} style={{ color: c }} />;
     case 'Stroke_Mood': return <Zap className={iconClass} style={{ color: c }} />;
+    case 'PCOS': return <Activity className={iconClass} style={{ color: c }} />;
+    case 'MAMH': return <Shield className={iconClass} style={{ color: c }} />;
+    case 'Hypogonadism': return <Thermometer className={iconClass} style={{ color: c }} />;
+    case 'SexualDysfunction': return <Heart className={iconClass} style={{ color: c }} />;
+    case 'ProstateCancer': return <Stethoscope className={iconClass} style={{ color: c }} />;
     default: return <Activity className={iconClass} style={{ color: c }} />;
   }
 };
@@ -124,5 +137,6 @@ export const DISEASE_GROUPS: { title: string; keys: string[] }[] = [
   { title: 'Mental Health', keys: [...WELLNESS_KEYS, 'Anxiety', 'Depression', 'ChronicStress', 'PMDD'] },
   { title: 'Metabolic Health', keys: ['T2D', 'Metabolic'] },
   { title: 'Cardiovascular & Neurological Health', keys: ['CVD', 'Stroke', 'HeartFailure'] },
+  { title: "Men's Health", keys: ['PCOS', 'MAMH', 'Hypogonadism', 'SexualDysfunction', 'ProstateCancer'] },
   { title: 'Reproductive Health', keys: ['Infertility', 'Endometrial', 'Dysmenorrhea'] },
 ];

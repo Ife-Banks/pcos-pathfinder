@@ -142,6 +142,18 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
         setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
         setUnreadCount(0);
         break;
+
+      case 'prediction_update':
+        // New prediction ready - invalidate dashboard queries to fetch fresh data
+        console.log('🔄 [WebSocket] Prediction update received:', msg.data);
+        console.log('  - Prediction ID:', msg.data.prediction_id);
+        console.log('  - Risk Score:', msg.data.risk_score);
+        console.log('  - Risk Tier:', msg.data.risk_tier);
+        console.log('  - Data Completeness:', msg.data.data_completeness_pct, '%');
+        console.log('  - Computed At:', msg.data.computed_at);
+        // Trigger a custom event that components can listen to
+        window.dispatchEvent(new CustomEvent('prediction-update', { detail: msg.data }));
+        break;
     }
   }, []);
 

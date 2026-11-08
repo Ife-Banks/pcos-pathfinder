@@ -96,6 +96,7 @@ const EveningCheckIn = () => {
   const [urinaryIncomplete, setUrinaryIncomplete] = useState<number | null>(null);
   const [urinaryStraining, setUrinaryStraining] = useState<number | null>(null);
   const [urinaryFrequency, setUrinaryFrequency] = useState<number | null>(null);
+  const [daytimeVoidCount, setDaytimeVoidCount] = useState('');
 
   // Male block — Sexual Function, Energy & Mood
   const [libido, setLibido] = useState(0);
@@ -150,6 +151,7 @@ const EveningCheckIn = () => {
         ...(urinaryIncomplete !== null ? { urinary_incomplete_emptying: urinaryIncomplete } : {}),
         ...(urinaryStraining !== null ? { urinary_straining: urinaryStraining } : {}),
         ...(urinaryFrequency !== null ? { urinary_daytime_frequency: urinaryFrequency } : {}),
+        ...(daytimeVoidCount !== '' ? { daytime_voids_count: Math.min(20, Math.max(1, parseInt(daytimeVoidCount, 10) || 1)) } : {}),
         libido_vas: libido,
         ...(erectionHardness ? { erection_hardness: erectionHardness } : {}),
         evening_energy_vas: eveningEnergy,
@@ -632,6 +634,22 @@ const EveningCheckIn = () => {
               {renderScale0to5(item.value, item.set)}
             </div>
           ))}
+        </div>
+
+        <div className="mt-4">
+          <p className="text-xs font-medium text-gray-700 mb-2">Daytime voids today</p>
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              min={1}
+              max={20}
+              placeholder="e.g. 6"
+              value={daytimeVoidCount}
+              onChange={(e) => setDaytimeVoidCount(e.target.value)}
+              className="w-24"
+            />
+            <span className="text-xs text-gray-500">times you urinated today (optional)</span>
+          </div>
         </div>
 
         <div className="mt-4 p-3 bg-teal-50 rounded-lg border border-teal-100">

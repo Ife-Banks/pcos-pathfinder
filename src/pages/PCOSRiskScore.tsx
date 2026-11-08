@@ -23,6 +23,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { predictionService, PredictionRecord, SHAPDriver, ComprehensivePrediction } from "@/services/predictionService";
+import { settingsService } from "@/services/settingsService";
 import {
   expandAbbreviation,
   getUnifiedSeverityColor,
@@ -63,6 +64,7 @@ const PCOSRiskScore = () => {
   const [comprehensive, setComprehensive] = useState<ComprehensivePrediction | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showCalculation, setShowCalculation] = useState(false);
+  const [isMale, setIsMale] = useState(false);
 
   const safeTierConfig = prediction
     ? (TRIAGE_TIERS.find(t => t.label.toUpperCase() === (prediction.risk_tier ?? '').toUpperCase())
@@ -131,6 +133,9 @@ const PCOSRiskScore = () => {
 
   useEffect(() => {
     fetchComprehensive();
+    settingsService.getProfile()
+      .then(res => setIsMale((res.data?.gender || '').toLowerCase() === 'male'))
+      .catch(() => {});
   }, [fetchComprehensive]);
 
   const score = prediction?.risk_score ?? 0;
@@ -390,7 +395,7 @@ const PCOSRiskScore = () => {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-1.5">
-                                        <span className="text-xs font-bold text-gray-900 truncate">{expandAbbreviation(key)}</span>
+                                        <span className="text-xs font-bold text-gray-900 truncate">{expandAbbreviation(key, isMale)}</span>
                                         <span
                                           className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white shadow-sm shrink-0"
                                           style={{ backgroundColor: getWellnessColor(sev) }}
@@ -433,7 +438,7 @@ const PCOSRiskScore = () => {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-1.5">
-                                        <span className="text-xs font-bold text-gray-900 truncate">{expandAbbreviation(key)}</span>
+                                        <span className="text-xs font-bold text-gray-900 truncate">{expandAbbreviation(key, isMale)}</span>
                                         <span
                                           className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white shadow-sm shrink-0"
                                           style={{ backgroundColor: getUnifiedSeverityColor(data.severity) }}

@@ -102,6 +102,9 @@ export interface FMCAnalytics {
     pcos: number;
     maternal: number;
     cardiovascular: number;
+    mens_endocrine?: number;
+    mens_reproductive?: number;
+    mental_health?: number;
   };
   referral_sources: Array<{
     phc_name: string;

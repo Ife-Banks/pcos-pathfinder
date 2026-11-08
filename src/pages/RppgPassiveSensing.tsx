@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Camera, Activity, Heart, Thermometer, Droplets, BarChart3, TrendingUp, Brain, Moon, AlertTriangle, Shield, Clock, Sparkles } from 'lucide-react';
 import { rppgV8Service, RppgV8Session, RppgV8PredictAllResult } from '@/services/rppgV8Service';
@@ -96,13 +97,34 @@ const formatTimeRemaining = (ms: number): string => {
 
 const RppgPassiveSensing = () => {
   const navigate = useNavigate();
-  
-  const [sessions, setSessions] = useState<RppgV8Session[]>([]);
-  const [predictions, setPredictions] = useState<RppgV8PredictAllResult | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
   const [nextCaptureAt, setNextCaptureAt] = useState<number | null>(null);
   const [timeRemaining, setTimeRemaining] = useState('');
+
+  // React Query for sessions (5 min cache)
+  const { data: sessionsData, isLoading: sessionsLoading, error: sessionsError } = useQuery({
+    queryKey: ['rppg-v8-sessions'],
+    queryFn: () => rppgV8Service.getSessions(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // React Query for predictions (2 min cache)
+  const { data: predictionsData, isLoading: predictionsLoading, error: predictionsError } = useQuery({
+    queryKey: ['rppg-v8-predictions'],
+    queryFn: () => rppgV8Service.predictAll(),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+
+  const sessions = sessionsData?.data?.sessions ?? [];
+  const predictions = predictionsData?.data ?? null;
+  const loading = sessionsLoading;
+  const error = sessionsError?.message || predictionsError?.message || null;
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['rppg-v8-sessions'] });
+    queryClient.invalidateQueries({ queryKey: ['rppg-v8-predictions'] });
+  };
 
   useEffect(() => {
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -138,32 +160,6 @@ const RppgPassiveSensing = () => {
     const id = setInterval(update, 30000);
     return () => clearInterval(id);
   }, [nextCaptureAt]);
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [sessionsRes, predRes] = await Promise.allSettled([
-        rppgV8Service.getSessions(),
-        rppgV8Service.predictAll().catch((e) => { console.error('[RppgPassive] predictAll failed:', e); return null; }),
-      ]);
-      if (sessionsRes.status === 'fulfilled') {
-        const raw = sessionsRes.value.data;
-        setSessions(raw.sessions);
-      }
-      if (predRes.status === 'fulfilled' && predRes.value) {
-        setPredictions(predRes.value.data);
-      }
-    } catch (err: any) {
-      setError(err?.message || 'Failed to load data');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
 
   // Today's averages from most recent sessions
   const todaySessions = sessions.filter(s => {
@@ -223,7 +219,7 @@ const RppgPassiveSensing = () => {
             </Button>
             <Button
               variant="outline"
-              onClick={fetchData}
+              onClick={handleRefresh}
               className="h-11 rounded-xl text-sm"
               disabled={loading}
             >

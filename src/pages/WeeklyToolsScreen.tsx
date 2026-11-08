@@ -54,11 +54,9 @@ const WeeklyToolsScreen = () => {
   const getTools = (): WeeklyTool[] => [
     {
       id: "mfg",
-      title: isMale ? "Androgenic Hair Pattern" : "Hirsutism ",
-      subtitle: isMale ? "mFG-style · weekly trend" : "Modified Ferriman-Gallwey (mFG)",
-      description: isMale
-        ? "Track androgen-related hair growth across 9 body zones and optional add-ons — trend vs your own baseline."
-        : "Quantify hair growth patterns across 8 body zones to assess hyperandrogenism.",
+      title: "Hirsutism Score",
+      subtitle: "Rate hair growth across different areas",
+      description: "Score hair growth on 9 areas of your body. Helps track changes linked to your hormonal health.",
       icon: Scissors,
       route: "/weekly-tools/hirsutism",
       gradient: "gradient-clinical",
@@ -86,10 +84,31 @@ const WeeklyToolsScreen = () => {
 </button>
           
         </div>
-        <p className="text-white/70 text-sm ml-8">Clinical assessments due this week</p>
+        <p className="text-white/70 text-sm ml-8">Your once-a-week health check-in</p>
       </div>
 
       <div className="px-6 py-6 max-w-lg mx-auto">
+        {/* Informational Banner */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl border border-gray-200 bg-white p-5 mb-6"
+        >
+          <div className="flex items-start gap-4">
+            <div className="h-12 w-12 rounded-xl gradient-primary flex items-center justify-center shrink-0">
+              <Activity className="h-6 w-6 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base font-bold text-gray-900 font-[var(--font-display)] mb-1">
+                Your Weekly Check-in
+              </h3>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                This one only needs doing once a week - It tracks hair growth patterns linked to your hormonal health.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
         {allComplete && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -101,10 +120,11 @@ const WeeklyToolsScreen = () => {
             <p className="text-sm text-gray-600 mb-4">View your combined mood & cognitive risk analysis</p>
             <button
               onClick={() => navigate('/weekly-tools/results')}
-              className="w-full py-3 rounded-lg font-semibold text-white"
+              className="w-full py-3 rounded-lg font-semibold text-white flex items-center justify-center gap-2"
               style={{ backgroundColor: '#27AE60' }}
             >
               View Combined Results
+              <ChevronRight className="w-4 h-4" />
             </button>
           </motion.div>
         )}
@@ -141,12 +161,10 @@ const WeeklyToolsScreen = () => {
                     </h3>
                     {tool.completed ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">
-                        <Check className="w-3 h-3" />
                         Done
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
-                        <Clock className="w-3 h-3" />
                         Due
                       </span>
                     )}
@@ -157,10 +175,13 @@ const WeeklyToolsScreen = () => {
                     {tool.description}
                   </p>
 
-                  <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
-                    <span className="flex items-center gap-1">
+                  <div className="flex items-center justify-between mt-3">
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
                       <Clock className="w-3 h-3" />
                       {tool.frequency}
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      {tool.completed ? '1/1 done' : '0/1 done'}
                     </span>
                   </div>
                 </div>

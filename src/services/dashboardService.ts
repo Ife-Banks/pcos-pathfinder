@@ -76,14 +76,15 @@ export interface PredictionData {
     T2D: number;
     CVD: number;
   };
-  // Separate Symptom Intensity risks
+  // Separate Symptom Intensity risks (female + male disease keys)
   symptom_intensity_risks?: {
-    Infertility: number;
-    Dysmenorrhea: number;
-    PMDD: number;
-    Endometrial_Cancer: number;
-    T2D: number;
-    CVD: number;
+    Infertility?: number;
+    Dysmenorrhea?: number;
+    PMDD?: number;
+    Endometrial_Cancer?: number;
+    T2D?: number;
+    CVD?: number;
+    [key: string]: number | undefined;
   };
   // rPPG + Mood (for dashboard display)
   rppg_risks?: {
@@ -178,18 +179,19 @@ export const dashboardService = {
   },
 
   // NEW: Get comprehensive ML predictions
-  getMLPredictions: async (): Promise<PredictionResponse> => {
+  getMLPredictions: async (userGender?: string): Promise<PredictionResponse> => {
     try {
-      // Get user profile to check gender
-      const profileRes = await apiClient.get('/auth/me/');
-      const profile = profileRes.data?.data;
-      const userGender = profile?.gender?.toLowerCase();
-
       // Use comprehensive endpoint for both genders (backend handles gender filtering)
       const endpoint = '/predictions/comprehensive/';
-      console.log('[getMLPredictions] User gender:', userGender, 'Using endpoint:', endpoint);
 
-      const res = await apiClient.get(endpoint);
+      // Don't fetch profile as fallback - pass gender or null to backend
+      // Backend handles gender filtering regardless
+      const gender = userGender?.toLowerCase() || null;
+
+      console.log('[getMLPredictions] User gender:', gender, 'Using endpoint:', endpoint);
+
+      // Use POST to trigger fresh inference (for debugging - this calls all models including rPPG)
+      const res = await apiClient.post(endpoint);
       const body = res.data;
       
       console.log('[getMLPredictions] API response status:', res.status, 'body keys:', Object.keys(body || {}));
@@ -250,15 +252,17 @@ export const dashboardService = {
         weights_used: pcosData.weights_used || undefined,
         calculation_breakdown: pcosData.calculation_breakdown || undefined,
         severity_flags: pcosData.severity_flags || undefined,
-        // Symptom Intensity predictions - use risk_score (continuous 0-1)
-        symptom_intensity_risks: {
-          Infertility: symptomPreds.Infertility?.risk_score || 0,
-          Dysmenorrhea: symptomPreds.Dysmenorrhea?.risk_score || 0,
-          PMDD: symptomPreds.PMDD?.risk_score || 0,
-          Endometrial_Cancer: symptomPreds.Endometrial?.risk_score || 0,
-          T2D: symptomPreds.T2D?.risk_score || 0,
-          CVD: symptomPreds.CVD?.risk_score || 0,
-        },
+        // Symptom Intensity predictions - pass through every disease key the
+        // backend returned (female set or the 10 male targets) so male-specific
+        // conditions are not dropped by a hardcoded female-only list.
+        symptom_intensity_risks: Object.fromEntries(
+          Object.entries(symptomPreds)
+            .filter(([k, v]) => k !== '_meta' && v && typeof v === 'object')
+            .map(([k, v]: [string, any]) => [
+              k === 'Endometrial' ? 'Endometrial_Cancer' : k,
+              v?.risk_score ?? 0,
+            ])
+        ),
         // Unified per-disease scores from server-side weighted ensemble (replaces client-side MAX-merge)
         menstrual_risks: pcosData.unified_disease_scores
           ? {
@@ -327,8 +331,9 @@ export const dashboardService = {
       // Male users: strip female-only diseases from the per-model breakdowns
       // (backend already filters unified_disease_scores; this covers the
       // symptom/menstrual/rppg detail cards which are built client-side).
-      if (userGender === 'male') {
-        const femaleKeys = ['Infertility', 'PMDD', 'Endometrial_Cancer', 'Endometrial', 'Dysmenorrhea'];
+      if (gender === 'male') {
+        // Infertility is kept: for males it carries Male_Subfertility.
+        const femaleKeys = ['PMDD', 'Endometrial_Cancer', 'Endometrial', 'Dysmenorrhea'];
         for (const key of femaleKeys) {
           delete combinedData.symptom_intensity_risks?.[key as keyof typeof combinedData.symptom_intensity_risks];
           delete combinedData.menstrual_risks?.[key as keyof typeof combinedData.menstrual_risks];
@@ -338,7 +343,7 @@ export const dashboardService = {
         }
       }
 
-      const message = userGender === 'male'
+      const message = gender === 'male'
         ? 'Comprehensive risk score retrieved successfully'
         : 'PCOS risk score retrieved successfully';
 
@@ -414,9 +419,13 @@ export const dashboardService = {
     }
   },
 
-  getMoodSummary: async (): Promise<MoodSummary | null> => {
+  // NEW: Get today's dashboard summary (rPPG + mood in one call via Django proxy)
+  getTodaySummary: async (): Promise<{
+    rppg: { rmssd: number; hrv_rmssd: number; mean_temp: number; mean_eda: number; asi?: number; session_type: string; session_quality?: string; captured_at: string } | null;
+    mood: { phq4_total: number; affect_quadrant: string; log_date: string } | null;
+  } | null> => {
     try {
-      const res = await apiClient.get('/mood/summary/today/');
+      const res = await apiClient.get('/dashboard/today-summary/');
       const body = res.data;
       ensureSuccess(body);
       return body.data || null;

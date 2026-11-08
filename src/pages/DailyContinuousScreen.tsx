@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Smile, Target, ChevronRight, Check, Clock, Timer } from "lucide-react";
+import { ArrowLeft, Smile, Lightbulb, ChevronRight, Check, Clock, Timer, Grid3x3 } from "lucide-react";
 import apiClient from "@/services/apiClient";
 import { isToolCompleteToday, markToolCompleteToday, canLogNow, getTimeUntilNextLog, formatTimeRemaining, TOOL_FREQUENCIES, recordToolLog } from "@/utils/weekUtils";
 
@@ -81,29 +81,29 @@ const DailyContinuousScreen = () => {
       id: "affect",
       title: "Mood Check",
       subtitle: "How are you feeling right now?",
-      description: "A quick pulse-check on your mood and energy. Log this every few hours - it unlocks again every hour - to build an accurate picture of your day.",
-      icon: Smile,
+      description: "A quick pulse-check on your mood and energy. Unlocks again every 4 hours.",
+      icon: Grid3x3,
       route: "/weekly-tools/mood-check",
       gradient: "bg-purple-500",
       completed: todayStatus.affect_completed === true,
-      frequency: "Every hour",
-      intervalHours: TOOL_FREQUENCIES.affect,
-      canLog: canLogNow('affect', TOOL_FREQUENCIES.affect),
-      timeUntilNext: getTimeUntilNextLog('affect', TOOL_FREQUENCIES.affect),
+      frequency: "Every 4 hours",
+      intervalHours: TOOL_FREQUENCIES.focus, // 4 hours
+      canLog: canLogNow('affect', TOOL_FREQUENCIES.focus),
+      timeUntilNext: getTimeUntilNextLog('affect', TOOL_FREQUENCIES.focus),
     },
     {
       id: "focus",
       title: "Focus & Memory",
       subtitle: "How sharp do you feel right now?",
-      description: "Rate your concentration and memory in the moment. It unlocks again every 4 hours so we can track how your focus shifts across the day.",
-      icon: Target,
+      description: "Rate your concentration and memory in the moment. Unlocks again every hour.",
+      icon: Lightbulb,
       route: "/weekly-tools/focus-memory",
       gradient: "bg-orange-500",
       completed: todayStatus.focus_completed === true,
-      frequency: "Every 4 hours",
-      intervalHours: TOOL_FREQUENCIES.focus,
-      canLog: canLogNow('focus', TOOL_FREQUENCIES.focus),
-      timeUntilNext: getTimeUntilNextLog('focus', TOOL_FREQUENCIES.focus),
+      frequency: "Hourly",
+      intervalHours: TOOL_FREQUENCIES.affect, // 1 hour
+      canLog: canLogNow('focus', TOOL_FREQUENCIES.affect),
+      timeUntilNext: getTimeUntilNextLog('focus', TOOL_FREQUENCIES.affect),
     },
   ];
 
@@ -121,14 +121,29 @@ const DailyContinuousScreen = () => {
           >
             <ArrowLeft className="w-5 h-5" />
             <span className="text-xl font-bold font-[var(--font-display)]">
-              Daily Continuous
+              Continuous Tools
             </span>
           </button>
         </div>
-        <p className="text-white/70 text-sm ml-8">Hourly mood & cognitive tracking</p>
+        <p className="text-white/70 text-sm ml-8">Quick pulse-checks through your day</p>
       </div>
 
       <div className="px-6 py-6 max-w-lg mx-auto">
+        {/* Why these run continuously section */}
+        <div className="rounded-xl border border-gray-200 bg-white p-4 mb-6">
+          <h3 className="text-sm font-bold text-gray-900 mb-3">Why these run continuously</h3>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-xs text-gray-600">
+              <span className="font-medium">Mood Check:</span>
+              <span>runs every 4 hours</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-gray-600">
+              <span className="font-medium">Focus & Memory:</span>
+              <span>runs every hour</span>
+            </div>
+          </div>
+        </div>
+
         {allComplete && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -140,10 +155,11 @@ const DailyContinuousScreen = () => {
             <p className="text-sm text-gray-600 mb-4">View your combined mood & cognitive risk analysis</p>
             <button
               onClick={() => navigate('/weekly-tools/results')}
-              className="w-full py-3 rounded-lg font-semibold text-white"
+              className="w-full py-3 rounded-lg font-semibold text-white flex items-center justify-center gap-2"
               style={{ backgroundColor: '#27AE60' }}
             >
               View Combined Results
+              <ChevronRight className="w-4 h-4" />
             </button>
           </motion.div>
         )}
@@ -172,40 +188,37 @@ const DailyContinuousScreen = () => {
                     <h3 className="text-base font-bold text-gray-900 font-[var(--font-display)]">
                       {tool.title}
                     </h3>
-                    {tool.canLog ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
-                        <Clock className="w-3 h-3" />
-                        Due
-                      </span>
-                    ) : tool.completed ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">
-                        <Check className="w-3 h-3" />
-                        Done
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-medium">
-                        <Timer className="w-3 h-3" />
-                        {formatTimeRemaining(tool.timeUntilNext)}
-                      </span>
-                    )}
                   </div>
 
                   <p className="text-xs text-gray-500 mb-2">{tool.subtitle}</p>
-                  <p className="text-xs text-gray-600 leading-relaxed">
+                  <p className="text-xs text-gray-600 leading-relaxed mb-3">
                     {tool.description}
                   </p>
 
-                  <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
-                    <span className="flex items-center gap-1">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
                       <Clock className="w-3 h-3" />
                       {tool.frequency}
-                    </span>
-                    {!tool.canLog && tool.timeUntilNext > 0 && (
-                      <span className="flex items-center gap-1 text-blue-600">
-                        <Timer className="w-3 h-3" />
-                        Next in {formatTimeRemaining(tool.timeUntilNext)}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {tool.canLog ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
+                          Due
+                        </span>
+                      ) : tool.completed ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">
+                          Done
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-medium">
+                          <Timer className="w-3 h-3" />
+                          {formatTimeRemaining(tool.timeUntilNext)}
+                        </span>
+                      )}
+                      <span className="text-xs text-gray-500">
+                        {tool.completed ? '1/1 done' : '0/1 done'}
                       </span>
-                    )}
+                    </div>
                   </div>
                 </div>
 

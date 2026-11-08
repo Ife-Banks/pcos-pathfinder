@@ -11,11 +11,14 @@ import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/context/NotificationContext";
 import { useAuth } from "@/context/AuthContext";
 import { NotificationPanel } from "@/components/NotificationPanel";
+import { MetricCard } from "@/components/Dashboard/MetricCard";
 import { dashboardService, UserProfile, PredictionData } from "@/services/dashboardService";
 import { checkinService } from "@/services/checkinService";
 import { menstrualService, CriterionFlags } from "@/services/menstrualService";
 import { apiClient } from "@/services/apiClient";
 import { isToolCompleteThisWeek, getCurrentWeekKey, isToolCompleteToday } from "@/utils/weekUtils";
+import { getHrvLabel, getFatigueLabel, getMoodLabel, getRiskSeverityLabel } from "@/utils/dashboardHelpers";
+import { useDashboardData } from "@/hooks/useDashboardQueries";
 import logo from "@/assets/logo.png";
 import { AnimatePresence } from "framer-motion";
 
@@ -208,17 +211,56 @@ const expandAbbreviation = (key: string): string => {
     'Focus_Memory': 'Focus & Memory',
     'Mental_Wellness': 'Mental Wellness',
     'Mood_Score': 'Mood Check',
+    'Hypogonadism': 'Male Hypogonadism',
+    'MAMH': 'Metabolic-Associated Male Hypogonadism',
+    'SexualDysfunction': 'Male Sexual Dysfunction',
+    'Prostatitis': 'Prostatitis',
+    'ProstateCancer': 'Prostate Cancer',
   };
   return mapping[key] || key.replace(/_/g, ' ');
 };
 
-const getHrvLabel = (rmssd: number): string => {
-  if (rmssd >= 50) return 'Normal';
-  if (rmssd >= 40) return 'Very Good';
-  if (rmssd >= 30) return 'Good';
-  if (rmssd >= 20) return 'Low';
-  if (rmssd >= 10) return 'Very Low';
-  return 'Extremely Low';
+
+
+const getDiseaseIcon = (disease: string, color?: string): React.ReactNode => {
+  const iconClass = "w-5 h-5 shrink-0";
+  const c = color || '#6b7280';
+  switch (disease) {
+    case 'CVD': return <Heart className={iconClass} style={{ color: c }} />;
+    case 'T2D': return <Droplets className={iconClass} style={{ color: c }} />;
+    case 'Metabolic': return <Activity className={iconClass} style={{ color: c }} />;
+    case 'HeartFailure': return <HeartPulse className={iconClass} style={{ color: c }} />;
+    case 'ChronicStress': return <Brain className={iconClass} style={{ color: c }} />;
+    case 'Infertility': return <Target className={iconClass} style={{ color: c }} />;
+    case 'PMDD': return <Moon className={iconClass} style={{ color: c }} />;
+    case 'Dysmenorrhea': return <Thermometer className={iconClass} style={{ color: c }} />;
+    case 'Endometrial': return <Stethoscope className={iconClass} style={{ color: c }} />;
+    case 'Sleep_Quality': return <Moon className={iconClass} style={{ color: c }} />;
+    case 'Focus_Memory': return <Brain className={iconClass} style={{ color: c }} />;
+    case 'Mental_Wellness': return <Heart className={iconClass} style={{ color: c }} />;
+    case 'Mood_Score': return <Sun className={iconClass} style={{ color: c }} />;
+    case 'Anxiety': return <Smile className={iconClass} style={{ color: c }} />;
+    case 'Depression': return <Frown className={iconClass} style={{ color: c }} />;
+    case 'Stroke': return <Zap className={iconClass} style={{ color: c }} />;
+    case 'MetSyn': return <Shield className={iconClass} style={{ color: c }} />;
+    case 'Infertility_Mood': return <Target className={iconClass} style={{ color: c }} />;
+    case 'CVD_Mood': return <Heart className={iconClass} style={{ color: c }} />;
+    case 'T2D_Mood': return <Droplets className={iconClass} style={{ color: c }} />;
+    case 'MetSyn_Mood': return <Shield className={iconClass} style={{ color: c }} />;
+    case 'Stroke_Mood': return <Zap className={iconClass} style={{ color: c }} />;
+    default: return <Activity className={iconClass} style={{ color: c }} />;
+  }
+};
+
+const getDiseaseBorderColor = (severity: string): string => {
+  switch (severity) {
+    case 'Extreme': return '#dc2626';
+    case 'Severe': return '#ea580c';
+    case 'Moderate': return '#d97706';
+    case 'Mild': return '#2563eb';
+    case 'Minimal': return '#16a34a';
+    default: return '#d1d5db';
+  }
 };
 
 const getUnifiedSeverityColor = (severity: string): string => {
@@ -265,67 +307,7 @@ const getWellnessBg = (severity: string): string => {
   }
 };
 
-const getDiseaseIcon = (disease: string, color?: string): React.ReactNode => {
-  const iconClass = "w-5 h-5 shrink-0";
-  const c = color || '#6b7280';
-  switch (disease) {
-    case 'CVD': return <Heart className={iconClass} style={{ color: c }} />;
-    case 'T2D': return <Droplets className={iconClass} style={{ color: c }} />;
-    case 'Metabolic': return <Activity className={iconClass} style={{ color: c }} />;
-    case 'HeartFailure': return <HeartPulse className={iconClass} style={{ color: c }} />;
-    case 'ChronicStress': return <Brain className={iconClass} style={{ color: c }} />;
-    case 'Infertility': return <Target className={iconClass} style={{ color: c }} />;
-    case 'PMDD': return <Moon className={iconClass} style={{ color: c }} />;
-    case 'Dysmenorrhea': return <Thermometer className={iconClass} style={{ color: c }} />;
-    case 'Endometrial': return <Stethoscope className={iconClass} style={{ color: c }} />;
-    case 'Sleep_Quality': return <Moon className={iconClass} style={{ color: c }} />;
-    case 'Focus_Memory': return <Brain className={iconClass} style={{ color: c }} />;
-    case 'Mental_Wellness': return <Heart className={iconClass} style={{ color: c }} />;
-    case 'Mood_Score': return <Sun className={iconClass} style={{ color: c }} />;
-    case 'Anxiety': return <Smile className={iconClass} style={{ color: c }} />;
-    case 'Depression': return <Frown className={iconClass} style={{ color: c }} />;
-    case 'Stroke': return <Zap className={iconClass} style={{ color: c }} />;
-    case 'MetSyn': return <Shield className={iconClass} style={{ color: c }} />;
-    case 'Infertility_Mood': return <Target className={iconClass} style={{ color: c }} />;
-    case 'CVD_Mood': return <Heart className={iconClass} style={{ color: c }} />;
-    case 'T2D_Mood': return <Droplets className={iconClass} style={{ color: c }} />;
-    case 'MetSyn_Mood': return <Shield className={iconClass} style={{ color: c }} />;
-    case 'Stroke_Mood': return <Zap className={iconClass} style={{ color: c }} />;
-    default: return <Activity className={iconClass} style={{ color: c }} />;
-  }
-};
 
-const getDiseaseBorderColor = (severity: string): string => {
-  switch (severity) {
-    case 'Extreme': return '#dc2626';
-    case 'Severe': return '#ea580c';
-    case 'Moderate': return '#d97706';
-    case 'Mild': return '#2563eb';
-    case 'Minimal': return '#16a34a';
-    default: return '#d1d5db';
-  }
-};
-
-const fatigueLabel = (v: number): string => {
-  if (v <= 3) return 'Low';
-  if (v <= 6) return 'Moderate';
-  return 'High';
-};
-
-const moodLabel = (v: number): string => {
-  if (v <= 2) return 'Normal';
-  if (v <= 5) return 'Mild';
-  if (v <= 8) return 'Moderate';
-  return 'Severe';
-};
-
-const riskSeverityLabel = (v: number): string => {
-  if (v < 0.20) return 'Minimal';
-  if (v < 0.40) return 'Mild';
-  if (v < 0.60) return 'Moderate';
-  if (v < 0.80) return 'Severe';
-  return 'Extreme';
-};
 
 const RiskGauge = ({ score }: { score?: number }) => {
   const safeScore = score ?? 0;
@@ -510,18 +492,22 @@ const DashboardScreen = () => {
   const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [todayData, setTodayData] = useState<TodayData | null>(null);
-  const [prediction, setPrediction] = useState<PredictionData | null>(null);
-  const [predictionLoading, setPredictionLoading] = useState(false);
+  // const [refreshing, setRefreshing] = useState(false); // Removed - React Query handles background refetching
   const [menstrualSummary, setMenstrualSummary] = useState<MenstrualSummary | null>(null);
-  const [todaySummary, setTodaySummary] = useState<TodaySummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showModelDetail, setShowModelDetail] = useState(false);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const pollingAttempts = useRef(0);
+
+  // Use React Query hooks for data fetching
+  const {
+    profile: profileQuery,
+    predictions: predictionsQuery,
+    checkinToday: checkinTodayQuery,
+    todaySummary: todaySummaryQuery,
+    morningCheckin: morningCheckinQuery,
+    invalidateDashboard,
+  } = useDashboardData();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -530,8 +516,24 @@ const DashboardScreen = () => {
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+
+    // Listen for prediction updates via WebSocket
+    const handlePredictionUpdate = (event: CustomEvent) => {
+      console.log('🔄 [Dashboard] Prediction update event received');
+      console.log('  - Prediction ID:', event.detail.prediction_id);
+      console.log('  - Risk Score:', event.detail.risk_score);
+      console.log('  - Risk Tier:', event.detail.risk_tier);
+      console.log('  - Invalidating dashboard queries...');
+      invalidateDashboard();
+      console.log('  - Dashboard queries invalidated');
+    };
+    window.addEventListener('prediction-update', handlePredictionUpdate as EventListener);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('prediction-update', handlePredictionUpdate as EventListener);
+    };
+  }, [invalidateDashboard]);
 
   const greeting = getGreeting();
   const currentHour = new Date().getHours();
@@ -543,84 +545,16 @@ const DashboardScreen = () => {
   const dailyToolsComplete = isToolCompleteToday('phq4') && isToolCompleteToday('sleep');
   const dailyContinuousComplete = isToolCompleteToday('affect') && isToolCompleteToday('focus');
 
-  const fetchPrediction = useCallback(async (silent = false) => {
-    if (!silent) setPredictionLoading(true);
-    try {
-      // Use new ML predictions service
-      const res = await dashboardService.getMLPredictions();
-      if (res.data) {
-        setPrediction(res.data);
-        return res.data;
-      }
-      setPrediction(null);
-      return null;
-    } catch {
-      setPrediction(null);
-      return null;
-    } finally {
-      if (!silent) setPredictionLoading(false);
-    }
-  }, []);
+  // Extract data from queries
+  const prediction = predictionsQuery.data?.data || null;
+  const profile = profileQuery.data?.data || null;
+  const todayData = checkinTodayQuery.data?.data || null;
+  const todaySummary = todaySummaryQuery.data || null;
+  const morningCheckin = morningCheckinQuery.data || null;
 
-  const fetchMenstrualSummary = useCallback(async () => {
-    try {
-      const res = await menstrualService.getCycleHistory();
-      const cycles = res.data?.cycles || [];
-      if (cycles.length === 0) return;
-      const aggregates = res.data?.aggregates;
-      setMenstrualSummary({
-        mean_cycle_len: aggregates?.mean_cycle_len ?? null,
-        CLV: aggregates?.CLV ?? null,
-        total_cycles_stored: cycles.length,
-        criterion_flags: res.data?.criterion_flags,
-      });
-      return true;
-    } catch {
-      return false;
-    }
-  }, []);
-
-  const fetchTodaySummary = useCallback(async () => {
-    try {
-      let hrv: number | null = null;
-      let fatigue: number | null = null;
-      let mood: number | null = null;
-
-      const [hrvRes, todayRes, moodRes] = await Promise.allSettled([
-        apiClient.get('/rppg/sessions'),
-        checkinService.getTodayStatus(),
-        apiClient.get('/mood/history'),
-      ]);
-
-      if (hrvRes.status === 'fulfilled' && hrvRes.value.data?.data?.sessions?.length > 0) {
-        const latestSession = hrvRes.value.data.data.sessions[0];
-        hrv = latestSession.rmssd ?? latestSession.hrv_rmssd ?? null;
-      }
-
-      // Try to get fatigue from today's morning session ID
-      if (todayRes.status === 'fulfilled' && todayRes.value.data?.morning_session_id) {
-        try {
-          const morningRes = await apiClient.get(`/checkin/morning/${todayRes.value.data.morning_session_id}/`);
-          if (morningRes.data?.data) {
-            fatigue = morningRes.data.data.fatigue_vas ?? null;
-          }
-        } catch { /* ignore */ }
-      }
-
-      if (moodRes.status === 'fulfilled') {
-        const logs = moodRes.value.data?.data?.logs;
-        if (Array.isArray(logs) && logs.length > 0) {
-          const latestMood = logs[0];
-          mood = latestMood.phq4Total ?? latestMood.phq4_total ?? null;
-        }
-      }
-
-      setTodaySummary({ hrv_rmssd: hrv, fatigue_vas: fatigue, mood_score: mood });
-      return true;
-    } catch {
-      return false;
-    }
-  }, []);
+  // Set loading states
+  const loading = profileQuery.isLoading || predictionsQuery.isLoading || checkinTodayQuery.isLoading;
+  const predictionLoading = predictionsQuery.isLoading;
 
   const startPredictionPolling = useCallback(() => {
     if (pollingRef.current) return;
@@ -628,7 +562,9 @@ const DashboardScreen = () => {
     pollingRef.current = setInterval(async () => {
       pollingAttempts.current++;
       try {
-        const newPred = await fetchPrediction(true);
+        // Use React Query to refetch predictions
+        await invalidateDashboard();
+        const newPred = predictionsQuery.data?.data;
         if (newPred && newPred.id) {
           const days = getDaysSince(newPred.computed_at);
           const isNew = days === 0;
@@ -645,105 +581,25 @@ const DashboardScreen = () => {
         pollingRef.current = null;
       }
     }, 5000);
-  }, [fetchPrediction]);
+  }, [invalidateDashboard, predictionsQuery.data]);
 
-  const fetchDashboardData = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
-    setError(null);
-
-    try {
-      // Fire all requests in parallel immediately
-      setPredictionLoading(true);
-      const predPromise = dashboardService.getMLPredictions();
-      const profilePromise = dashboardService.getUserProfile();
-      const todayPromise = checkinService.getTodayStatus();
-      const menstrualPromise = fetchMenstrualSummary();
-      const todaySummaryPromise = fetchTodaySummary();
-
-      // Wait only for critical data (fast Django-local calls)
-      const [profileRes, todayRes] = await Promise.allSettled([profilePromise, todayPromise]);
-
-      if (profileRes.status === 'fulfilled') {
-        setProfile(profileRes.value.data);
-      } else {
-        const err = profileRes.reason;
-        if (err?.status === 401) {
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          navigate('/login');
-          return;
-        }
-      }
-
-      if (todayRes.status === 'fulfilled') {
-        const td = todayRes.value.data;
-        setTodayData({
-          morning_status: td.morning_status,
-          evening_status: td.evening_status,
-          streak_days: td.streak_days ?? 0,
-          completeness_pct: td.completeness_pct ?? 0,
-          missed_yesterday: td.missed_yesterday ?? [],
-          date: td.date,
-        });
-
-        if (td.morning_status === 'complete' && td.evening_status === 'complete') {
-          startPredictionPolling();
-        }
-      }
-
-      // Show UI immediately with critical data
-      setLoading(false);
-
-      // Collect remaining results as they complete
-      const predRes = await Promise.allSettled([predPromise]);
-      if (predRes[0].status === 'fulfilled' && predRes[0].value.data) {
-        setPrediction(predRes[0].value.data);
-      }
-      setPredictionLoading(false);
-
-      // menstrualPromise and todaySummaryPromise fire-and-forget (they call setState internally)
-    } catch (err: any) {
-      setError('Unable to load data');
-      setPredictionLoading(false);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [navigate, fetchMenstrualSummary, fetchTodaySummary, startPredictionPolling]);
-
-  const abortControllerRef = useRef<AbortController | null>(null);
-
-  const fetchDashboardDataSafe = useCallback(async (isRefresh = false) => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
-
-    try {
-      await fetchDashboardData(isRefresh);
-    } catch (err: any) {
-      if (err.name === 'CanceledError' || err?.message?.includes('canceled')) {
-        console.log('[Dashboard] Request was cancelled, ignoring');
-        return;
-      }
-      throw err;
-    }
-  }, [fetchDashboardData]);
+  // React Query handles data fetching automatically
+  // Initial load is handled by useDashboardData hook
+  // Refresh is handled by invalidateDashboard from useDashboardData
 
   useEffect(() => {
-    fetchDashboardData();
+    // Start prediction polling if both check-ins are complete
+    if (todayData?.morning_status === 'complete' && todayData?.evening_status === 'complete') {
+      startPredictionPolling();
+    }
+
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
-      if (abortControllerRef.current) abortControllerRef.current.abort();
     };
-  }, [fetchDashboardData]);
+  }, [todayData?.morning_status, todayData?.evening_status, startPredictionPolling]);
 
-  useEffect(() => {
-    const handleFocus = () => fetchDashboardDataSafe(true);
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [fetchDashboardDataSafe]);
+  // Handle window focus for background refetch (React Query handles this automatically)
+  // useDashboardData hook has refetchOnWindowFocus: true
 
   const getInitials = (name: string) => name.charAt(0).toUpperCase();
 
@@ -765,6 +621,18 @@ const DashboardScreen = () => {
     }
   };
 
+  const [mfgData, setMfgData] = useState<any>(null);
+
+  const loadMfgData = useCallback(async () => {
+    try {
+      const { hairPatternService } = await import('@/services/mfgService');
+      const data = await hairPatternService.getLatest();
+      setMfgData(data?.data);
+    } catch (err) {
+      console.warn('Failed to load mfg data:', err);
+    }
+  }, []);
+
   const getWeeklyToolsSubtitle = () => {
     if (mfgComplete && phq4Complete) return "All tools complete this week ✓";
     const pending = [];
@@ -773,8 +641,24 @@ const DashboardScreen = () => {
     return `${pending.join(' & ')} due`;
   };
 
+  const getMfgSubtitle = () => {
+    if (mfgData?.total_score !== undefined) {
+      return `Score: ${mfgData.total_score}/36 · ${mfgData.hirsutism_severity || 'Normal'}`;
+    }
+    return mfgComplete ? "Hair pattern complete" : "Track hair pattern & PHQ-4 due";
+  };
+
+  useEffect(() => {
+    loadMfgData();
+  }, [loadMfgData]);
+
   const isMale = profile?.gender === 'male';
   const isFemale = profile?.gender === 'female';
+
+  // For males the 'PCOS' disease slot carries the MEMS (male metabolic
+  // phenotype) signal — label it accordingly instead of the ovarian term.
+  const diseaseDisplayName = (key: string): string =>
+    isMale && key === 'PCOS' ? 'Male Metabolic Phenotype (MEMS)' : expandAbbreviation(key);
 
   const getCycleStatus = (summary: MenstrualSummary): string => {
     const flags = summary.criterion_flags;
@@ -813,70 +697,33 @@ const DashboardScreen = () => {
     bgTint?: string; tappable?: boolean; locked?: boolean;
   }> = [];
 
-  // MORNING WINDOW: 5:00 AM – 11:59 AM
-  if (currentHour >= 5 && currentHour <= 11) {
-    if (morningComplete) {
-      quickActions.push({
-        icon: Sun, title: "Morning done ✓", subtitle: "See you this evening",
-        route: "/checkin/morning", gradient: "gradient-primary",
-        urgent: false, dotColor: '#27AE60', bgTint: 'bg-green-50 border-green-200', tappable: false,
-      });
-    } else {
-      quickActions.push({
-        icon: Sun, title: "Morning Check-In", subtitle: getMorningSubtitle(),
-        route: "/checkin/morning", gradient: "gradient-primary",
-        urgent: true, dotColor: todayData?.morning_status === 'in_progress' ? '#F59E0B' : '#F59E0B',
-      });
-    }
-    // Evening preview (locked, greyed out) if morning is complete
-    if (morningComplete && !eveningComplete) {
-      quickActions.push({
-        icon: Moon, title: "Evening Check-In", subtitle: "Available from 12:00 PM",
-        route: "/checkin/evening", gradient: "bg-teal-500",
-        urgent: false, dotColor: TEAL_PRIMARY,
-        bgTint: 'bg-gray-50 border-gray-200 opacity-60', locked: true,
-      });
-    }
+  // Always show both Morning and Evening check-ins regardless of time
+  if (morningComplete) {
+    quickActions.push({
+      icon: Sun, title: "Morning Check-In ✓", subtitle: "Completed today",
+      route: "/checkin/morning", gradient: "gradient-primary",
+      urgent: false, dotColor: '#27AE60', bgTint: 'bg-green-50 border-green-200', tappable: false,
+    });
+  } else {
+    quickActions.push({
+      icon: Sun, title: "Morning Check-In", subtitle: getMorningSubtitle(),
+      route: "/checkin/morning", gradient: "gradient-primary",
+      urgent: true, dotColor: todayData?.morning_status === 'in_progress' ? '#F59E0B' : '#F59E0B',
+    });
   }
-  // AFTERNOON/EVENING WINDOW: 12:00 PM – 11:59 PM
-  else if (currentHour >= 12 && currentHour <= 23) {
-    if (eveningComplete) {
-      quickActions.push({
-        icon: Moon, title: "Evening done ✓", subtitle: "Great job today!",
-        route: "/checkin/evening", gradient: "bg-teal-500",
-        urgent: false, dotColor: '#27AE60', bgTint: 'bg-green-50 border-green-200', tappable: false,
-      });
-    } else {
-      quickActions.push({
-        icon: Moon, title: "Evening Check-In", subtitle: getEveningSubtitle(),
-        route: "/checkin/evening", gradient: "bg-teal-500",
-        urgent: true, dotColor: TEAL_PRIMARY,
-      });
-    }
-    if (!morningComplete) {
-      quickActions.push({
-        icon: Sun, title: "Morning Check-In", subtitle: getMorningSubtitle(),
-        route: "/checkin/morning", gradient: "gradient-primary",
-        urgent: true, dotColor: '#F59E0B',
-      });
-    }
-  }
-  // LATE NIGHT WINDOW: 12:00 AM – 4:59 AM
-  else {
-    const eveningNotDone = todayData?.evening_status !== 'complete';
-    if (eveningNotDone) {
-      quickActions.push({
-        icon: Moon, title: "Evening Check-In", subtitle: getEveningSubtitle(),
-        route: "/checkin/evening", gradient: "bg-teal-500",
-        urgent: true, dotColor: TEAL_PRIMARY,
-      });
-    } else {
-      quickActions.push({
-        icon: Sun, title: "Morning Check-In", subtitle: getMorningSubtitle(),
-        route: "/checkin/morning", gradient: "gradient-primary",
-        urgent: true, dotColor: '#F59E0B',
-      });
-    }
+
+  if (eveningComplete) {
+    quickActions.push({
+      icon: Moon, title: "Evening Check-In ✓", subtitle: "Completed today",
+      route: "/checkin/evening", gradient: "bg-teal-500",
+      urgent: false, dotColor: '#27AE60', bgTint: 'bg-green-50 border-green-200', tappable: false,
+    });
+  } else {
+    quickActions.push({
+      icon: Moon, title: "Evening Check-In", subtitle: getEveningSubtitle(),
+      route: "/checkin/evening", gradient: "bg-teal-500",
+      urgent: true, dotColor: TEAL_PRIMARY,
+    });
   }
 
   if (isFemale) {
@@ -889,7 +736,7 @@ const DashboardScreen = () => {
     {
       icon: Timer,
       title: dailyContinuousComplete ? "Daily Continuous check-in done ✓" : "Daily Continuous check-in",
-      subtitle: dailyContinuousComplete ? "All hourly tracking complete" : "Hourly tracking & 4-hourly tracking",
+      subtitle: "Hourly tracking & 4-hourly tracking",
       route: "/daily-continuous",
       gradient: "bg-indigo-500",
       urgent: false,
@@ -899,18 +746,27 @@ const DashboardScreen = () => {
     {
       icon: Wrench,
       title: dailyToolsComplete ? "Daily Tools check-in done ✓" : "Daily Tools check-in",
-      subtitle: dailyToolsComplete ? "All daily tools complete" : "Mood, sleep, focus and mental wellness",
+      subtitle: "Mood, sleep, focus and mental wellness",
       route: "/daily-tools",
       gradient: "gradient-clinical",
       urgent: false,
       dotColor: dailyToolsComplete ? '#27AE60' : '#F59E0B',
       bgTint: dailyToolsComplete ? 'bg-green-50 border-green-200' : undefined,
     },
-    { icon: ClipboardCheck, title: "Weekly Tools", subtitle: getWeeklyToolsSubtitle(), route: "/weekly-tools", gradient: "gradient-primary", urgent: !mfgComplete || !phq4Complete },
-    { icon: Activity, title: "Measure rPPG HRV", subtitle: "rPPG Passive Sensing (Capture Raw rPPG Signals - More than 18 physiological metrics)", route: "/rppg-passive", gradient: "bg-emerald-500", urgent: false },
+    {
+      icon: User,
+      title: "Androgenic Hair Pattern",
+      subtitle: getMfgSubtitle(),
+      route: "/weekly-tools",
+      gradient: "gradient-primary",
+      urgent: !mfgComplete,
+      dotColor: mfgComplete ? '#27AE60' : '#F59E0B',
+      bgTint: mfgComplete ? 'bg-green-50 border-green-200' : undefined,
+    },
+    { icon: Activity, title: "Measure rPPG HRV", subtitle: "rPPG Passive Sensing (Capture Raw rPPG Signals – More than 18 physiological metrics)", route: "/rppg-passive", gradient: "bg-emerald-500", urgent: false },
     { icon: Camera, title: "Measure HRV", subtitle: "Capture heart rate variability", route: "/rppg-capture", gradient: "bg-blue-500", urgent: false },
-     { icon: BarChart3, title: "Risk Trends", subtitle: "View your history", route: "/risk-trend", gradient: "gradient-clinical", urgent: false }
-    
+    { icon: BarChart3, title: "Risk Trends", subtitle: "View your history", route: "/risk-trend", gradient: "gradient-clinical", urgent: false },
+    { icon: ClipboardCheck, title: "Weekly Tools", subtitle: getWeeklyToolsSubtitle(), route: "/weekly-tools", gradient: "gradient-primary", urgent: !mfgComplete || !phq4Complete }
   );
 
   const riskTier = prediction ? getRiskTier(prediction.risk_score) : null;
@@ -1015,7 +871,7 @@ const DashboardScreen = () => {
       </motion.header>
       <TrialBanner />
       <div className="flex-1 px-6 py-6 max-w-4xl mx-auto w-full space-y-6">
-        {refreshing && (
+        {(profileQuery.isFetching || predictionsQuery.isFetching) && (
           <div className="flex items-center justify-center py-2">
             <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
             <span className="text-sm text-gray-500 ml-2">Refreshing...</span>
@@ -1079,15 +935,15 @@ const DashboardScreen = () => {
               transition={{ delay: 0.1 }}
               className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm"
             >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1">
-                  <h2 className="font-display font-bold text-gray-900 text-base leading-tight">{riskScoreTitle}</h2>
+              <div className="mb-2">
+                <div className="flex justify-end mb-2">
+                  {prediction && hasValidDate && (
+                    <span className="text-xs text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full font-medium">
+                      Updated {predictionAge}
+                    </span>
+                  )}
                 </div>
-                {prediction && hasValidDate && (
-                  <span className="text-xs text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full font-medium shrink-0 ml-2">
-                    Updated {predictionAge}
-                  </span>
-                )}
+                <h2 className="font-display font-bold text-gray-900 text-base leading-tight">{riskScoreTitle}</h2>
               </div>
               {prediction ? (
                 <>
@@ -1137,11 +993,12 @@ const DashboardScreen = () => {
                 {prediction.unified_disease_scores && Object.keys(prediction.unified_disease_scores).length > 0 && (() => {
                   const wellnessKeys = ['Sleep_Quality', 'Focus_Memory', 'Mental_Wellness', 'Mood_Score'];
                   const v8wellness = prediction.rppg_v8_risks || {};
-                  const diseaseGroups: { title: string; keys: string[] }[] = [
+                  const diseaseGroups: { title: string; keys: string[]; cols?: number }[] = [
                     { title: 'Mental Health', keys: [...wellnessKeys, 'Anxiety', 'Depression', 'ChronicStress', 'PMDD'] },
                     { title: 'Metabolic Health', keys: ['T2D', 'Metabolic'] },
                     { title: 'Cardiovascular & Neurological Health', keys: ['CVD', 'Stroke', 'HeartFailure'] },
                     { title: 'Reproductive Health', keys: ['Infertility', 'Endometrial', 'Dysmenorrhea'] },
+                    { title: "Men's Health", keys: ['PCOS', 'Hypogonadism', 'MAMH', 'SexualDysfunction', 'ProstateCancer'] },
                   ];
                   const scores = prediction.unified_disease_scores!;
                   return (
@@ -1152,7 +1009,7 @@ const DashboardScreen = () => {
                         return (
                           <div key={group.title}>
                             <h4 className="text-sm font-extrabold text-gray-800 uppercase tracking-wider mb-3">{group.title}</h4>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className={`grid gap-2 ${group.cols === 3 ? 'grid-cols-3' : 'grid-cols-1'}`}>
                               {items.map(({ key, data, w }) => {
                                 if (w && wellnessKeys.includes(key)) {
                                   const score = w.raw_score ?? (w.risk_score != null ? w.risk_score * 100 : null);
@@ -1160,29 +1017,29 @@ const DashboardScreen = () => {
                                   return (
                                     <div
                                       key={key}
-                                      className="flex items-center gap-2 p-3 rounded-xl border-l-4 shadow-sm"
+                                      className="flex items-center gap-2 p-2 rounded-lg border-l-4 shadow-sm"
                                       style={{
                                         backgroundColor: getWellnessBg(sev),
                                         borderLeftColor: getWellnessColor(sev),
                                       }}
                                     >
-                                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/80 shadow-sm shrink-0">
+                                  <div className="flex items-center justify-center w-7 h-7 rounded-full bg-white/90 shadow-sm shrink-0">
                                     {getDiseaseIcon(key, getWellnessColor(sev))}
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-start gap-1.5">
-                                      <span className="text-xs font-bold text-gray-900 leading-tight">
-                                        {expandAbbreviation(key)}
+                                      <span className="text-[10px] font-bold text-gray-900 leading-tight line-clamp-1">
+                                        {diseaseDisplayName(key)}
                                           </span>
                                           <span
-                                            className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white shadow-sm shrink-0"
+                                            className="text-[9px] font-bold px-1 py-0.5 rounded-full text-white shadow-sm shrink-0"
                                             style={{ backgroundColor: getWellnessColor(sev) }}
                                           >
                                             {sev}
                                           </span>
                                         </div>
                                         <div className="flex items-center gap-1.5 mt-1">
-                                          <div className="flex-1 bg-white/70 rounded-full h-1.5 overflow-hidden shadow-inner">
+                                          <div className="flex-1 bg-white/70 rounded-full h-1 overflow-hidden shadow-inner">
                                             <div
                                               className="h-full rounded-full transition-all duration-500"
                                               style={{
@@ -1191,15 +1048,11 @@ const DashboardScreen = () => {
                                               }}
                                             />
                                           </div>
-                                          <span className="text-xs font-extrabold text-gray-800 w-10 text-right">
+                                          <span className="text-[10px] font-extrabold text-gray-800 w-10 text-right">
                                             {score != null && score > 0 ? `${score.toFixed(0)}%` : '—'}
                                           </span>
                                         </div>
-                                        <div className="mt-1">
-                                          <span className="text-[9px] font-semibold text-gray-500 bg-white/70 px-1.5 py-0.5 rounded-full">
-                                            1 Health Index
-                                          </span>
-                                        </div>
+
                                       </div>
                                     </div>
                                   );
@@ -1208,29 +1061,29 @@ const DashboardScreen = () => {
                                   return (
                                     <div
                                       key={key}
-                                      className="flex items-center gap-2 p-3 rounded-xl border-l-4 shadow-sm"
+                                      className="flex items-center gap-2 p-2 rounded-lg border-l-4 shadow-sm"
                                       style={{
                                         backgroundColor: getUnifiedSeverityBg(data.severity),
                                         borderLeftColor: getDiseaseBorderColor(data.severity),
                                       }}
                                     >
-                                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/80 shadow-sm shrink-0">
+                                  <div className="flex items-center justify-center w-7 h-7 rounded-full bg-white/90 shadow-sm shrink-0">
                                     {getDiseaseIcon(key, getUnifiedSeverityColor(data.severity))}
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-start gap-1.5">
-                                      <span className="text-xs font-bold text-gray-900 leading-tight">
-                                        {expandAbbreviation(key)}
+                                      <span className="text-[10px] font-bold text-gray-900 leading-tight line-clamp-1">
+                                        {diseaseDisplayName(key)}
                                       </span>
                                       <span
-                                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white shadow-sm shrink-0"
+                                        className="text-[9px] font-bold px-1 py-0.5 rounded-full text-white shadow-sm shrink-0"
                                         style={{ backgroundColor: getUnifiedSeverityColor(data.severity) }}
                                       >
                                         {data.severity}
                                       </span>
                                     </div>
                                     <div className="flex items-center gap-1.5 mt-1">
-                                      <div className="flex-1 bg-white/70 rounded-full h-1.5 overflow-hidden shadow-inner">
+                                      <div className="flex-1 bg-white/70 rounded-full h-1 overflow-hidden shadow-inner">
                                         <div
                                           className="h-full rounded-full transition-all duration-500"
                                           style={{
@@ -1239,15 +1092,11 @@ const DashboardScreen = () => {
                                           }}
                                         />
                                       </div>
-                                      <span className="text-xs font-extrabold text-gray-800 w-10 text-right">
+                                      <span className="text-[10px] font-extrabold text-gray-800 w-10 text-right">
                                         {data.unified_score > 0 ? `${(data.unified_score * 100).toFixed(0)}%` : '—'}
                                       </span>
                                     </div>
-                                    <div className="mt-1">
-                                      <span className="text-[9px] font-semibold text-gray-500 bg-white/70 px-1.5 py-0.5 rounded-full">
-                                        {data.contributing_models || 1} Health Indices
-                                      </span>
-                                    </div>
+
                                   </div>
                                 </div>
                               );
@@ -1292,11 +1141,11 @@ const DashboardScreen = () => {
                               </div>
                               <p className="text-base font-bold text-gray-900">Symptom Intensity</p>
                             </div>
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-2 gap-3">
                               {Object.entries(prediction.symptom_intensity_risks).map(([key, value]) => (
                                 <div key={key} className="text-center p-3 bg-teal-50 rounded-xl border border-teal-100">
-                                  <div className="font-semibold text-gray-700 text-sm">{expandAbbreviation(key)}</div>
-                                  <div className="text-teal-700 font-extrabold text-lg mt-1">{(value * 100).toFixed(0)}%</div>
+                                  <div className="font-semibold text-gray-700 text-xs line-clamp-2 leading-tight">{diseaseDisplayName(key)}</div>
+                                  <div className="text-teal-700 font-extrabold text-base mt-1">{(value * 100).toFixed(0)}%</div>
                                 </div>
                               ))}
                             </div>
@@ -1312,11 +1161,11 @@ const DashboardScreen = () => {
                               </div>
                               <p className="text-base font-bold text-gray-900">Menstrual Health</p>
                             </div>
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-2 gap-3">
                               {Object.entries(prediction.menstrual_risks).map(([key, value]) => (
                                 <div key={key} className="text-center p-3 bg-purple-50 rounded-xl border border-purple-100">
-                                  <div className="font-semibold text-gray-700 text-sm">{expandAbbreviation(key)}</div>
-                                  <div className="text-purple-700 font-extrabold text-lg mt-1">{(value * 100).toFixed(0)}%</div>
+                                  <div className="font-semibold text-gray-700 text-xs line-clamp-2 leading-tight">{diseaseDisplayName(key)}</div>
+                                  <div className="text-purple-700 font-extrabold text-base mt-1">{(value * 100).toFixed(0)}%</div>
                                 </div>
                               ))}
                             </div>
@@ -1431,7 +1280,7 @@ const DashboardScreen = () => {
                                       rawScore >= 20 ? 'text-amber-700' : 'text-emerald-700';
                                   return (
                                     <div key={key} className={`p-3 rounded-xl text-center border ${bgColor} ${borderColor}`}>
-                                      <div className="text-sm font-bold text-gray-800">{expandAbbreviation(key)}</div>
+                                      <div className="text-sm font-bold text-gray-800">{diseaseDisplayName(key)}</div>
                                       <div className={`font-extrabold text-lg mt-1 ${textColor}`}>
                                         {rawScore.toFixed(2)}%
                                       </div>
@@ -1457,10 +1306,10 @@ const DashboardScreen = () => {
                               </div>
                               <p className="text-base font-bold text-gray-900">Mood Analysis</p>
                             </div>
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-2 gap-3">
                               {Object.entries(prediction.rppg_risks.mood).slice(0, 3).map(([key, value]) => (
                                 <div key={key} className="text-center p-3 bg-violet-50 rounded-xl border border-violet-100">
-                                  <div className="font-semibold text-gray-700 text-sm">{expandAbbreviation(key)}</div>
+                                  <div className="font-semibold text-gray-700 text-xs line-clamp-2 leading-tight">{diseaseDisplayName(key)}</div>
                                   <div className="text-violet-700 font-extrabold text-lg mt-1">{(value * 100).toFixed(0)}%</div>
                                 </div>
                               ))}
@@ -1479,7 +1328,7 @@ const DashboardScreen = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="grid grid-cols-2 gap-3"
+              className="grid grid-cols-1 gap-3"
             >
               <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4">
                 <CompletenessRing percent={completenessPct} missing={missingCount} />
@@ -1569,100 +1418,72 @@ const DashboardScreen = () => {
           className="bg-white rounded-2xl border border-gray-200 p-5"
         >
           <h3 className="font-display font-bold text-gray-900 mb-4 text-lg">Today's Summary</h3>
-          <div className="grid grid-cols-4 gap-3 text-center">
-            <div className="p-3 rounded-lg bg-gray-50">
-              <Heart className="h-4 w-4 mx-auto mb-1.5 text-teal-500" />
-              <p className="text-xl font-bold font-display text-gray-900">
-                {todaySummary?.hrv_rmssd ? `${todaySummary.hrv_rmssd.toFixed(0)}` : '—'}
-              </p>
-              {todaySummary?.hrv_rmssd ? (
-                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">
-                  {getHrvLabel(todaySummary.hrv_rmssd)}
-                </p>
-              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
-              <p className="text-xs text-gray-600 mt-1 font-medium">HRV</p>
-            </div>
-            <div className="p-3 rounded-lg bg-gray-50">
-              <TrendingUp className="h-4 w-4 mx-auto mb-1.5 text-amber-500" />
-              <p className="text-xl font-bold font-display text-gray-900">
-                {todaySummary?.fatigue_vas && todaySummary.fatigue_vas > 0 ? `${todaySummary.fatigue_vas.toFixed(1)}` : morningComplete ? '✓' : '—'}
-              </p>
-              {todaySummary?.fatigue_vas && todaySummary.fatigue_vas > 0 ? (
-                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">
-                  {fatigueLabel(todaySummary.fatigue_vas)}
-                </p>
-              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
-              <p className="text-xs text-gray-600 mt-1 font-medium">Fatigue</p>
-            </div>
-            <div className="p-3 rounded-lg bg-gray-50">
-              <Sun className="h-4 w-4 mx-auto mb-1.5 text-purple-500" />
-              <p className="text-xl font-bold font-display text-gray-900">
-                {todaySummary?.mood_score ? `${todaySummary.mood_score.toFixed(0)}` : '—'}
-              </p>
-              {todaySummary?.mood_score ? (
-                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">
-                  {moodLabel(todaySummary.mood_score)}
-                </p>
-              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
-              <p className="text-xs text-gray-600 mt-1 font-medium">Mood</p>
-            </div>
-            <div className="p-3 rounded-lg" style={{ backgroundColor: prediction?.unified_disease_scores?.CVD ? getUnifiedSeverityBg(prediction.unified_disease_scores.CVD.severity) : '#f9fafb' }}>
-              <HeartPulse className="h-4 w-4 mx-auto mb-1.5" style={{ color: prediction?.unified_disease_scores?.CVD ? getUnifiedSeverityColor(prediction.unified_disease_scores.CVD.severity) : '#9ca3af' }} />
-              <p className="text-xl font-bold font-display text-gray-900">
-                {prediction?.unified_disease_scores?.CVD ? `${(prediction.unified_disease_scores.CVD.unified_score * 100).toFixed(0)}` : '—'}
-              </p>
-              {prediction?.unified_disease_scores?.CVD ? (
-                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">{prediction.unified_disease_scores.CVD.severity}</p>
-              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
-              <p className="text-xs text-gray-600 mt-1 font-medium">Cardiovascular</p>
-            </div>
-            {!isMale && (
-            <div className="p-3 rounded-lg" style={{ backgroundColor: prediction?.unified_disease_scores?.Infertility ? getUnifiedSeverityBg(prediction.unified_disease_scores.Infertility.severity) : '#f9fafb' }}>
-              <Target className="h-4 w-4 mx-auto mb-1.5" style={{ color: prediction?.unified_disease_scores?.Infertility ? getUnifiedSeverityColor(prediction.unified_disease_scores.Infertility.severity) : '#9ca3af' }} />
-              <p className="text-xl font-bold font-display text-gray-900">
-                {prediction?.unified_disease_scores?.Infertility ? `${(prediction.unified_disease_scores.Infertility.unified_score * 100).toFixed(0)}` : '—'}
-              </p>
-              {prediction?.unified_disease_scores?.Infertility ? (
-                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">{prediction.unified_disease_scores.Infertility.severity}</p>
-              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
-              <p className="text-xs text-gray-600 mt-1 font-medium">Infertility</p>
-            </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <MetricCard
+              icon={Heart}
+              value={todaySummary?.checkin?.hrv_rmssd ? todaySummary.checkin.hrv_rmssd.toFixed(0) : null}
+              label="HRV"
+              severity={todaySummary?.checkin?.hrv_rmssd ? getHrvLabel(todaySummary.checkin.hrv_rmssd) : null}
+              iconColor="text-teal-500"
+            />
+            <MetricCard
+              icon={Sun}
+              value={todaySummary?.mood?.mood_valence ? todaySummary.mood.mood_valence.toFixed(0) : null}
+              label="Mood"
+              severity={todaySummary?.mood?.mood_valence ? getMoodLabel(todaySummary.mood.mood_valence) : null}
+              iconColor="text-purple-500"
+            />
+            <MetricCard
+              icon={TrendingUp}
+              value={todaySummary?.checkin?.fatigue_vas && todaySummary.checkin.fatigue_vas > 0 ? todaySummary.checkin.fatigue_vas.toFixed(1) : morningComplete ? '✓' : null}
+              label="Fatigue"
+              severity={todaySummary?.checkin?.fatigue_vas && todaySummary.checkin.fatigue_vas > 0 ? getFatigueLabel(todaySummary.checkin.fatigue_vas) : null}
+              iconColor="text-amber-500"
+            />
+            <MetricCard
+              icon={Droplets}
+              value={prediction?.unified_disease_scores?.T2D ? (prediction.unified_disease_scores.T2D.unified_score * 100).toFixed(0) : null}
+              label="Type 2 Diabetes"
+              severity={prediction?.unified_disease_scores?.T2D?.severity || null}
+            />
+            <MetricCard
+              icon={HeartPulse}
+              value={prediction?.unified_disease_scores?.CVD ? (prediction.unified_disease_scores.CVD.unified_score * 100).toFixed(0) : null}
+              label="Cardiovascular"
+              severity={prediction?.unified_disease_scores?.CVD?.severity || null}
+            />
+            <MetricCard
+              icon={Brain}
+              value={prediction?.unified_disease_scores?.ChronicStress ? (prediction.unified_disease_scores.ChronicStress.unified_score * 100).toFixed(0) : todaySummary?.mood_chronic_stress ? (todaySummary.mood_chronic_stress * 100).toFixed(0) : null}
+              label="Chronic Stress"
+              severity={prediction?.unified_disease_scores?.ChronicStress?.severity || (todaySummary?.mood_chronic_stress ? getRiskSeverityLabel(todaySummary.mood_chronic_stress) : null)}
+            />
+            {isMale ? (
+              <MetricCard
+                icon={Activity}
+                value={prediction?.unified_disease_scores?.HeartFailure ? (prediction.unified_disease_scores.HeartFailure.unified_score * 100).toFixed(0) : null}
+                label="Heart Failure"
+                severity={prediction?.unified_disease_scores?.HeartFailure?.severity || null}
+              />
+            ) : (
+              <MetricCard
+                icon={Target}
+                value={prediction?.unified_disease_scores?.Infertility ? (prediction.unified_disease_scores.Infertility.unified_score * 100).toFixed(0) : null}
+                label="Infertility"
+                severity={prediction?.unified_disease_scores?.Infertility?.severity || null}
+              />
             )}
-            <div className="p-3 rounded-lg" style={{ backgroundColor: prediction?.unified_disease_scores?.T2D ? getUnifiedSeverityBg(prediction.unified_disease_scores.T2D.severity) : '#f9fafb' }}>
-              <Droplets className="h-4 w-4 mx-auto mb-1.5" style={{ color: prediction?.unified_disease_scores?.T2D ? getUnifiedSeverityColor(prediction.unified_disease_scores.T2D.severity) : '#9ca3af' }} />
-              <p className="text-xl font-bold font-display text-gray-900">
-                {prediction?.unified_disease_scores?.T2D ? `${(prediction.unified_disease_scores.T2D.unified_score * 100).toFixed(0)}` : '—'}
-              </p>
-              {prediction?.unified_disease_scores?.T2D ? (
-                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">{prediction.unified_disease_scores.T2D.severity}</p>
-              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
-              <p className="text-xs text-gray-600 mt-1 font-medium">Type 2 Diabetes</p>
-            </div>
-            <div className="p-3 rounded-lg" style={{ backgroundColor: prediction?.unified_disease_scores?.ChronicStress ? getUnifiedSeverityBg(prediction.unified_disease_scores.ChronicStress.severity) : '#f9fafb' }}>
-              <Brain className="h-4 w-4 mx-auto mb-1.5" style={{ color: prediction?.unified_disease_scores?.ChronicStress ? getUnifiedSeverityColor(prediction.unified_disease_scores.ChronicStress.severity) : '#9ca3af' }} />
-              <p className="text-xl font-bold font-display text-gray-900">
-                {prediction?.unified_disease_scores?.ChronicStress ? `${(prediction.unified_disease_scores.ChronicStress.unified_score * 100).toFixed(0)}` : '—'}
-              </p>
-              {prediction?.unified_disease_scores?.ChronicStress ? (
-                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">{prediction.unified_disease_scores.ChronicStress.severity}</p>
-              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
-              <p className="text-xs text-gray-600 mt-1 font-medium">Chronic Stress</p>
-            </div>
-            <div className="p-3 rounded-lg bg-gray-50">
-              <Frown className="h-4 w-4 mx-auto mb-1.5 text-gray-400" />
-              <p className="text-xl font-bold font-display text-gray-900">
-                {prediction?.rppg_risks?.mood?.Depression ? `${(prediction.rppg_risks.mood.Depression * 100).toFixed(0)}` : '—'}
-              </p>
-              {prediction?.rppg_risks?.mood?.Depression ? (
-                <p className="text-[10px] text-gray-500 mt-0.5 font-medium">
-                  {riskSeverityLabel(prediction.rppg_risks.mood.Depression)}
-                </p>
-              ) : <p className="text-[10px] text-gray-400 mt-0.5">—</p>}
-              <p className="text-xs text-gray-600 mt-1 font-medium">Depression</p>
-            </div>
+            <MetricCard
+              icon={Frown}
+              value={prediction?.unified_disease_scores?.Depression ? (prediction.unified_disease_scores.Depression.unified_score * 100).toFixed(0) : null}
+              label="Depression"
+              severity={prediction?.unified_disease_scores?.Depression?.severity || null}
+            />
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
+          {/* Morning/Evening Check-in Status */}
+          <div className="flex flex-wrap gap-2">
             {morningComplete ? (
               <span className="flex items-center gap-1.5 text-sm bg-green-100 text-green-800 px-3 py-1.5 rounded-full font-semibold">
                 <span className="h-2 w-2 rounded-full bg-green-500" />Morning: Done
