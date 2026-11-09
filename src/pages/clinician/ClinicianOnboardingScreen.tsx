@@ -86,10 +86,10 @@ const FALLBACK_DISEASES = [
   { key: "pregnancy_complications", name: "Pregnancy Complications (GDM, Pre-eclampsia)" },
   { key: "mental_health", name: "Mental Health (Depression, Anxiety)" },
   { key: "dermatologic", name: "Dermatologic Manifestations (Acne, Hirsutism)" },
-  { key: "male_hypogonadism", name: "Male Hypogonadism / Low Testosterone (MEMS, MAMH)" },
+  { key: "male_hypogonadism", name: "Functional Hypogonadism (MEMS, MAMH)" },
   { key: "male_subfertility", name: "Male Subfertility" },
   { key: "prostate_disorder", name: "Prostate Disorders" },
-  { key: "sexual_dysfunction", name: "Male Sexual Dysfunction" },
+  { key: "sexual_dysfunction", name: "Sexual Dysfunction" },
 ];
 
 const ClinicianOnboardingScreen = () => {

@@ -32,7 +32,7 @@ const blogPosts = [
     author: "Dr. Fatimah Al-Hassan",
     date: "Dec 5, 2024",
     readTime: "6 min read",
-    category: "Men's Health",
+    category: "Male Endocrine-Metabolic Syndrome (MEMS)",
     image: "https://images.unsplash.com/photo-1559757175-5700dde675bc?w=600&h=400&fit=crop"
   },
   {

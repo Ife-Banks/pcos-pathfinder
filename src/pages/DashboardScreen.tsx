@@ -211,9 +211,9 @@ const expandAbbreviation = (key: string): string => {
     'Focus_Memory': 'Focus & Memory',
     'Mental_Wellness': 'Mental Wellness',
     'Mood_Score': 'Mood Check',
-    'Hypogonadism': 'Male Hypogonadism',
-    'MAMH': 'Metabolic-Associated Male Hypogonadism',
-    'SexualDysfunction': 'Male Sexual Dysfunction',
+    'Hypogonadism': 'Functional Hypogonadism',
+    'MAMH': 'Metabolic Hypogonadism',
+    'SexualDysfunction': 'Sexual Dysfunction',
     'Prostatitis': 'Prostatitis',
     'ProstateCancer': 'Prostate Cancer',
   };
@@ -248,6 +248,11 @@ const getDiseaseIcon = (disease: string, color?: string): React.ReactNode => {
     case 'T2D_Mood': return <Droplets className={iconClass} style={{ color: c }} />;
     case 'MetSyn_Mood': return <Shield className={iconClass} style={{ color: c }} />;
     case 'Stroke_Mood': return <Zap className={iconClass} style={{ color: c }} />;
+    case 'PCOS': return <Activity className={iconClass} style={{ color: c }} />;
+    case 'MAMH': return <Shield className={iconClass} style={{ color: c }} />;
+    case 'Hypogonadism': return <Thermometer className={iconClass} style={{ color: c }} />;
+    case 'SexualDysfunction': return <Heart className={iconClass} style={{ color: c }} />;
+    case 'ProstateCancer': return <Stethoscope className={iconClass} style={{ color: c }} />;
     default: return <Activity className={iconClass} style={{ color: c }} />;
   }
 };
@@ -658,7 +663,7 @@ const DashboardScreen = () => {
   // For males the 'PCOS' disease slot carries the MEMS (male metabolic
   // phenotype) signal — label it accordingly instead of the ovarian term.
   const diseaseDisplayName = (key: string): string =>
-    isMale && key === 'PCOS' ? 'Male Metabolic Phenotype (MEMS)' : expandAbbreviation(key);
+    isMale && key === 'PCOS' ? 'Metabolic Phenotype' : expandAbbreviation(key);
 
   const getCycleStatus = (summary: MenstrualSummary): string => {
     const flags = summary.criterion_flags;
@@ -679,7 +684,7 @@ const DashboardScreen = () => {
     ? `Cycle Length ${Math.round(menstrualSummary.mean_cycle_len)} days · CLV ${menstrualSummary.CLV ?? '—'} · ${getCycleStatus(menstrualSummary)}`
     : "Log your cycle";
 
-  const riskScoreTitle = isMale ? "Metabolic-Associated Male Hypogonadism (MAMH)" : "Polyendocrine Metabolic Ovarian Syndrome (PMOS) Score";
+  const riskScoreTitle = isMale ? "Metabolic Hypogonadism (MAMH)" : "Polyendocrine Metabolic Ovarian Syndrome (PMOS) Score";
 
   const morningComplete = todayData?.morning_status === 'complete';
   const eveningComplete = todayData?.evening_status === 'complete';
@@ -998,7 +1003,7 @@ const DashboardScreen = () => {
                     { title: 'Metabolic Health', keys: ['T2D', 'Metabolic'] },
                     { title: 'Cardiovascular & Neurological Health', keys: ['CVD', 'Stroke', 'HeartFailure'] },
                     { title: 'Reproductive Health', keys: ['Infertility', 'Endometrial', 'Dysmenorrhea'] },
-                    { title: "Men's Health", keys: ['PCOS', 'Hypogonadism', 'MAMH', 'SexualDysfunction', 'ProstateCancer'] },
+                    { title: 'Male Endocrine-Metabolic Syndrome (MEMS)', keys: ['PCOS', 'Hypogonadism', 'MAMH', 'SexualDysfunction', 'ProstateCancer'] },
                   ];
                   const scores = prediction.unified_disease_scores!;
                   return (

@@ -570,8 +570,8 @@ export default function PHCWalkInRegistrationScreen() {
       <div>
         <Label>Family History</Label>
         <div className="grid grid-cols-2 gap-2 mt-2">
-          {(form.gender === 'male' 
-            ? ['Metabolic-Associated Male Hypogonadism (MAMH)', 'Cardiovascular Disease', 'Hypertension', 'Type 2 Diabetes', 'Endocrine Cancer', 'Chronic Stress & Anxiety', 'Infertility', 'None']
+          {(form.gender === 'male'
+            ? ['Metabolic Hypogonadism (MAMH)', 'Cardiovascular Disease', 'Hypertension', 'Type 2 Diabetes', 'Endocrine Cancer', 'Chronic Stress & Anxiety', 'Infertility', 'None']
             : ['Polyendocrine Metabolic Ovarian Syndrome (PMOS)', 'Cardiovascular Disease', 'Hypertension', 'Type 2 Diabetes', 'Endocrine Cancer', 'Chronic Stress & Anxiety', 'Infertility', 'None']
           ).map(h => (
             <label key={h} className="flex items-center gap-2 p-2 rounded border cursor-pointer hover:bg-gray-50">

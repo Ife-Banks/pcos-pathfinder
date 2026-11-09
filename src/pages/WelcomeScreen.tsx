@@ -378,7 +378,7 @@ const WelcomeScreen = () => {
                 The AI-Driven Multi-Source Health Measurement System (AI-MSHM) is a clinical-grade,
                 software-as-a-medical-device (SaMD) diagnostic platform engineered to provide
                 early detection, risk stratification, and digital triage for Polyendocrine Metabolic
-                Ovarian Syndrome (PMOS) and Metabolic-Associated Male Hypogonadism (MAMH).
+                Ovarian Syndrome (PMOS) and Metabolic Hypogonadism (MAMH).
               </motion.p>
 
               {/* CTA Buttons */}

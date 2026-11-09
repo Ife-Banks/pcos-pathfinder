@@ -11,7 +11,7 @@ const faqData = [
     questions: [
       {
         q: "What is AIMHER Health?",
-        a: "AIMHER Health is an AI-driven multi-source health measurement system (AI-MSHM) designed to provide early detection, risk stratification, and digital triage for Polyendocrine Metabolic Ovarian Syndrome (PMOS) and Metabolic-Associated Male Hypogonadism (MAMH)."
+        a: "AIMHER Health is an AI-driven multi-source health measurement system (AI-MSHM) designed to provide early detection, risk stratification, and digital triage for Polyendocrine Metabolic Ovarian Syndrome (PMOS) and Metabolic Hypogonadism (MAMH)."
       },
       {
         q: "What is AI-MSHM?",
@@ -45,7 +45,7 @@ const faqData = [
     questions: [
       {
         q: "What is MAMH?",
-        a: "Metabolic-Associated Male Hypogonadism (MAMH) is a condition affecting men characterized by low testosterone levels combined with metabolic dysfunction."
+        a: "Metabolic Hypogonadism (MAMH) is a condition affecting men characterized by low testosterone levels combined with metabolic dysfunction."
       },
       {
         q: "Who is at risk for MAMH?",

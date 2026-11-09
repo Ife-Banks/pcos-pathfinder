@@ -82,7 +82,7 @@ const AboutScreen = () => {
               Empowering healthcare providers and patients with AI-driven diagnostics for hormonal, endocrine, and reproductive health.
             </p>
             <p className="text-gray-500 max-w-2xl mx-auto">
-              We are dedicated to improving the lives of individuals affected by Polyendocrine Metabolic Ovarian Syndrome (PMOS) and Metabolic-Associated Male Hypogonadism (MAMH) through innovative technology and clinical excellence.
+              We are dedicated to improving the lives of individuals affected by Polyendocrine Metabolic Ovarian Syndrome (PMOS) and Metabolic Hypogonadism (MAMH) through innovative technology and clinical excellence.
             </p>
           </motion.div>
         </div>
