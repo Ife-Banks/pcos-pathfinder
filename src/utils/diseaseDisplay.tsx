@@ -6,6 +6,7 @@ import React from "react";
 
 export const expandAbbreviation = (key: string, isMale = false): string => {
   if (isMale && key === 'PCOS') return 'Metabolic Phenotype';
+  if (isMale && key === 'Infertility') return 'Male Subfertility';
   const mapping: Record<string, string> = {
     'T2D': 'Type 2 Diabetes',
     'CVD': 'Cardiovascular Disease',
@@ -139,4 +140,12 @@ export const DISEASE_GROUPS: { title: string; keys: string[] }[] = [
   { title: 'Cardiovascular & Neurological Health', keys: ['CVD', 'Stroke', 'HeartFailure'] },
   { title: 'Male Endocrine-Metabolic Syndrome (MEMS)', keys: ['PCOS', 'MAMH', 'Hypogonadism', 'SexualDysfunction', 'ProstateCancer'] },
   { title: 'Reproductive Health', keys: ['Infertility', 'Endometrial', 'Dysmenorrhea'] },
+];
+
+export const MALE_DISEASE_GROUPS: { title: string; keys: string[] }[] = [
+  { title: 'Mental Health', keys: [...WELLNESS_KEYS, 'Anxiety', 'Depression', 'ChronicStress'] },
+  { title: 'Metabolic Health', keys: ['T2D', 'Metabolic'] },
+  { title: 'Cardiovascular & Neurological Health', keys: ['CVD', 'Stroke', 'HeartFailure'] },
+  { title: 'Male Endocrine-Metabolic Syndrome (MEMS)', keys: ['PCOS', 'MAMH', 'Hypogonadism', 'SexualDysfunction', 'ProstateCancer'] },
+  { title: 'Male Reproductive Health', keys: ['Infertility', 'SexualDysfunction', 'ProstateCancer'] },
 ];

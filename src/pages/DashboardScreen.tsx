@@ -663,7 +663,7 @@ const DashboardScreen = () => {
   // For males the 'PCOS' disease slot carries the MEMS (male metabolic
   // phenotype) signal — label it accordingly instead of the ovarian term.
   const diseaseDisplayName = (key: string): string =>
-    isMale && key === 'PCOS' ? 'Metabolic Phenotype' : expandAbbreviation(key);
+    expandAbbreviation(key, isMale);
 
   const getCycleStatus = (summary: MenstrualSummary): string => {
     const flags = summary.criterion_flags;
@@ -998,13 +998,20 @@ const DashboardScreen = () => {
                 {prediction.unified_disease_scores && Object.keys(prediction.unified_disease_scores).length > 0 && (() => {
                   const wellnessKeys = ['Sleep_Quality', 'Focus_Memory', 'Mental_Wellness', 'Mood_Score'];
                   const v8wellness = prediction.rppg_v8_risks || {};
-                  const diseaseGroups: { title: string; keys: string[]; cols?: number }[] = [
-                    { title: 'Mental Health', keys: [...wellnessKeys, 'Anxiety', 'Depression', 'ChronicStress', 'PMDD'] },
-                    { title: 'Metabolic Health', keys: ['T2D', 'Metabolic'] },
-                    { title: 'Cardiovascular & Neurological Health', keys: ['CVD', 'Stroke', 'HeartFailure'] },
-                    { title: 'Reproductive Health', keys: ['Infertility', 'Endometrial', 'Dysmenorrhea'] },
-                    { title: 'Male Endocrine-Metabolic Syndrome (MEMS)', keys: ['PCOS', 'Hypogonadism', 'MAMH', 'SexualDysfunction', 'ProstateCancer'] },
-                  ];
+                  const diseaseGroups: { title: string; keys: string[]; cols?: number }[] = isMale
+                    ? [
+                        { title: 'Mental Health', keys: [...wellnessKeys, 'Anxiety', 'Depression', 'ChronicStress'] },
+                        { title: 'Metabolic Health', keys: ['T2D', 'Metabolic'] },
+                        { title: 'Cardiovascular & Neurological Health', keys: ['CVD', 'Stroke', 'HeartFailure'] },
+                        { title: 'Male Endocrine-Metabolic Syndrome (MEMS)', keys: ['PCOS', 'Hypogonadism', 'MAMH', 'SexualDysfunction', 'ProstateCancer'] },
+                        { title: 'Male Reproductive Health', keys: ['Infertility', 'SexualDysfunction', 'ProstateCancer'] },
+                      ]
+                    : [
+                        { title: 'Mental Health', keys: [...wellnessKeys, 'Anxiety', 'Depression', 'ChronicStress', 'PMDD'] },
+                        { title: 'Metabolic Health', keys: ['T2D', 'Metabolic'] },
+                        { title: 'Cardiovascular & Neurological Health', keys: ['CVD', 'Stroke', 'HeartFailure'] },
+                        { title: 'Reproductive Health', keys: ['Infertility', 'Endometrial', 'Dysmenorrhea'] },
+                      ];
                   const scores = prediction.unified_disease_scores!;
                   return (
                     <div className="mb-5 space-y-6">
@@ -1157,8 +1164,8 @@ const DashboardScreen = () => {
                           </div>
                         )}
 
-                        {/* 2. Menstrual Health */}
-                        {prediction.menstrual_risks && (
+                        {/* 2. Menstrual Health (female only) */}
+                        {!isMale && prediction.menstrual_risks && (
                           <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
                             <div className="flex items-center gap-2 mb-3">
                               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-purple-100">
