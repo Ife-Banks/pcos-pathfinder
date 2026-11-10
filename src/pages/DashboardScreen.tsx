@@ -661,6 +661,9 @@ const DashboardScreen = () => {
   const isMale = profile?.gender === 'male';
   const isFemale = profile?.gender === 'female';
 
+  // Debug gender detection
+  console.log('[Dashboard] Profile gender:', profile?.gender, 'isMale:', isMale, 'isFemale:', isFemale);
+
   // For males the 'PCOS' disease slot carries the MEMS (male metabolic
   // phenotype) signal — label it accordingly instead of the ovarian term.
   const diseaseDisplayName = (key: string): string =>
