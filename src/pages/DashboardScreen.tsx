@@ -658,8 +658,8 @@ const DashboardScreen = () => {
     loadMfgData();
   }, [loadMfgData]);
 
-  const isMale = profile?.gender === 'male';
-  const isFemale = profile?.gender === 'female';
+  const isMale = profile?.gender?.toLowerCase() === 'male';
+  const isFemale = profile?.gender?.toLowerCase() === 'female';
 
   // Debug gender detection
   console.log('[Dashboard] Profile gender:', profile?.gender, 'isMale:', isMale, 'isFemale:', isFemale);
