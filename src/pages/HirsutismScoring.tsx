@@ -19,7 +19,7 @@ interface BodyZone {
 
 const bodyZones: BodyZone[] = [
   { id: "upper_lip", name: "Upper Lip / Mustache", femaleDescription: "Above the lip, below the nose", maleDescription: "Above the lip, below the nose", icon: "👄" },
-  { id: "chin", name: "Chin / Beard", femaleDescription: "Chin and jawline area", maleDescription: "Chin, jawline and cheeks (full beard area)", icon: "🫦" },
+  { id: "chin", name: "Chin", femaleDescription: "Chin and jawline area", maleDescription: "Chin, jawline and cheeks (full beard area)", icon: "🫦" },
   { id: "chest", name: "Chest", femaleDescription: "Between and around the breasts", maleDescription: "Across the chest and around the nipples", icon: "🫁" },
   { id: "upper_abdomen", name: "Upper Abdomen", femaleDescription: "Above the navel", maleDescription: "Above the navel", icon: "⬆️" },
   { id: "lower_abdomen", name: "Lower Abdomen", femaleDescription: "Below the navel", maleDescription: "Below the navel", icon: "🔽" },
