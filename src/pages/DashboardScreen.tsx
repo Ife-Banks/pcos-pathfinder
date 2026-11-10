@@ -1003,7 +1003,7 @@ const DashboardScreen = () => {
                         { title: 'Mental Health', keys: [...wellnessKeys, 'Anxiety', 'Depression', 'ChronicStress'] },
                         { title: 'Metabolic Health', keys: ['T2D', 'Metabolic'] },
                         { title: 'Cardiovascular & Neurological Health', keys: ['CVD', 'Stroke', 'HeartFailure'] },
-                        { title: 'Male Reproductive Health', keys: ['Infertility'] },
+                        { title: 'Reproductive Health', keys: ['Infertility'] },
                         { title: 'Male Endocrine-Metabolic Syndrome (MEMS)', keys: ['PCOS', 'Hypogonadism', 'MAMH', 'SexualDysfunction', 'ProstateCancer'] },
                       ]
                     : [
@@ -1086,6 +1086,9 @@ const DashboardScreen = () => {
                                     <div className="flex items-start gap-1.5">
                                       <span className="text-[10px] font-bold text-gray-900 leading-tight line-clamp-1">
                                         {diseaseDisplayName(key)}
+                                      </span>
+                                      <span className="text-[9px] text-gray-500 ml-1">
+                                        ({data.contributing_models}) - {data.contributing_models === 1 ? 'Hindex' : 'Hindicies'}
                                       </span>
                                       <span
                                         className="text-[9px] font-bold px-1 py-0.5 rounded-full text-white shadow-sm shrink-0"
