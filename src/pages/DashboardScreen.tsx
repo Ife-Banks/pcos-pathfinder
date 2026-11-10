@@ -1434,16 +1434,16 @@ const DashboardScreen = () => {
           <div className="grid grid-cols-3 gap-3">
             <MetricCard
               icon={Heart}
-              value={todaySummary?.checkin?.hrv_rmssd ? todaySummary.checkin.hrv_rmssd.toFixed(0) : null}
+              value={todaySummary?.rppg?.rmssd ? todaySummary.rppg.rmssd.toFixed(0) : (todaySummary?.checkin?.hrv_rmssd ? todaySummary.checkin.hrv_rmssd.toFixed(0) : null)}
               label="HRV"
-              severity={todaySummary?.checkin?.hrv_rmssd ? getHrvLabel(todaySummary.checkin.hrv_rmssd) : null}
+              severity={todaySummary?.rppg?.rmssd ? getHrvLabel(todaySummary.rppg.rmssd) : (todaySummary?.checkin?.hrv_rmssd ? getHrvLabel(todaySummary.checkin.hrv_rmssd) : null)}
               iconColor="text-teal-500"
             />
             <MetricCard
               icon={Sun}
-              value={todaySummary?.mood?.mood_valence ? todaySummary.mood.mood_valence.toFixed(0) : null}
+              value={todaySummary?.mood?.mood_valence ? todaySummary.mood.mood_valence.toFixed(0) : (todaySummary?.mood?.affectValence ? todaySummary.mood.affectValence.toFixed(0) : null)}
               label="Mood"
-              severity={todaySummary?.mood?.mood_valence ? getMoodLabel(todaySummary.mood.mood_valence) : null}
+              severity={todaySummary?.mood?.mood_valence ? getMoodLabel(todaySummary.mood.mood_valence) : (todaySummary?.mood?.affectValence ? getMoodLabel(todaySummary.mood.affectValence) : null)}
               iconColor="text-purple-500"
             />
             <MetricCard
