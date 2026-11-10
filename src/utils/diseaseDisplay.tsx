@@ -5,8 +5,9 @@ import {
 import React from "react";
 
 export const expandAbbreviation = (key: string, isMale = false): string => {
+  // Force "Male Subfertility" for Infertility when user is male
+  if (key === 'Infertility' && isMale) return 'Male Subfertility';
   if (isMale && key === 'PCOS') return 'Metabolic Phenotype';
-  if (isMale && key === 'Infertility') return 'Male Subfertility';
   const mapping: Record<string, string> = {
     'T2D': 'Type 2 Diabetes',
     'CVD': 'Cardiovascular Disease',
