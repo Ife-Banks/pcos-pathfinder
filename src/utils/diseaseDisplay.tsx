@@ -146,6 +146,6 @@ export const MALE_DISEASE_GROUPS: { title: string; keys: string[] }[] = [
   { title: 'Mental Health', keys: [...WELLNESS_KEYS, 'Anxiety', 'Depression', 'ChronicStress'] },
   { title: 'Metabolic Health', keys: ['T2D', 'Metabolic'] },
   { title: 'Cardiovascular & Neurological Health', keys: ['CVD', 'Stroke', 'HeartFailure'] },
-  { title: 'Male Reproductive Health', keys: ['Infertility', 'SexualDysfunction', 'ProstateCancer'] },
-  { title: 'Male Endocrine-Metabolic Syndrome (MEMS)', keys: ['PCOS', 'MAMH', 'Hypogonadism'] },
+  { title: 'Male Reproductive Health', keys: ['Infertility'] },
+  { title: 'Male Endocrine-Metabolic Syndrome (MEMS)', keys: ['PCOS', 'MAMH', 'Hypogonadism', 'SexualDysfunction', 'ProstateCancer'] },
 ];
