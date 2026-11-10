@@ -1,3 +1,4 @@
+﻿import DailyTipPopup from "@/components/DailyTipPopup";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
@@ -859,6 +860,7 @@ const DashboardScreen = () => {
                     <button
                       onClick={async () => {
                         setIsProfileDropdownOpen(false);
+                        sessionStorage.removeItem("daily_tip_shown");
                         await logout();
                         navigate('/login');
                       }}
@@ -1559,6 +1561,7 @@ const DashboardScreen = () => {
         </div>
       </nav>
 
+      <DailyTipPopup />
       <NotificationPanel
         isOpen={isNotificationPanelOpen}
         onClose={() => setIsNotificationPanelOpen(false)}
@@ -1568,3 +1571,4 @@ const DashboardScreen = () => {
 };
 
 export default DashboardScreen;
+

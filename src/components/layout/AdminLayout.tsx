@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect  } from 'react';
 import { useNavigate, useLocation, Outlet, Navigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { adminAPI } from '@/services/adminService';
@@ -21,6 +21,7 @@ import {
   ChevronRight,
   ChevronDown,
   PlusSquare,
+  CreditCard
 } from 'lucide-react';
 
 const FACILITY_SUB_ITEMS = [
@@ -34,6 +35,7 @@ const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/system-admin/dashboard', key: 'dashboard' },
   { label: 'Facilities', icon: Building2, path: '/system-admin/facilities?tab=all', key: 'facilities' },
   { label: 'Users', icon: Users, path: '/system-admin/users', key: 'users' },
+  { label: 'Subscriptions', icon: CreditCard, path: '/system-admin/subscriptions', key: 'subscriptions' },
   { label: 'Staff Management', icon: Shield, path: '/system-admin/staff', key: 'staff' },
   { label: 'Check-Ins', icon: ClipboardCheck, path: '/system-admin/checkins', key: 'checkins' },
   { label: 'Onboardings', icon: UserPlus, path: '/system-admin/onboardings', key: 'onboardings' },
@@ -50,7 +52,14 @@ const AdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth < 768
+  );
+
+  // On mobile, close the menu after the user picks a page
+  useEffect(() => {
+    if (window.innerWidth < 768) setIsCollapsed(true);
+  }, [location.pathname, location.search]);
   const [facilitiesOpen, setFacilitiesOpen] = useState(false);
 
   if (!user || user.role !== 'admin') {
@@ -88,7 +97,16 @@ const AdminLayout = () => {
 
   return (
     <div className="flex h-screen bg-gray-900">
-      <aside className={`${isCollapsed ? 'w-16' : 'w-64'} bg-slate-800 border-r border-slate-700 flex flex-col transition-all duration-300 relative`}>
+      {/* Mobile backdrop: dims and blurs the page while the menu is open */}
+      {!isCollapsed && (
+        <div
+          onClick={() => setIsCollapsed(true)}
+          className="md:hidden fixed inset-0 z-30 bg-black/40 backdrop-blur-sm"
+          aria-hidden="true"
+        />
+      )}
+
+      <aside className={`${isCollapsed ? 'w-16' : 'w-64'} bg-slate-800 border-r border-slate-700 flex flex-col transition-all duration-300 fixed md:relative inset-y-0 left-0 z-40 md:z-auto`}>
 
         {/* Header */}
         <div className="p-4 border-b border-slate-700">
@@ -219,7 +237,7 @@ const AdminLayout = () => {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto bg-gray-100">
+      <main className="flex-1 min-w-0 overflow-y-auto bg-gray-100 pl-16 md:pl-0">
         <Outlet />
       </main>
     </div>

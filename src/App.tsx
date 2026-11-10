@@ -205,6 +205,7 @@ import { RppgCaptureReminder } from "./components/RppgCaptureReminder";
 import SubscriptionUpgradeScreen from './pages/SubscriptionUpgradeScreen';
 import { SubscriptionGate } from './components/SubscriptionGate';
 import SubscriptionVerifyScreen from './pages/SubscriptionVerifyScreen';
+import AdminSubscriptionsScreen from "./pages/admin/AdminSubscriptionsScreen";
 
 const queryClient = new QueryClient();
 
@@ -385,6 +386,7 @@ const App = () => {
                       <Route path="alerts" element={<AdminAlertsScreen />} />
                       <Route path="security" element={<AdminSecurityScreen />} />
                       <Route path="settings" element={<AdminSettingsScreen />} />
+                      <Route path="/system-admin/subscriptions" element={<AdminSubscriptionsScreen />} />
                     </Route>
                     {/* LGA Portal Routes */}
                     <Route path="/lga/login" element={<LGALoginScreen />} />
