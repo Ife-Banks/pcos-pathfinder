@@ -1003,8 +1003,8 @@ const DashboardScreen = () => {
                         { title: 'Mental Health', keys: [...wellnessKeys, 'Anxiety', 'Depression', 'ChronicStress'] },
                         { title: 'Metabolic Health', keys: ['T2D', 'Metabolic'] },
                         { title: 'Cardiovascular & Neurological Health', keys: ['CVD', 'Stroke', 'HeartFailure'] },
-                        { title: 'Male Endocrine-Metabolic Syndrome (MEMS)', keys: ['PCOS', 'Hypogonadism', 'MAMH', 'SexualDysfunction', 'ProstateCancer'] },
                         { title: 'Male Reproductive Health', keys: ['Infertility', 'SexualDysfunction', 'ProstateCancer'] },
+                        { title: 'Male Endocrine-Metabolic Syndrome (MEMS)', keys: ['PCOS', 'MAMH', 'Hypogonadism'] },
                       ]
                     : [
                         { title: 'Mental Health', keys: [...wellnessKeys, 'Anxiety', 'Depression', 'ChronicStress', 'PMDD'] },
