@@ -65,7 +65,7 @@ const getTrendBadge = (trend: string | null | undefined, percentChange: number |
 
 const TEAL_PRIMARY = '#00897B';
 
-const HirsutismScoring = () => {
+const HirsutismScoringFemale = () => {
   const navigate = useNavigate();
   const { isMale } = useUserGender();
   const [scores, setScores] = useState<Record<string, number>>(
@@ -432,4 +432,4 @@ const HirsutismScoring = () => {
   );
 };
 
-export default HirsutismScoring;
+export default HirsutismScoringFemale;

@@ -361,9 +361,33 @@ export const adminAPI = {
     const url = userId ? `/auth/users/${userId}/hrv-export/` : '/auth/hrv-export/';
     const token = localStorage.getItem('access_token');
     const res = await apiClient.get(url, {
+
       headers: { Authorization: `Bearer ${token}` },
       responseType: 'blob',
     });
     return res.data;
   },
+
+
+// exportHRVData: (userId?: string) => {
+//     return apiClient.get(`/admin/users/${userId}/hrv-export/`, { responseType: 'blob' });
+//   }, // <--- 1. Make sure this comma is here!
+
+  // 2. Add the two new methods right here:
+  getSubscriptions: () => {
+    return apiClient.get('/auth/users-with-subscriptions/'); 
+  },
+  
+  getTrialSettings: () => {
+    return apiClient.get('/subscriptions/admin/trial-settings/');
+  },
+
+  updateTrialSettings: (trialDays: number) => {
+    return apiClient.patch('/subscriptions/admin/trial-settings/', { trial_days: trialDays });
+  },
+
+  extendTrial: (userId: string, days: number = 10) => {
+    return apiClient.post(`/auth/users/${userId}/extend-trial/`, { days }); 
+  }
+
 };

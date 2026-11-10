@@ -63,9 +63,18 @@ export const SubscriptionGate = ({ require, children }: Props) => {
         </Button>
         <button
           className="mt-3 text-sm text-gray-400 hover:text-gray-600"
-          onClick={() => navigate('/dashboard')}
+          onClick={() => {
+            if (require === 'premium') {
+              // Soft gate: they can go back to the dashboard
+              navigate('/dashboard');
+            } else {
+              // Hard gate: they are locked out of the dashboard, so they must log out
+              localStorage.removeItem('token');
+              window.location.href = '/login';
+            }
+          }}
         >
-          Back to dashboard
+          {require === 'premium' ? 'Back to dashboard' : 'Sign out'}
         </button>
       </div>
     </div>

@@ -51,7 +51,7 @@ const useDebounce = <T,>(value: T, delay: number): T => {
   return debouncedValue;
 };
 
-const EveningCheckIn = () => {
+const EveningCheckInFemale = () => {
   const navigate = useNavigate();
   const { isMale } = useUserGender();
   const { loading, error, todayStatus, sessionId, isAlreadyComplete, retrySession, submitEveningData, submitHRV, completeSession, autosave } = useCheckinSession('evening');
@@ -923,4 +923,4 @@ const EveningCheckIn = () => {
   );
 };
 
-export default EveningCheckIn;
+export default EveningCheckInFemale;
