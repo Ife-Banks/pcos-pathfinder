@@ -55,9 +55,15 @@ const EveningCheckInFemale = () => {
   const navigate = useNavigate();
   const { isMale } = useUserGender();
   const { loading, error, todayStatus, sessionId, isAlreadyComplete, retrySession, submitEveningData, submitHRV, completeSession, autosave } = useCheckinSession('evening');
-  const [step, setStep] = useState<'form' | 'done' | 'error'>('form');
+  const [step, setStep] = useState<'form' | 'done' | 'error' | 'blocked'>('form');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Check if evening check-in should be blocked
+  const isMorningComplete = todayStatus?.morning_status === 'complete';
+  const currentHour = new Date().getHours();
+  const isPastNoon = currentHour >= 12;
+  const isBlocked = !isMorningComplete || !isPastNoon;
 
   const [breastLeft, setBreastLeft] = useState(0);
   const [breastRight, setBreastRight] = useState(0);
@@ -198,8 +204,10 @@ const EveningCheckInFemale = () => {
   useEffect(() => {
     if (isAlreadyComplete || todayStatus?.evening_status === 'complete') {
       setStep('done');
+    } else if (isBlocked) {
+      setStep('blocked');
     }
-  }, [isAlreadyComplete, todayStatus]);
+  }, [isAlreadyComplete, todayStatus, isBlocked]);
 
   useEffect(() => {
     if (error && !loading) {
@@ -260,9 +268,14 @@ const EveningCheckInFemale = () => {
   };
 
   const renderAcneSlider = (value: number, onChange: (v: number) => void, label: string) => (
-    <div className="flex items-center justify-between gap-4 mb-2">
-      <span className="text-sm text-gray-700 w-24">{label}</span>
-      <div className="flex items-center gap-2 flex-1">
+    <div className="mb-3">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-sm text-gray-700">{label}</span>
+        <span className="text-sm font-medium" style={{ color: acneLabels[value].color }}>
+          {value}/4
+        </span>
+      </div>
+      <div className="flex items-center gap-2">
         <input
           type="range"
           min="0"
@@ -273,11 +286,10 @@ const EveningCheckInFemale = () => {
           className="flex-1 h-2 appearance-none rounded-lg cursor-pointer"
           style={{ accentColor: acneLabels[value].color }}
         />
-        <span className="text-sm font-medium w-20" style={{ color: acneLabels[value].color }}>
-          {value}/4
-        </span>
       </div>
-      <span className="text-xs text-gray-500 w-32">{acneLabels[value].label}</span>
+      <div className="text-right mt-1">
+        <span className="text-xs text-gray-500">{acneLabels[value].label}</span>
+      </div>
     </div>
   );
 
@@ -879,6 +891,27 @@ const EveningCheckInFemale = () => {
     </motion.div>
   );
 
+  const renderBlocked = () => (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-8">
+      <div className="h-16 w-16 rounded-full bg-orange-100 flex items-center justify-center mx-auto mb-4">
+        <Moon className="h-8 w-8 text-orange-600" />
+      </div>
+      <h3 className="text-lg font-bold text-gray-900 mb-2">Evening Check-In Not Available</h3>
+      <p className="text-sm text-gray-500 mb-4">
+        {!isMorningComplete
+          ? 'Please complete your morning check-in first.'
+          : 'Evening check-in is available after 12:00 PM.'}
+      </p>
+      <Button
+        onClick={() => navigate('/dashboard')}
+        className="w-full h-12 rounded-xl text-white font-semibold"
+        style={{ backgroundColor: TEAL_PRIMARY }}
+      >
+        Go to Dashboard
+      </Button>
+    </motion.div>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="px-6 pt-8 pb-4" style={{ backgroundColor: TEAL_PRIMARY }}>
@@ -917,7 +950,7 @@ const EveningCheckInFemale = () => {
             <div className="h-8 w-8 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
             <p className="text-gray-500">Loading...</p>
           </div>
-        ) : step === 'error' ? renderError() : step === 'form' ? renderForm() : renderDone()}
+        ) : step === 'error' ? renderError() : step === 'blocked' ? renderBlocked() : step === 'form' ? renderForm() : renderDone()}
       </div>
     </div>
   );
