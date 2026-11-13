@@ -742,7 +742,6 @@ const DashboardScreen = () => {
                     <button
                       onClick={async () => {
                         setIsProfileDropdownOpen(false);
-                        sessionStorage.removeItem("daily_tip_shown");
                         await logout();
                         navigate('/login');
                       }}

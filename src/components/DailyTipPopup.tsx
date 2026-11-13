@@ -22,14 +22,19 @@ const WINDOW_META: Record<
   night: { title: "Wellness", accent: "#00897B", Icon: Heart },
 };
 
-const SHOWN_KEY = "daily_tip_shown";
+const SHOWN_KEY = "daily_tip_shown_for";
 
 export default function DailyTipPopup() {
   const [tip, setTip] = useState<DailyTip | null>(null);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (sessionStorage.getItem(SHOWN_KEY)) return;
+    // Show once per login: the refresh token is stable for a session but
+    // changes on every fresh login, so it works as the "already shown" key.
+    const sessionKey =
+      localStorage.getItem("refresh_token") ||
+      localStorage.getItem("access_token");
+    if (!sessionKey || localStorage.getItem(SHOWN_KEY) === sessionKey) return;
     let cancelled = false;
     apiClient
       .get<DailyTip>("/tips/daily-tips/current/")
@@ -37,7 +42,7 @@ export default function DailyTipPopup() {
         if (cancelled) return;
         setTip(res.data);
         setOpen(true);
-        sessionStorage.setItem(SHOWN_KEY, "1");
+        localStorage.setItem(SHOWN_KEY, sessionKey);
       })
       .catch(() => {
         /* 404 = no tip for this window; stay closed */
